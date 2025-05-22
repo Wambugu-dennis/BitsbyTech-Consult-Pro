@@ -1,4 +1,5 @@
-import { LayoutDashboard, ShieldAlert, KanbanSquare, Users, UsersCog, type LucideIcon } from 'lucide-react';
+
+import { LayoutDashboard, ShieldAlert, KanbanSquare, Users, UserCog, type LucideIcon } from 'lucide-react';
 
 export interface NavLink {
   href: string;
@@ -11,7 +12,7 @@ export const navLinks: NavLink[] = [
   { href: '/risk-analyzer', label: 'AI Risk Analyzer', icon: ShieldAlert },
   { href: '/projects', label: 'Project Tracker', icon: KanbanSquare },
   { href: '/clients', label: 'Client Repository', icon: Users },
-  { href: '/consultants', label: 'Consultants', icon: UsersCog },
+  { href: '/consultants', label: 'Consultants', icon: UserCog },
 ];
 
 export const PROJECT_STATUS = {
