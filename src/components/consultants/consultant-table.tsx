@@ -1,4 +1,6 @@
+
 // src/components/consultants/consultant-table.tsx
+import Link from 'next/link';
 import type { Consultant, ConsultantStatus } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { MoreHorizontal, Edit2, Trash2, Eye, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CONSULTANT_STATUS_COLORS, CONSULTANT_STATUS_VARIANTS } from "@/lib/constants";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ConsultantTableProps {
   consultants: Consultant[];
@@ -54,12 +57,22 @@ export default function ConsultantTable({ consultants }: ConsultantTableProps) {
           )}
           {consultants.map((consultant) => (
             <TableRow key={consultant.id}>
-              <TableCell className="font-medium">{consultant.name}</TableCell>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={consultant.avatarUrl || `https://placehold.co/100x100.png?text=${consultant.name.substring(0,2).toUpperCase()}`} alt={consultant.name} data-ai-hint="person avatar" />
+                    <AvatarFallback>{consultant.name.substring(0,2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <Link href={`/consultants/${consultant.id}`} className="hover:underline text-primary">
+                    {consultant.name}
+                  </Link>
+                </div>
+              </TableCell>
               <TableCell>{consultant.role}</TableCell>
               <TableCell>{consultant.email}</TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">
-                  {consultant.skills.slice(0, 3).map(skill => ( // Show up to 3 skills initially
+                  {consultant.skills.slice(0, 3).map(skill => ( 
                     <Badge key={skill} variant="secondary" className="font-normal">{skill}</Badge>
                   ))}
                   {consultant.skills.length > 3 && (
@@ -87,8 +100,10 @@ export default function ConsultantTable({ consultants }: ConsultantTableProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Eye className="mr-2 h-4 w-4" /> View Details
+                    <DropdownMenuItem asChild>
+                      <Link href={`/consultants/${consultant.id}`}>
+                        <Eye className="mr-2 h-4 w-4" /> View Details
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
                       <Edit2 className="mr-2 h-4 w-4" /> Edit Consultant
@@ -96,7 +111,7 @@ export default function ConsultantTable({ consultants }: ConsultantTableProps) {
                      <DropdownMenuItem>
                       <UserCog className="mr-2 h-4 w-4" /> Manage Skills/Availability
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive_legacy_danger_do_not_use"> {/* Use a class that maps to destructive color */}
+                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
                       <Trash2 className="mr-2 h-4 w-4" /> Delete Consultant
                     </DropdownMenuItem>
                   </DropdownMenuContent>

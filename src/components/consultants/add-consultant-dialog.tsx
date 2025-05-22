@@ -1,3 +1,4 @@
+
 // src/components/consultants/add-consultant-dialog.tsx
 'use client';
 
@@ -17,6 +18,7 @@ const consultantFormSchema = z.object({
   email: z.string().email('Invalid email address.'),
   role: z.string().min(2, 'Role must be at least 2 characters.'),
   skills: z.string().min(2, 'Please list at least one skill (comma-separated).'),
+  bio: z.string().max(500, 'Bio should not exceed 500 characters.').optional(),
 });
 
 export type ConsultantFormData = z.infer<typeof consultantFormSchema>;
@@ -34,6 +36,7 @@ export default function AddConsultantDialog({ onAddConsultant }: AddConsultantDi
       email: '',
       role: '',
       skills: '',
+      bio: '',
     },
   });
 
@@ -51,7 +54,7 @@ export default function AddConsultantDialog({ onAddConsultant }: AddConsultantDi
           Add Consultant
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Add New Consultant</DialogTitle>
           <DialogDescription>
@@ -106,7 +109,20 @@ export default function AddConsultantDialog({ onAddConsultant }: AddConsultantDi
                 <FormItem>
                   <FormLabel>Skills</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Enter skills, comma-separated (e.g. Market Analysis, AI Strategy)" {...field} rows={3} />
+                    <Input placeholder="Comma-separated (e.g. Market Analysis, AI Strategy)" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="bio"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Biography (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Brief summary of experience and expertise..." {...field} rows={3} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -122,3 +138,4 @@ export default function AddConsultantDialog({ onAddConsultant }: AddConsultantDi
     </Dialog>
   );
 }
+

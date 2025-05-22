@@ -1,3 +1,4 @@
+
 import type { PROJECT_STATUS } from './constants';
 
 export type Kpi = {
@@ -64,13 +65,44 @@ export type ClientRelationshipData = {
 
 export type ConsultantStatus = 'Available' | 'On Project' | 'Unavailable';
 
+export type DetailedSkill = {
+  name: string;
+  proficiency: 'Beginner' | 'Intermediate' | 'Expert';
+  yearsOfExperience?: number;
+};
+
+export type Certification = {
+  name: string;
+  issuingBody: string;
+  dateObtained: string;
+  expiryDate?: string;
+  credentialId?: string;
+};
+
+export type ProjectHistoryEntry = {
+  projectId: string;
+  projectName: string;
+  roleOnProject: string;
+  startDate: string;
+  endDate?: string;
+  projectStatus: string; // Could be linked to Project type's status
+};
+
 export type Consultant = {
   id: string;
   name: string;
   email: string;
   role: string;
-  skills: string[];
+  skills: string[]; // For basic display and input, detailedSkills for richer data
   utilization: number; // Percentage 0-100
   status: ConsultantStatus;
   currentProject?: string;
+  bio?: string;
+  avatarUrl?: string;
+  phone?: string;
+  projectHistory?: ProjectHistoryEntry[];
+  detailedSkills?: DetailedSkill[];
+  certifications?: Certification[];
+  // availabilityCalendarData?: any; // Placeholder for complex availability structure
 };
+
