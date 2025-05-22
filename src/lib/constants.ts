@@ -1,5 +1,19 @@
 
-import { LayoutDashboard, ShieldAlert, KanbanSquare, Users, UserCog, type LucideIcon } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  ShieldAlert, 
+  KanbanSquare, 
+  Users, 
+  UserCog, 
+  Briefcase,
+  DollarSign,
+  CalendarDays,
+  TrendingUp,
+  BarChart3,
+  Settings as SettingsIcon,
+  HelpCircle,
+  type LucideIcon 
+} from 'lucide-react';
 
 export interface NavLink {
   href: string;
@@ -9,10 +23,16 @@ export interface NavLink {
 
 export const navLinks: NavLink[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/risk-analyzer', label: 'AI Risk Analyzer', icon: ShieldAlert },
-  { href: '/projects', label: 'Project Tracker', icon: KanbanSquare },
-  { href: '/clients', label: 'Client Repository', icon: Users },
+  { href: '/clients', label: 'Clients', icon: Users },
+  { href: '/projects', label: 'Projects', icon: Briefcase },
   { href: '/consultants', label: 'Consultants', icon: UserCog },
+  { href: '/finances', label: 'Finances', icon: DollarSign },
+  { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/analytics', label: 'Analytics', icon: TrendingUp },
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/risk-analyzer', label: 'AI Risk Analyzer', icon: ShieldAlert },
+  { href: '/settings', label: 'Settings', icon: SettingsIcon },
+  { href: '/help', label: 'Help', icon: HelpCircle },
 ];
 
 export const PROJECT_STATUS = {
@@ -38,3 +58,4 @@ export const CONSULTANT_STATUS_VARIANTS: Record<string, "default" | "secondary" 
   'On Project': 'outline',
   Unavailable: 'secondary',
 };
+

@@ -9,7 +9,7 @@ import type { Consultant } from "@/lib/types";
 import type { ConsultantFormData } from '@/components/consultants/add-consultant-dialog';
 
 // Mock data - in a real app, this would come from a database/API
-const initialConsultants: Consultant[] = [
+export const initialConsultants: Consultant[] = [
   { 
     id: 'c1', 
     name: 'Dr. Eleanor Vance', 
