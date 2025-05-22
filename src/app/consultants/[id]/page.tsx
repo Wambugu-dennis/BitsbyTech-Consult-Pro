@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Consultant } from '@/lib/types';
-import { initialConsultants } from '@/app/consultants/page'; // Temporary: Import mock data directly for now
+import { initialConsultants } from '@/lib/mockData'; // Updated import
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -243,8 +243,3 @@ export default function ConsultantProfilePage() {
     </div>
   );
 }
-
-// This is a temporary solution to access mock data on the client side for this example.
-// In a real application, `initialConsultants` would be fetched or managed globally (e.g. via Context or a store like Zustand/Redux if it needs to be mutable client-side without API calls).
-// Or, preferably, this page would be a Server Component fetching data directly.
-export { initialConsultants };

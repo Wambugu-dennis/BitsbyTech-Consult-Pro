@@ -1,18 +1,11 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import ClientTable from "@/components/clients/client-table";
 import AddClientDialog from "@/components/clients/add-client-dialog";
 import type { Client } from "@/lib/types";
-
-// Mock data - in a real app, this would come from a database/API
-const initialClients: Client[] = [
-  { id: '1', name: 'Innovatech Ltd.', email: 'contact@innovatech.com', company: 'Innovatech Ltd.', lastContact: '2024-07-15', status: 'Active' },
-  { id: '2', name: 'Alpha Solutions', email: 'info@alphasolutions.io', company: 'Alpha Solutions', lastContact: '2024-06-20', status: 'Active' },
-  { id: '3', name: 'Beta Corp', email: 'support@betacorp.dev', company: 'Beta Corp', lastContact: '2024-05-10', status: 'Inactive' },
-  { id: '4', name: 'Gamma Industries', email: 'sales@gammaind.net', company: 'Gamma Industries', lastContact: '2024-07-01', status: 'Prospect' },
-];
-
+import { initialClients } from '@/lib/mockData'; // Updated import
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);

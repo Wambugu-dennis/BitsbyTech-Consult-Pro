@@ -7,71 +7,7 @@ import ConsultantTable from "@/components/consultants/consultant-table";
 import AddConsultantDialog from "@/components/consultants/add-consultant-dialog";
 import type { Consultant } from "@/lib/types";
 import type { ConsultantFormData } from '@/components/consultants/add-consultant-dialog';
-
-// Mock data - in a real app, this would come from a database/API
-export const initialConsultants: Consultant[] = [
-  { 
-    id: 'c1', 
-    name: 'Dr. Eleanor Vance', 
-    email: 'eleanor.vance@consult.com', 
-    role: 'Lead Strategist', 
-    skills: ['Market Analysis', 'AI Strategy', 'Digital Transformation'], 
-    utilization: 75, 
-    status: 'On Project', 
-    currentProject: 'Innovatech AI Overhaul',
-    bio: 'Seasoned strategist with 15+ years of experience in driving digital innovation and market growth for Fortune 500 companies. Expert in AI-driven business solutions.',
-    avatarUrl: 'https://placehold.co/100x100/64B5F6/FFFFFF.png?text=EV',
-    phone: '555-0101',
-  },
-  { 
-    id: 'c2', 
-    name: 'Marcus Chen', 
-    email: 'marcus.chen@consult.com', 
-    role: 'Senior Data Scientist', 
-    skills: ['Machine Learning', 'Python', 'Big Data Analytics', 'NLP'], 
-    utilization: 90, 
-    status: 'On Project', 
-    currentProject: 'Alpha Solutions Predictive Model',
-    bio: 'Data scientist specializing in machine learning model development and deployment. Passionate about leveraging data to solve complex business problems.',
-    avatarUrl: 'https://placehold.co/100x100/FFB74D/FFFFFF.png?text=MC',
-  },
-  { 
-    id: 'c3', 
-    name: 'Aisha Khan', 
-    email: 'aisha.khan@consult.com', 
-    role: 'Project Manager', 
-    skills: ['Agile Methodologies', 'Scrum Master', 'Stakeholder Management'], 
-    utilization: 60, 
-    status: 'Available',
-    bio: 'Certified Scrum Master and Agile coach with a track record of delivering complex projects on time and within budget. Strong focus on team collaboration and client satisfaction.',
-    avatarUrl: 'https://placehold.co/100x100/81C784/FFFFFF.png?text=AK',
-    phone: '555-0103',
-  },
-  { 
-    id: 'c4', 
-    name: 'James Miller', 
-    email: 'james.miller@consult.com', 
-    role: 'Junior Analyst', 
-    skills: ['Data Visualization', 'Excel', 'Market Research'], 
-    utilization: 20, 
-    status: 'Available',
-    bio: 'Enthusiastic analyst with a knack for transforming data into actionable insights. Proficient in market research and creating compelling data visualizations.',
-    // avatarUrl: null, // Example of no specific avatar
-  },
-  { 
-    id: 'c5', 
-    name: 'Sofia Petrova', 
-    email: 'sofia.petrova@consult.com', 
-    role: 'UX Lead', 
-    skills: ['User Research', 'Prototyping', 'Interaction Design', 'Figma'], 
-    utilization: 0, 
-    status: 'Unavailable',
-    bio: 'Creative UX Lead dedicated to designing intuitive and engaging user experiences. Expert in user-centered design methodologies and modern design tools.',
-    avatarUrl: 'https://placehold.co/100x100/E57373/FFFFFF.png?text=SP',
-    phone: '555-0105',
-  },
-];
-
+import { initialConsultants } from '@/lib/mockData'; // Updated import
 
 export default function ConsultantsPage() {
   const [consultants, setConsultants] = useState<Consultant[]>([]);
