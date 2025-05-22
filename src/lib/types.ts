@@ -61,3 +61,16 @@ export type ClientRelationshipData = {
   client: string;
   healthScore: number; // 0-100
 };
+
+export type ConsultantStatus = 'Available' | 'On Project' | 'Unavailable';
+
+export type Consultant = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  skills: string[];
+  utilization: number; // Percentage 0-100
+  status: ConsultantStatus;
+  currentProject?: string;
+};
