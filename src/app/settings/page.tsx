@@ -135,7 +135,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2">
             <SettingsIcon className="h-6 w-6 text-muted-foreground" />
-            Future Enhancements & System Overview
+            Enhancements &amp; System Overview
           </CardTitle>
           <CardDescription>
              The settings area is designed for comprehensive management. Key future options across categories include:
@@ -143,12 +143,12 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-1 md:columns-2">
-              <li>Granular User Preferences & Advanced Notification Controls</li>
+              <li>Granular User Preferences &amp; Advanced Notification Controls</li>
               <li>Detailed Role-Based Access Control (RBAC) Configuration</li>
-              <li>Visual Workflow Customization Tools & Versioning</li>
+              <li>Visual Workflow Customization Tools &amp; Versioning</li>
               <li>Expanded Library of Third-Party Integrations with OAuth Support</li>
-              <li>Advanced System Auditing & Compliance Reporting Tools</li>
-              <li>Data Backup & Restoration Management</li>
+              <li>Advanced System Auditing &amp; Compliance Reporting Tools</li>
+              <li>Data Backup &amp; Restoration Management</li>
               <li>API Key Management for External Services</li>
               <li>Theme Customization and White-Labeling Options</li>
             </ul>
