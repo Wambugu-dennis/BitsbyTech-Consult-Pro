@@ -237,7 +237,6 @@ export default function ProjectProfilePage() {
                     ))}
                   </CardContent>
                 </Card>
-              </Card>
               )}
             </TabsContent>
 
@@ -344,3 +343,5 @@ export default function ProjectProfilePage() {
     </div>
   );
 }
+
+    
