@@ -27,6 +27,8 @@ import { format, formatISO } from 'date-fns';
 import type { Client, Project, Consultant, ExpenseCategory, ExpenseStatus, Expense } from '@/lib/types';
 import { expenseCategories } from '@/lib/types'; // Assuming expenseCategories is exported from types or constants
 
+const NONE_VALUE_PLACEHOLDER = "--none--";
+
 const addExpenseFormSchema = z.object({
   date: z.date({ required_error: 'Expense date is required.' }),
   description: z.string().min(5, 'Description must be at least 5 characters.'),
@@ -86,12 +88,15 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
       updatedAt: new Date().toISOString(),
     };
     onAddExpense(newExpense);
-    form.reset();
+    form.reset({ currency: 'USD', category: '', description: '', amount: 0, receiptUrl: '', notes: '' });
     setOpen(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) form.reset({ currency: 'USD', category: '', description: '', amount: 0, receiptUrl: '', notes: '' });
+      setOpen(isOpen);
+    }}>
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2 h-4 w-4" />
@@ -183,20 +188,20 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a category or type custom" />
+                        <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {expenseCategories.map(cat => (
                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                       ))}
+                       {/* Allow custom category, or ensure 'Other' is an option if form.value might be something not in the list */}
                     </SelectContent>
                   </Select>
                    <FormMessage />
-                  {/* Or allow custom input: <Input placeholder="e.g., Travel, Software" {...field} /> */}
                 </FormItem>
               )}
             />
@@ -207,13 +212,14 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Submitted By (Consultant)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={(value) => field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value)} value={field.value || NONE_VALUE_PLACEHOLDER}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select consultant if applicable" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
                       {consultants.map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.name} ({c.role})</SelectItem>
                       ))}
@@ -230,14 +236,20 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client (Optional)</FormLabel>
-                  <Select onValueChange={(value) => { field.onChange(value); form.setValue('projectId', ''); }} defaultValue={field.value}>
+                  <Select 
+                    onValueChange={(value) => { 
+                      field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value); 
+                      form.setValue('projectId', undefined); 
+                    }} 
+                    value={field.value || NONE_VALUE_PLACEHOLDER}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Link to a client" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
                       {clients.map(client => (
                         <SelectItem key={client.id} value={client.id}>{client.companyName}</SelectItem>
                       ))}
@@ -254,14 +266,18 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!selectedClientId && availableProjects.length === 0}>
+                  <Select 
+                    onValueChange={(value) => field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value)} 
+                    value={field.value || NONE_VALUE_PLACEHOLDER} 
+                    disabled={!selectedClientId && availableProjects.length === 0}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={!selectedClientId && projects.length > 0 ? "Select client first or choose general project" : "Link to a project"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                       <SelectItem value="">None</SelectItem>
+                       <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
                       {availableProjects.map(project => (
                         <SelectItem key={project.id} value={project.id}>{project.name} ({project.clientNameCache})</SelectItem>
                       ))}
@@ -301,7 +317,10 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { form.reset(); setOpen(false); }}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => { 
+                  form.reset({ currency: 'USD', category: '', description: '', amount: 0, receiptUrl: '', notes: '' }); 
+                  setOpen(false); 
+              }}>Cancel</Button>
               <Button type="submit">Log Expense</Button>
             </DialogFooter>
           </form>
@@ -310,3 +329,5 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
     </Dialog>
   );
 }
+
+    

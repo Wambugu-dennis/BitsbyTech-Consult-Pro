@@ -22,7 +22,21 @@ export default function ExpensesPage() {
     setIsMounted(true);
   }, []);
 
-  const handleAddExpense = (newExpense: Expense) => {
+  const handleAddExpense = (newExpenseData: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => {
+    const consultant = initialConsultants.find(c => c.id === newExpenseData.submittedByConsultantId);
+    const client = initialClients.find(c => c.id === newExpenseData.clientId);
+    const project = initialProjects.find(p => p.id === newExpenseData.projectId);
+    
+    const newExpense: Expense = {
+      ...newExpenseData,
+      id: `exp-${Date.now()}`, // Simple ID generation for mock
+      status: 'Pending', // Default status
+      submittedByConsultantNameCache: consultant?.name,
+      clientNameCache: client?.companyName,
+      projectNameCache: project?.name,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
     setExpenses(prevExpenses => [newExpense, ...prevExpenses]);
   };
 
@@ -71,23 +85,6 @@ export default function ExpensesPage() {
         />
       </header>
       
-      {/* 
-        Placeholder for Expenses Dashboard snippet if needed in future:
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">$1,234.50</div> // Example, would be dynamic
-            <p className="text-xs text-muted-foreground">from 15 expenses</p>
-          </CardContent>
-        </Card>
-        // Add more KPI cards as needed
-      </div>
-      */}
-
       <Card>
         <CardHeader>
           <CardTitle>All Logged Expenses</CardTitle>
@@ -116,14 +113,16 @@ export default function ExpensesPage() {
         <CardContent>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-1 md:columns-2">
               <li>Advanced Expense Logging Form (Current form is simplified; receipt file upload is planned).</li>
-              <li>Multi-step Approval Workflows & Notifications (Under development).</li>
-              <li>Detailed Expense Reporting & Analytics (by category, project, client) (Planned).</li>
-              <li>Bulk Actions (e.g., approve multiple, export selected) (Planned).</li>
+              <li>Multi-step Approval Workflows & Notifications.</li>
+              <li>Detailed Expense Reporting & Analytics (by category, project, client).</li>
+              <li>Bulk Actions (e.g., approve multiple, export selected).</li>
               <li>Data Export to Excel (Under development, for integration with accounting software).</li>
-              <li>Policy Enforcement (e.g., spending limits per category/project) (Planned).</li>
+              <li>Policy Enforcement (e.g., spending limits per category/project).</li>
             </ul>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
