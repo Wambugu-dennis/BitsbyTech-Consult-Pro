@@ -2,7 +2,7 @@
 // src/app/clients/[id]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Client, Consultant, KeyContact } from '@/lib/types';
@@ -358,5 +358,7 @@ export default function ClientProfilePage() {
     </div>
   );
 }
+
+    
 
     
