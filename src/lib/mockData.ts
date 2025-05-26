@@ -1,6 +1,7 @@
 
-import type { Client, Consultant, Project, ProjectTask } from "@/lib/types";
+import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem } from "@/lib/types";
 import { PROJECT_STATUS } from "./constants";
+import { formatISO, addDays, subDays } from 'date-fns';
 
 // Mock data for Clients
 export const initialClients: Client[] = [
@@ -250,4 +251,67 @@ export const initialProjects: Project[] = [
     lastUpdated: new Date().toISOString(),
     completionPercent: 5,
   }
+];
+
+// Mock data for Invoices
+const today = new Date();
+const generateInvoiceItems = (num: number, basePrice: number): { items: InvoiceItem[], subTotal: number } => {
+  const items: InvoiceItem[] = [];
+  let subTotal = 0;
+  for (let i = 1; i <= num; i++) {
+    const quantity = Math.floor(Math.random() * 5) + 1;
+    const unitPrice = basePrice * (Math.random() * 0.5 + 0.75); // +/- 25% of basePrice
+    const totalPrice = quantity * unitPrice;
+    items.push({
+      id: `item-${Date.now()}-${i}`,
+      description: `Consulting Service ${i} / Development Hours`,
+      quantity,
+      unitPrice: parseFloat(unitPrice.toFixed(2)),
+      totalPrice: parseFloat(totalPrice.toFixed(2)),
+    });
+    subTotal += totalPrice;
+  }
+  return { items, subTotal: parseFloat(subTotal.toFixed(2)) };
+};
+
+const createInvoice = (id: string, client: Client, project: Project | undefined, status: InvoiceStatus, daysOffset: number, itemsInfo: { items: InvoiceItem[], subTotal: number }): Invoice => {
+  const issueDate = formatISO(subDays(today, daysOffset), { representation: 'date' });
+  const dueDate = formatISO(addDays(new Date(issueDate), 30), { representation: 'date' });
+  const taxRate = 0.08; // 8%
+  const taxAmount = parseFloat((itemsInfo.subTotal * taxRate).toFixed(2));
+  const totalAmount = parseFloat((itemsInfo.subTotal + taxAmount).toFixed(2));
+
+  return {
+    id,
+    clientId: client.id,
+    clientNameCache: client.companyName,
+    projectId: project?.id,
+    projectNameCache: project?.name,
+    issueDate,
+    dueDate,
+    items: itemsInfo.items,
+    subTotal: itemsInfo.subTotal,
+    taxRate,
+    taxAmount,
+    totalAmount,
+    status,
+    currency: 'USD',
+    notes: 'Thank you for your business. Payment is due within 30 days.',
+    paymentDetails: 'Bank: Global Consultants Bank, Account: 123-456-789, SWIFT: GCBKUS33',
+    createdAt: formatISO(subDays(today, daysOffset + 2)),
+    updatedAt: formatISO(subDays(today, daysOffset + 1)),
+    paymentDate: status === 'Paid' ? formatISO(subDays(today, daysOffset - 5)) : undefined,
+  };
+};
+
+const inv1Items = generateInvoiceItems(3, 1500);
+const inv2Items = generateInvoiceItems(2, 2500);
+const inv3Items = generateInvoiceItems(5, 1000);
+const inv4Items = generateInvoiceItems(1, 5000);
+
+export const initialInvoices: Invoice[] = [
+  createInvoice('INV-2024-001', initialClients[0], initialProjects.find(p => p.clientId === initialClients[0].id), 'Paid', 45, inv1Items),
+  createInvoice('INV-2024-002', initialClients[1], initialProjects.find(p => p.clientId === initialClients[1].id), 'Sent', 20, inv2Items),
+  createInvoice('INV-2024-003', initialClients[0], initialProjects.find(p => p.clientId === initialClients[0].id && p.id === 'proj105'), 'Overdue', 35, inv3Items),
+  createInvoice('INV-2024-004', initialClients[2], undefined, 'Draft', 5, inv4Items),
 ];

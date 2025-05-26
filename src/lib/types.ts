@@ -188,3 +188,35 @@ export type Consultant = {
   certifications?: Certification[];
 };
 
+// Financial Types
+export type InvoiceItem = {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number; // quantity * unitPrice
+};
+
+export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Void';
+
+export type Invoice = {
+  id: string; // e.g., INV-2024-001
+  clientId: string;
+  clientNameCache: string; // Denormalized
+  projectId?: string;
+  projectNameCache?: string; // Denormalized
+  issueDate: string; // ISO date string
+  dueDate: string; // ISO date string
+  items: InvoiceItem[];
+  subTotal: number; // Sum of all item.totalPrice
+  taxRate?: number; // e.g., 0.08 for 8%
+  taxAmount?: number; // subTotal * taxRate
+  totalAmount: number; // subTotal + taxAmount
+  status: InvoiceStatus;
+  currency: string; // e.g., "USD", "EUR"
+  notes?: string;
+  paymentDetails?: string; // e.g., Bank transfer info, payment link
+  paymentDate?: string; // ISO date string, if paid
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+};
