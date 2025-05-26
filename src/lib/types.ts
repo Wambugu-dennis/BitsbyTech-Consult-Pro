@@ -270,3 +270,30 @@ export type Expense = {
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
 };
+
+// Budget Types
+export type BudgetStatus = 'Planning' | 'Active' | 'Overspent' | 'Completed' | 'On Hold';
+
+export const budgetStatuses: BudgetStatus[] = ['Planning', 'Active', 'Overspent', 'Completed', 'On Hold'];
+
+export type BudgetType = 'Project' | 'Departmental' | 'General';
+export const budgetTypes: BudgetType[] = ['Project', 'Departmental', 'General'];
+
+export type Budget = {
+  id: string;
+  name: string;
+  type: BudgetType;
+  linkedProjectId?: string;
+  linkedProjectNameCache?: string; // Denormalized
+  departmentName?: string; // For Departmental type
+  totalAmount: number;
+  spentAmount: number; // This would typically be calculated from actual expenses linked to this budget
+  currency: string;
+  startDate: string; // ISO date string
+  endDate: string; // ISO date string
+  status: BudgetStatus;
+  description?: string;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+};
+

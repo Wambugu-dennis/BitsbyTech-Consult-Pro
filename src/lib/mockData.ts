@@ -1,7 +1,9 @@
 
-import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, Expense, ExpenseStatus, ExpenseCategory } from "@/lib/types";
-import { PROJECT_STATUS, expenseCategories } from "./constants"; // expenseCategories might not be in constants yet
-import { formatISO, addDays, subDays } from 'date-fns';
+import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, Expense, Budget, BudgetStatus, BudgetType } from "@/lib/types";
+import { PROJECT_STATUS, expenseCategories, budgetTypes, budgetStatuses } from "./constants"; 
+import { formatISO, addDays, subDays, addMonths } from 'date-fns';
+
+const today = new Date();
 
 // Mock data for Clients
 export const initialClients: Client[] = [
@@ -148,7 +150,7 @@ export const initialConsultants: Consultant[] = [
   },
 ];
 
-// Mock data for Project Tasks (can be part of a Project object or standalone if needed for a global task view)
+// Mock data for Project Tasks
 export const initialProjectTasks: ProjectTask[] = [
   { id: 'task-proj101-1', title: 'Discovery Phase for Innovatech', description: 'Initial client meetings and requirement gathering for AI Overhaul.', status: PROJECT_STATUS.TODO, assigneeId: 'c1', dueDate: '2024-08-15', priority: 'High' },
   { id: 'task-proj202-1', title: 'Develop UI Mockups for Alpha Solutions', description: 'Create wireframes and high-fidelity mockups for predictive model interface.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c5', dueDate: '2024-08-20', priority: 'Medium'  },
@@ -164,11 +166,11 @@ export const initialProjects: Project[] = [
     id: 'proj101',
     name: 'Innovatech AI Overhaul',
     description: 'A comprehensive project to integrate advanced AI capabilities into Innovatech Ltd.\'s core platform, aiming to improve efficiency and user engagement. Includes development of new machine learning models and a chatbot interface.',
-    clientId: '1', // Innovatech Ltd.
+    clientId: '1', 
     clientNameCache: 'Innovatech Ltd.',
-    projectManagerId: 'c1', // Dr. Eleanor Vance
+    projectManagerId: 'c1', 
     projectManagerNameCache: 'Dr. Eleanor Vance',
-    teamMemberIds: ['c2', 'c5'], // Marcus Chen, Sofia Petrova
+    teamMemberIds: ['c2', 'c5'], 
     status: PROJECT_STATUS.IN_PROGRESS,
     priority: 'High',
     startDate: '2024-02-01',
@@ -188,11 +190,11 @@ export const initialProjects: Project[] = [
     id: 'proj202',
     name: 'Alpha Solutions Predictive Model',
     description: 'Development of a predictive analytics model for Alpha Solutions to forecast patient readmission rates, improving resource allocation and patient care.',
-    clientId: '2', // Alpha Solutions
+    clientId: '2', 
     clientNameCache: 'Alpha Solutions',
-    projectManagerId: 'c3', // Aisha Khan
+    projectManagerId: 'c3', 
     projectManagerNameCache: 'Aisha Khan',
-    teamMemberIds: ['c2'], // Marcus Chen
+    teamMemberIds: ['c2'], 
     status: PROJECT_STATUS.IN_PROGRESS,
     priority: 'High',
     startDate: '2024-04-15',
@@ -212,9 +214,9 @@ export const initialProjects: Project[] = [
     id: 'proj301',
     name: 'Beta Corp Process Optimization',
     description: 'Analysis and optimization of Beta Corp\'s key manufacturing processes to reduce waste and improve throughput. Engagement completed.',
-    clientId: '3', // Beta Corp
+    clientId: '3', 
     clientNameCache: 'Beta Corp',
-    projectManagerId: 'c3', // Aisha Khan
+    projectManagerId: 'c3', 
     projectManagerNameCache: 'Aisha Khan',
     status: PROJECT_STATUS.DONE,
     priority: 'Medium',
@@ -231,11 +233,11 @@ export const initialProjects: Project[] = [
     id: 'proj105',
     name: 'Innovatech Cloud Platform Migration',
     description: 'Migrate Innovatech Ltd.\'s legacy infrastructure to a modern cloud platform. This project focuses on scalability and cost-efficiency.',
-    clientId: '1', // Innovatech Ltd.
+    clientId: '1', 
     clientNameCache: 'Innovatech Ltd.',
-    projectManagerId: 'c1', // Dr. Eleanor Vance
+    projectManagerId: 'c1', 
     projectManagerNameCache: 'Dr. Eleanor Vance',
-    teamMemberIds: ['c4'], // James Miller
+    teamMemberIds: ['c4'], 
     status: PROJECT_STATUS.TODO,
     priority: 'Medium',
     startDate: '2024-09-01',
@@ -254,7 +256,6 @@ export const initialProjects: Project[] = [
 ];
 
 // Mock data for Invoices
-const today = new Date();
 const generateInvoiceItems = (num: number, basePrice: number): { items: InvoiceItem[], subTotal: number } => {
   const items: InvoiceItem[] = [];
   let subTotal = 0;
@@ -366,7 +367,6 @@ export const initialExpenses: Expense[] = [
     status: 'Approved',
     submittedByConsultantId: 'c2',
     submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c2')?.name,
-    // No specific client/project for this general software
     receiptUrl: 'https://placehold.co/200x100.png?text=Receipt2',
     approvedByUserId: 'adminUser1',
     approvedDate: formatISO(subDays(today, 12)),
@@ -383,9 +383,89 @@ export const initialExpenses: Expense[] = [
     status: 'Pending',
     submittedByConsultantId: 'c4',
     submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c4')?.name,
-    clientId: '4', // Gamma Industries (Prospect)
+    clientId: '4', 
     clientNameCache: initialClients.find(cl => cl.id === '4')?.companyName,
     createdAt: formatISO(subDays(today, 2)),
     updatedAt: formatISO(subDays(today, 2)),
+  },
+];
+
+// Mock data for Budgets
+export const initialBudgets: Budget[] = [
+  {
+    id: 'bud-proj101',
+    name: 'Innovatech AI Overhaul Budget',
+    type: 'Project',
+    linkedProjectId: 'proj101',
+    linkedProjectNameCache: initialProjects.find(p => p.id === 'proj101')?.name,
+    totalAmount: initialProjects.find(p => p.id === 'proj101')?.financials.budget || 250000,
+    // Simulate spent amount based on some expenses or project progress
+    spentAmount: (initialProjects.find(p => p.id === 'proj101')?.financials.spentBudget || 120000) + (initialExpenses.find(e => e.projectId === 'proj101')?.amount || 0),
+    currency: 'USD',
+    startDate: initialProjects.find(p => p.id === 'proj101')?.startDate || formatISO(subDays(today, 180)),
+    endDate: initialProjects.find(p => p.id === 'proj101')?.endDate || formatISO(addDays(today, 180)),
+    status: 'Active',
+    description: 'Budget for the AI overhaul project with Innovatech Ltd.',
+    createdAt: formatISO(subDays(today, 182)),
+    updatedAt: formatISO(subDays(today, 10)),
+  },
+  {
+    id: 'bud-proj202',
+    name: 'Alpha Solutions Model Budget',
+    type: 'Project',
+    linkedProjectId: 'proj202',
+    linkedProjectNameCache: initialProjects.find(p => p.id === 'proj202')?.name,
+    totalAmount: initialProjects.find(p => p.id === 'proj202')?.financials.budget || 150000,
+    spentAmount: (initialProjects.find(p => p.id === 'proj202')?.financials.spentBudget || 65000) + (initialExpenses.find(e => e.projectId === 'proj202')?.amount || 0),
+    currency: 'USD',
+    startDate: initialProjects.find(p => p.id === 'proj202')?.startDate || formatISO(subDays(today, 90)),
+    endDate: initialProjects.find(p => p.id === 'proj202')?.endDate || formatISO(addDays(today, 90)),
+    status: 'Active',
+    createdAt: formatISO(subDays(today, 92)),
+    updatedAt: formatISO(subDays(today, 5)),
+  },
+  {
+    id: 'bud-marketing-q3',
+    name: 'Q3 Marketing Budget',
+    type: 'Departmental',
+    departmentName: 'Marketing',
+    totalAmount: 50000,
+    spentAmount: 35000, // Assume some marketing expenses
+    currency: 'USD',
+    startDate: formatISO(addMonths(today, -2)), // Assuming Q3 started 2 months ago
+    endDate: formatISO(addMonths(today, 1)), // Q3 ends in 1 month
+    status: 'Active',
+    description: 'Quarterly budget for all marketing activities.',
+    createdAt: formatISO(addMonths(today, -2)),
+    updatedAt: formatISO(subDays(today, 3)),
+  },
+  {
+    id: 'bud-training-annual',
+    name: 'Annual Training & Development Budget',
+    type: 'General',
+    totalAmount: 75000,
+    spentAmount: 80000, // Overspent
+    currency: 'USD',
+    startDate: formatISO(subDays(today, 300)), // Annual budget started ~10 months ago
+    endDate: formatISO(addDays(today, 65)), // Ends in ~2 months
+    status: 'Overspent',
+    description: 'Annual budget for consultant training, certifications, and conferences.',
+    createdAt: formatISO(subDays(today, 300)),
+    updatedAt: formatISO(subDays(today, 1)),
+  },
+   {
+    id: 'bud-rd-2024',
+    name: 'R&D 2024 Budget',
+    type: 'Departmental',
+    departmentName: 'Research & Development',
+    totalAmount: 120000,
+    spentAmount: 115000,
+    currency: 'USD',
+    startDate: formatISO(new Date(today.getFullYear(), 0, 1)), // Start of current year
+    endDate: formatISO(new Date(today.getFullYear(), 11, 31)), // End of current year
+    status: 'Completed', // Assuming R&D for the year is mostly done or budget is finalized
+    description: 'Budget for all R&D initiatives for the year 2024.',
+    createdAt: formatISO(new Date(today.getFullYear(), 0, 1)),
+    updatedAt: formatISO(subDays(today, 15)),
   },
 ];
