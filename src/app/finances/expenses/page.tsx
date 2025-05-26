@@ -71,8 +71,8 @@ export default function ExpensesPage() {
         />
       </header>
       
-      {/* Future: Add summary cards for expense dashboard (e.g., total pending, total approved this month) */}
       {/* 
+        Placeholder for Expenses Dashboard snippet if needed in future:
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -80,11 +80,11 @@ export default function ExpensesPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$1,234.50</div>
+            <div className="text-2xl font-bold">$1,234.50</div> // Example, would be dynamic
             <p className="text-xs text-muted-foreground">from 15 expenses</p>
           </CardContent>
         </Card>
-        // Add more KPI cards
+        // Add more KPI cards as needed
       </div>
       */}
 
@@ -92,7 +92,7 @@ export default function ExpensesPage() {
         <CardHeader>
           <CardTitle>All Logged Expenses</CardTitle>
           <CardDescription>
-            View, manage, and approve/reject submitted expenses.
+            View, manage, and approve/reject submitted expenses. Expenses can be linked to clients, projects, and submitting consultants.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -106,7 +106,7 @@ export default function ExpensesPage() {
         </CardContent>
       </Card>
 
-      <Card className="mt-6 border-t pt-6 bg-card/50">
+       <Card className="mt-6 border-t pt-6 bg-card/50">
         <CardHeader>
           <CardTitle className="text-xl">Future Enhancements</CardTitle>
           <CardDescription>
@@ -115,12 +115,12 @@ export default function ExpensesPage() {
         </CardHeader>
         <CardContent>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-1 md:columns-2">
-              <li>Advanced Expense Logging Form (with receipt file upload)</li>
-              <li>Multi-step Approval Workflows & Notifications</li>
-              <li>Detailed Expense Reporting & Analytics (by category, project, client)</li>
-              <li>Bulk Actions (e.g., approve multiple)</li>
-              <li>Integration with Accounting Software</li>
-              <li>Policy Enforcement (e.g., spending limits)</li>
+              <li>Advanced Expense Logging Form (Current form is simplified; receipt file upload is planned).</li>
+              <li>Multi-step Approval Workflows & Notifications (Under development).</li>
+              <li>Detailed Expense Reporting & Analytics (by category, project, client) (Planned).</li>
+              <li>Bulk Actions (e.g., approve multiple, export selected) (Planned).</li>
+              <li>Data Export to Excel (Under development, for integration with accounting software).</li>
+              <li>Policy Enforcement (e.g., spending limits per category/project) (Planned).</li>
             </ul>
         </CardContent>
       </Card>
