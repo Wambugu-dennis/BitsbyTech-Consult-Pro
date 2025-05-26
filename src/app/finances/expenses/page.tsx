@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Expense, ExpenseStatus, Client, Project, Consultant } from "@/lib/types";
-import { initialExpenses, initialClients, initialProjects, initialConsultants } from "@/lib/mockData";
+import type { Expense, ExpenseStatus, Client, Project, Consultant, Budget } from "@/lib/types"; // Added Budget
+import { initialExpenses, initialClients, initialProjects, initialConsultants, initialBudgets } from "@/lib/mockData"; // Added initialBudgets
 import AddExpenseDialog from "@/components/finances/expenses/add-expense-dialog";
 import ExpenseTable from "@/components/finances/expenses/expense-table";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,7 @@ export default function ExpensesPage() {
           clients={initialClients}
           projects={initialProjects}
           consultants={initialConsultants}
+          budgets={initialBudgets} // Pass initialBudgets here
         />
       </header>
       
@@ -89,7 +90,7 @@ export default function ExpensesPage() {
         <CardHeader>
           <CardTitle>All Logged Expenses</CardTitle>
           <CardDescription>
-            View, manage, and approve/reject submitted expenses. Expenses can be linked to clients, projects, and submitting consultants.
+            View, manage, and approve/reject submitted expenses. Expenses can be linked to clients, projects, consultants, and budgets.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -114,7 +115,7 @@ export default function ExpensesPage() {
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-1 md:columns-2">
               <li>Advanced Expense Logging Form (Current form is simplified; receipt file upload is planned).</li>
               <li>Multi-step Approval Workflows & Notifications.</li>
-              <li>Detailed Expense Reporting & Analytics (by category, project, client).</li>
+              <li>Detailed Expense Reporting & Analytics (by category, project, client, budget).</li>
               <li>Bulk Actions (e.g., approve multiple, export selected).</li>
               <li>Data Export to Excel (Under development, for integration with accounting software).</li>
               <li>Policy Enforcement (e.g., spending limits per category/project).</li>

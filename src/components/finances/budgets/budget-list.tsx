@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { Budget, BudgetStatus } from "@/lib/types";
+import type { Budget, BudgetStatus, Expense } from "@/lib/types"; // Added Expense
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -10,14 +10,24 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { MoreHorizontal, Eye, Edit, BarChart3, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from 'date-fns';
+import { format, isPast } from 'date-fns';
 
 interface BudgetListProps {
   budgets: Budget[];
+  expenses: Expense[]; // New prop to get all expenses
 }
 
-export default function BudgetList({ budgets }: BudgetListProps) {
+export default function BudgetList({ budgets, expenses }: BudgetListProps) {
   
+  const getDynamicStatus = (budget: Budget, spentAmount: number): BudgetStatus => {
+    if (spentAmount > budget.totalAmount) return 'Overspent';
+    if (budget.status === 'Completed') return 'Completed'; // Respect manually set Completed status
+    if (isPast(new Date(budget.endDate)) && spentAmount <= budget.totalAmount) return 'Completed'; // Auto-complete if end date passed and not overspent
+    if (budget.status === 'Planning' && new Date(budget.startDate) > new Date()) return 'Planning'; // Still in planning if start date not reached
+    if (budget.status === 'On Hold') return 'On Hold';
+    return 'Active';
+  };
+
   const getStatusBadgeVariant = (status: BudgetStatus): "default" | "secondary" | "outline" | "destructive" => {
     switch (status) {
       case 'Active': return 'default';
@@ -73,8 +83,11 @@ export default function BudgetList({ budgets }: BudgetListProps) {
             </TableRow>
           )}
           {budgets.map((budget) => {
-            const remainingAmount = budget.totalAmount - budget.spentAmount;
-            const consumptionPercentage = budget.totalAmount > 0 ? (budget.spentAmount / budget.totalAmount) * 100 : 0;
+            const linkedExpenses = expenses.filter(exp => exp.budgetId === budget.id);
+            const currentSpentAmount = linkedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const remainingAmount = budget.totalAmount - currentSpentAmount;
+            const consumptionPercentage = budget.totalAmount > 0 ? (currentSpentAmount / budget.totalAmount) * 100 : 0;
+            const dynamicStatus = getDynamicStatus(budget, currentSpentAmount);
             
             return (
               <TableRow key={budget.id} className="hover:bg-muted/50">
@@ -98,20 +111,20 @@ export default function BudgetList({ budgets }: BudgetListProps) {
                   {budget.currency} {budget.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
                 <TableCell className="text-right">
-                  {budget.currency} {budget.spentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {budget.currency} {currentSpentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
                 <TableCell className={cn("text-right font-medium", remainingAmount < 0 ? "text-red-600" : "text-green-600")}>
                   {budget.currency} {remainingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Progress value={consumptionPercentage > 100 ? 100 : consumptionPercentage} className="h-2 flex-1" indicatorClassName={getConsumptionIndicatorColor(consumptionPercentage, budget.status)} />
+                    <Progress value={consumptionPercentage > 100 ? 100 : consumptionPercentage} className="h-2 flex-1" indicatorClassName={getConsumptionIndicatorColor(consumptionPercentage, dynamicStatus)} />
                     <span className="text-xs text-muted-foreground w-[40px] text-right">{consumptionPercentage.toFixed(0)}%</span>
                   </div>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Badge variant={getStatusBadgeVariant(budget.status)} className={cn("capitalize text-xs", getStatusBadgeClass(budget.status))}>
-                    {budget.status}
+                  <Badge variant={getStatusBadgeVariant(dynamicStatus)} className={cn("capitalize text-xs", getStatusBadgeClass(dynamicStatus))}>
+                    {dynamicStatus}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
@@ -146,3 +159,4 @@ export default function BudgetList({ budgets }: BudgetListProps) {
     </div>
   );
 }
+

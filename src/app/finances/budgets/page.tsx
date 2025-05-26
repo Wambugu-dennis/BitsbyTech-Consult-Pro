@@ -6,18 +6,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Target, PlusCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { Budget, Project } from '@/lib/types';
-import { initialBudgets, initialProjects } from '@/lib/mockData';
+import type { Budget, Project, Expense } from '@/lib/types'; // Added Expense
+import { initialBudgets, initialProjects, initialExpenses } from '@/lib/mockData'; // Added initialExpenses
 import AddBudgetDialog, { type AddBudgetFormData } from '@/components/finances/budgets/add-budget-dialog';
 import BudgetList from '@/components/finances/budgets/budget-list';
 
 export default function BudgetsPage() {
   const router = useRouter();
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [allExpenses, setAllExpenses] = useState<Expense[]>([]); // State for all expenses
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setBudgets(initialBudgets);
+    setAllExpenses(initialExpenses); // Load initial expenses
     setIsMounted(true);
   }, []);
 
@@ -31,7 +33,7 @@ export default function BudgetsPage() {
       linkedProjectNameCache: project?.name,
       departmentName: formData.departmentName,
       totalAmount: formData.totalAmount,
-      spentAmount: 0, // New budgets start with 0 spent
+      // spentAmount is removed, will be calculated dynamically
       currency: formData.currency,
       startDate: formData.startDate,
       endDate: formData.endDate,
@@ -82,11 +84,11 @@ export default function BudgetsPage() {
         <CardHeader>
           <CardTitle>Budgets Overview</CardTitle>
           <CardDescription>
-            Manage financial plans and track spending against allocated budgets.
+            Manage financial plans and track spending against allocated budgets. Actual spending is calculated from linked expenses.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BudgetList budgets={budgets} />
+          <BudgetList budgets={budgets} expenses={allExpenses} /> {/* Pass allExpenses here */}
         </CardContent>
       </Card>
 
@@ -99,12 +101,12 @@ export default function BudgetsPage() {
         </CardHeader>
         <CardContent>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-1 md:columns-2">
-              <li>Detailed Budget vs. Actuals Tracking (linking to actual expenses)</li>
+              <li>Detailed Budget vs. Actuals Tracking (Expense linking foundational, further UI needed for direct comparison views).</li>
               <li>Variance Analysis Charts & Alerts</li>
               <li>Budget Versioning & History</li>
               <li>Departmental & Project Budget Roll-ups</li>
               <li>Forecasting and Scenario Planning Tools</li>
-              <li>Integration with Project Financials</li>
+              <li>Integration with Project Financials (Deeper linking to project specific finance views)</li>
             </ul>
         </CardContent>
       </Card>

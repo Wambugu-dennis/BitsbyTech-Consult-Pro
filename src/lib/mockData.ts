@@ -1,6 +1,7 @@
 
 import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, Expense, Budget, BudgetStatus, BudgetType } from "@/lib/types";
-import { PROJECT_STATUS, expenseCategories, budgetTypes, budgetStatuses } from "./constants"; 
+// Removed PROJECT_STATUS import as it's not directly used here anymore for expense creation status, but it is used in ProjectTask, so re-added
+import { PROJECT_STATUS, expenseCategories, budgetTypes, budgetStatuses } from "./types"; 
 import { formatISO, addDays, subDays, addMonths } from 'date-fns';
 
 const today = new Date();
@@ -317,6 +318,80 @@ export const initialInvoices: Invoice[] = [
   createInvoice('INV-2024-004', initialClients[2], undefined, 'Draft', 5, inv4Items),
 ];
 
+// Mock data for Budgets (note: spentAmount is removed as it will be calculated)
+export const initialBudgets: Budget[] = [
+  {
+    id: 'bud-proj101',
+    name: 'Innovatech AI Overhaul Budget',
+    type: 'Project',
+    linkedProjectId: 'proj101',
+    linkedProjectNameCache: initialProjects.find(p => p.id === 'proj101')?.name,
+    totalAmount: initialProjects.find(p => p.id === 'proj101')?.financials.budget || 250000,
+    currency: 'USD',
+    startDate: initialProjects.find(p => p.id === 'proj101')?.startDate || formatISO(subDays(today, 180)),
+    endDate: initialProjects.find(p => p.id === 'proj101')?.endDate || formatISO(addDays(today, 180)),
+    status: 'Active', // This status might be dynamically updated later
+    description: 'Budget for the AI overhaul project with Innovatech Ltd.',
+    createdAt: formatISO(subDays(today, 182)),
+    updatedAt: formatISO(subDays(today, 10)),
+  },
+  {
+    id: 'bud-proj202',
+    name: 'Alpha Solutions Model Budget',
+    type: 'Project',
+    linkedProjectId: 'proj202',
+    linkedProjectNameCache: initialProjects.find(p => p.id === 'proj202')?.name,
+    totalAmount: initialProjects.find(p => p.id === 'proj202')?.financials.budget || 150000,
+    currency: 'USD',
+    startDate: initialProjects.find(p => p.id === 'proj202')?.startDate || formatISO(subDays(today, 90)),
+    endDate: initialProjects.find(p => p.id === 'proj202')?.endDate || formatISO(addDays(today, 90)),
+    status: 'Active',
+    createdAt: formatISO(subDays(today, 92)),
+    updatedAt: formatISO(subDays(today, 5)),
+  },
+  {
+    id: 'bud-marketing-q3',
+    name: 'Q3 Marketing Budget',
+    type: 'Departmental',
+    departmentName: 'Marketing',
+    totalAmount: 50000,
+    currency: 'USD',
+    startDate: formatISO(addMonths(today, -2)), 
+    endDate: formatISO(addMonths(today, 1)), 
+    status: 'Active',
+    description: 'Quarterly budget for all marketing activities.',
+    createdAt: formatISO(addMonths(today, -2)),
+    updatedAt: formatISO(subDays(today, 3)),
+  },
+  {
+    id: 'bud-training-annual',
+    name: 'Annual Training & Development Budget',
+    type: 'General',
+    totalAmount: 75000,
+    currency: 'USD',
+    startDate: formatISO(subDays(today, 300)),
+    endDate: formatISO(addDays(today, 65)), 
+    status: 'Active', // Status would change to Overspent if calculated spent > total
+    description: 'Annual budget for consultant training, certifications, and conferences.',
+    createdAt: formatISO(subDays(today, 300)),
+    updatedAt: formatISO(subDays(today, 1)),
+  },
+   {
+    id: 'bud-rd-2024',
+    name: 'R&D 2024 Budget',
+    type: 'Departmental',
+    departmentName: 'Research & Development',
+    totalAmount: 120000,
+    currency: 'USD',
+    startDate: formatISO(new Date(today.getFullYear(), 0, 1)),
+    endDate: formatISO(new Date(today.getFullYear(), 11, 31)),
+    status: 'Completed',
+    description: 'Budget for all R&D initiatives for the year 2024.',
+    createdAt: formatISO(new Date(today.getFullYear(), 0, 1)),
+    updatedAt: formatISO(subDays(today, 15)),
+  },
+];
+
 // Mock data for Expenses
 export const initialExpenses: Expense[] = [
   {
@@ -333,6 +408,7 @@ export const initialExpenses: Expense[] = [
     clientNameCache: initialClients.find(cl => cl.id === '1')?.companyName,
     projectId: 'proj101',
     projectNameCache: initialProjects.find(p => p.id === 'proj101')?.name,
+    budgetId: 'bud-proj101', // Link to project budget
     receiptUrl: 'https://placehold.co/200x100.png?text=Receipt1',
     notes: 'Kickoff meeting travel expense.',
     approvedByUserId: 'adminUser1',
@@ -354,19 +430,21 @@ export const initialExpenses: Expense[] = [
     clientNameCache: initialClients.find(cl => cl.id === '2')?.companyName,
     projectId: 'proj202',
     projectNameCache: initialProjects.find(p => p.id === 'proj202')?.name,
+    budgetId: 'bud-proj202', // Link to project budget
     createdAt: formatISO(subDays(today, 5)),
     updatedAt: formatISO(subDays(today, 5)),
   },
   {
     id: 'exp-003',
     date: formatISO(subDays(today, 15), { representation: 'date' }),
-    description: 'Software Subscription for AI toolkit',
+    description: 'Software Subscription for AI toolkit (General R&D)',
     amount: 99.00,
     currency: 'USD',
     category: 'Software & Subscriptions',
     status: 'Approved',
     submittedByConsultantId: 'c2',
     submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c2')?.name,
+    budgetId: 'bud-rd-2024', // Link to R&D budget
     receiptUrl: 'https://placehold.co/200x100.png?text=Receipt2',
     approvedByUserId: 'adminUser1',
     approvedDate: formatISO(subDays(today, 12)),
@@ -385,87 +463,41 @@ export const initialExpenses: Expense[] = [
     submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c4')?.name,
     clientId: '4', 
     clientNameCache: initialClients.find(cl => cl.id === '4')?.companyName,
+    // No budget linked for this prospect expense yet
     createdAt: formatISO(subDays(today, 2)),
     updatedAt: formatISO(subDays(today, 2)),
   },
+  {
+    id: 'exp-005',
+    date: formatISO(subDays(today, 20), { representation: 'date' }),
+    description: 'Marketing materials for Q3 Campaign',
+    amount: 1200.00,
+    currency: 'USD',
+    category: 'Marketing & Advertising',
+    status: 'Approved',
+    submittedByConsultantId: 'c1', // Or a marketing role
+    submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c1')?.name,
+    budgetId: 'bud-marketing-q3', // Link to marketing budget
+    approvedByUserId: 'adminUser1',
+    approvedDate: formatISO(subDays(today, 18)),
+    createdAt: formatISO(subDays(today, 20)),
+    updatedAt: formatISO(subDays(today, 18)),
+  },
+  {
+    id: 'exp-006',
+    date: formatISO(subDays(today, 45), { representation: 'date' }),
+    description: 'Consultant Certification Exam Fee - Agile Masterclass',
+    amount: 500.00,
+    currency: 'USD',
+    category: 'Training & Development',
+    status: 'Approved',
+    submittedByConsultantId: 'c3',
+    submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c3')?.name,
+    budgetId: 'bud-training-annual', // Link to training budget
+    approvedByUserId: 'adminUser1',
+    approvedDate: formatISO(subDays(today, 40)),
+    createdAt: formatISO(subDays(today, 45)),
+    updatedAt: formatISO(subDays(today, 40)),
+  },
 ];
 
-// Mock data for Budgets
-export const initialBudgets: Budget[] = [
-  {
-    id: 'bud-proj101',
-    name: 'Innovatech AI Overhaul Budget',
-    type: 'Project',
-    linkedProjectId: 'proj101',
-    linkedProjectNameCache: initialProjects.find(p => p.id === 'proj101')?.name,
-    totalAmount: initialProjects.find(p => p.id === 'proj101')?.financials.budget || 250000,
-    // Simulate spent amount based on some expenses or project progress
-    spentAmount: (initialProjects.find(p => p.id === 'proj101')?.financials.spentBudget || 120000) + (initialExpenses.find(e => e.projectId === 'proj101')?.amount || 0),
-    currency: 'USD',
-    startDate: initialProjects.find(p => p.id === 'proj101')?.startDate || formatISO(subDays(today, 180)),
-    endDate: initialProjects.find(p => p.id === 'proj101')?.endDate || formatISO(addDays(today, 180)),
-    status: 'Active',
-    description: 'Budget for the AI overhaul project with Innovatech Ltd.',
-    createdAt: formatISO(subDays(today, 182)),
-    updatedAt: formatISO(subDays(today, 10)),
-  },
-  {
-    id: 'bud-proj202',
-    name: 'Alpha Solutions Model Budget',
-    type: 'Project',
-    linkedProjectId: 'proj202',
-    linkedProjectNameCache: initialProjects.find(p => p.id === 'proj202')?.name,
-    totalAmount: initialProjects.find(p => p.id === 'proj202')?.financials.budget || 150000,
-    spentAmount: (initialProjects.find(p => p.id === 'proj202')?.financials.spentBudget || 65000) + (initialExpenses.find(e => e.projectId === 'proj202')?.amount || 0),
-    currency: 'USD',
-    startDate: initialProjects.find(p => p.id === 'proj202')?.startDate || formatISO(subDays(today, 90)),
-    endDate: initialProjects.find(p => p.id === 'proj202')?.endDate || formatISO(addDays(today, 90)),
-    status: 'Active',
-    createdAt: formatISO(subDays(today, 92)),
-    updatedAt: formatISO(subDays(today, 5)),
-  },
-  {
-    id: 'bud-marketing-q3',
-    name: 'Q3 Marketing Budget',
-    type: 'Departmental',
-    departmentName: 'Marketing',
-    totalAmount: 50000,
-    spentAmount: 35000, // Assume some marketing expenses
-    currency: 'USD',
-    startDate: formatISO(addMonths(today, -2)), // Assuming Q3 started 2 months ago
-    endDate: formatISO(addMonths(today, 1)), // Q3 ends in 1 month
-    status: 'Active',
-    description: 'Quarterly budget for all marketing activities.',
-    createdAt: formatISO(addMonths(today, -2)),
-    updatedAt: formatISO(subDays(today, 3)),
-  },
-  {
-    id: 'bud-training-annual',
-    name: 'Annual Training & Development Budget',
-    type: 'General',
-    totalAmount: 75000,
-    spentAmount: 80000, // Overspent
-    currency: 'USD',
-    startDate: formatISO(subDays(today, 300)), // Annual budget started ~10 months ago
-    endDate: formatISO(addDays(today, 65)), // Ends in ~2 months
-    status: 'Overspent',
-    description: 'Annual budget for consultant training, certifications, and conferences.',
-    createdAt: formatISO(subDays(today, 300)),
-    updatedAt: formatISO(subDays(today, 1)),
-  },
-   {
-    id: 'bud-rd-2024',
-    name: 'R&D 2024 Budget',
-    type: 'Departmental',
-    departmentName: 'Research & Development',
-    totalAmount: 120000,
-    spentAmount: 115000,
-    currency: 'USD',
-    startDate: formatISO(new Date(today.getFullYear(), 0, 1)), // Start of current year
-    endDate: formatISO(new Date(today.getFullYear(), 11, 31)), // End of current year
-    status: 'Completed', // Assuming R&D for the year is mostly done or budget is finalized
-    description: 'Budget for all R&D initiatives for the year 2024.',
-    createdAt: formatISO(new Date(today.getFullYear(), 0, 1)),
-    updatedAt: formatISO(subDays(today, 15)),
-  },
-];

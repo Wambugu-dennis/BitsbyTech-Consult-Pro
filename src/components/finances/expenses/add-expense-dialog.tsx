@@ -24,8 +24,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, formatISO } from 'date-fns';
-import type { Client, Project, Consultant, ExpenseCategory, ExpenseStatus, Expense } from '@/lib/types';
-import { expenseCategories } from '@/lib/types'; // Assuming expenseCategories is exported from types or constants
+import type { Client, Project, Consultant, ExpenseCategory, Expense, Budget } from '@/lib/types'; // Added Budget
+import { expenseCategories } from '@/lib/types';
 
 const NONE_VALUE_PLACEHOLDER = "--none--";
 
@@ -34,9 +34,10 @@ const addExpenseFormSchema = z.object({
   description: z.string().min(5, 'Description must be at least 5 characters.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
   currency: z.string().min(3, 'Currency code is required (e.g., USD).').default('USD'),
-  category: z.string().min(1, "Category is required."), // Using string to allow custom or predefined
+  category: z.string().min(1, "Category is required."),
   clientId: z.string().optional(),
   projectId: z.string().optional(),
+  budgetId: z.string().optional(), // New field
   submittedByConsultantId: z.string().optional(),
   receiptUrl: z.string().url('Must be a valid URL.').optional().or(z.literal('')),
   notes: z.string().optional(),
@@ -51,9 +52,10 @@ interface AddExpenseDialogProps {
   clients: Client[];
   projects: Project[];
   consultants: Consultant[];
+  budgets: Budget[]; // New prop
 }
 
-export default function AddExpenseDialog({ onAddExpense, clients, projects, consultants }: AddExpenseDialogProps) {
+export default function AddExpenseDialog({ onAddExpense, clients, projects, consultants, budgets }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const form = useForm<z.infer<typeof addExpenseFormSchema>>({
     resolver: zodResolver(addExpenseFormSchema),
@@ -64,7 +66,11 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
       category: '',
       receiptUrl: '',
       notes: '',
-      // date, clientId, projectId, submittedByConsultantId will be set by inputs
+      clientId: undefined,
+      projectId: undefined,
+      budgetId: undefined,
+      submittedByConsultantId: undefined,
+      date: new Date(),
     },
   });
 
@@ -77,10 +83,10 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
     const project = projects.find(p => p.id === data.projectId);
 
     const newExpense: Expense = {
-      id: `exp-${Date.now()}`, // Simple ID
+      id: `exp-${Date.now()}`,
       ...data,
       date: formatISO(data.date, { representation: 'date' }),
-      status: 'Pending', // Default status for new expenses
+      status: 'Pending',
       submittedByConsultantNameCache: consultant?.name,
       clientNameCache: client?.companyName,
       projectNameCache: project?.name,
@@ -88,13 +94,23 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
       updatedAt: new Date().toISOString(),
     };
     onAddExpense(newExpense);
-    form.reset({ currency: 'USD', category: '', description: '', amount: 0, receiptUrl: '', notes: '' });
+    form.reset({ 
+        currency: 'USD', category: '', description: '', amount: 0, receiptUrl: '', notes: '',
+        clientId: undefined, projectId: undefined, budgetId: undefined, submittedByConsultantId: undefined, date: new Date()
+    });
     setOpen(false);
+  };
+
+  const resetForm = () => {
+    form.reset({ 
+        currency: 'USD', category: '', description: '', amount: 0, receiptUrl: '', notes: '',
+        clientId: undefined, projectId: undefined, budgetId: undefined, submittedByConsultantId: undefined, date: new Date()
+    });
   };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) form.reset({ currency: 'USD', category: '', description: '', amount: 0, receiptUrl: '', notes: '' });
+      if (!isOpen) resetForm();
       setOpen(isOpen);
     }}>
       <DialogTrigger asChild>
@@ -198,7 +214,6 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
                       {expenseCategories.map(cat => (
                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                       ))}
-                       {/* Allow custom category, or ensure 'Other' is an option if form.value might be something not in the list */}
                     </SelectContent>
                   </Select>
                    <FormMessage />
@@ -269,7 +284,7 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
                   <Select 
                     onValueChange={(value) => field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value)} 
                     value={field.value || NONE_VALUE_PLACEHOLDER} 
-                    disabled={!selectedClientId && availableProjects.length === 0}
+                    disabled={!selectedClientId && availableProjects.length === 0 && projects.length > 0}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -280,6 +295,33 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
                        <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
                       {availableProjects.map(project => (
                         <SelectItem key={project.id} value={project.id}>{project.name} ({project.clientNameCache})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="budgetId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Link to Budget (Optional)</FormLabel>
+                  <Select 
+                    onValueChange={(value) => field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value)} 
+                    value={field.value || NONE_VALUE_PLACEHOLDER}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a budget to link this expense" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                       <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
+                      {budgets.map(budget => (
+                        <SelectItem key={budget.id} value={budget.id}>{budget.name} ({budget.type === 'Project' ? budget.linkedProjectNameCache : budget.departmentName || 'General'})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -318,7 +360,7 @@ export default function AddExpenseDialog({ onAddExpense, clients, projects, cons
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => { 
-                  form.reset({ currency: 'USD', category: '', description: '', amount: 0, receiptUrl: '', notes: '' }); 
+                  resetForm();
                   setOpen(false); 
               }}>Cancel</Button>
               <Button type="submit">Log Expense</Button>

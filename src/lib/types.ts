@@ -263,6 +263,7 @@ export type Expense = {
   clientNameCache?: string; // Denormalized
   projectId?: string; // Link to Project.id
   projectNameCache?: string; // Denormalized
+  budgetId?: string; // Link to Budget.id
   receiptUrl?: string; // Link to an uploaded receipt
   notes?: string;
   approvedByUserId?: string; // User who approved/rejected
@@ -287,11 +288,11 @@ export type Budget = {
   linkedProjectNameCache?: string; // Denormalized
   departmentName?: string; // For Departmental type
   totalAmount: number;
-  spentAmount: number; // This would typically be calculated from actual expenses linked to this budget
+  // spentAmount: number; // This will be calculated from actual expenses linked to this budget
   currency: string;
   startDate: string; // ISO date string
   endDate: string; // ISO date string
-  status: BudgetStatus;
+  status: BudgetStatus; // This can also be dynamically calculated based on spent vs total and dates
   description?: string;
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
