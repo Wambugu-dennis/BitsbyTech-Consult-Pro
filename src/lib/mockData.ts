@@ -1,7 +1,7 @@
 
 import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, Expense, Budget, BudgetStatus, BudgetType } from "@/lib/types";
-// Removed PROJECT_STATUS import as it's not directly used here anymore for expense creation status, but it is used in ProjectTask, so re-added
-import { PROJECT_STATUS, expenseCategories, budgetTypes, budgetStatuses } from "./types"; 
+import { expenseCategories, budgetTypes, budgetStatuses } from "@/lib/types"; 
+import { PROJECT_STATUS } from "@/lib/constants";
 import { formatISO, addDays, subDays, addMonths } from 'date-fns';
 
 const today = new Date();
@@ -176,7 +176,7 @@ export const initialProjects: Project[] = [
     priority: 'High',
     startDate: '2024-02-01',
     endDate: '2024-12-31',
-    financials: { budget: 250000, spentBudget: 120000, currency: 'USD', billingType: 'Fixed Price' },
+    financials: { budget: 250000, spentBudget: 0, currency: 'USD', billingType: 'Fixed Price' }, // spentBudget will be calculated
     milestones: [
       { id: 'm101-1', name: 'Phase 1: Discovery & Planning', dueDate: '2024-03-15', status: 'Completed' },
       { id: 'm101-2', name: 'Phase 2: Model Development', dueDate: '2024-07-30', status: 'In Progress' },
@@ -200,7 +200,7 @@ export const initialProjects: Project[] = [
     priority: 'High',
     startDate: '2024-04-15',
     endDate: '2024-11-30',
-    financials: { budget: 150000, spentBudget: 65000, currency: 'USD', billingType: 'Time & Materials', hourlyRate: 150 },
+    financials: { budget: 150000, spentBudget: 0, currency: 'USD', billingType: 'Time & Materials', hourlyRate: 150 }, // spentBudget will be calculated
     milestones: [
       { id: 'm202-1', name: 'Data Collection & Cleaning', dueDate: '2024-05-30', status: 'Completed' },
       { id: 'm202-2', name: 'Model Prototyping', dueDate: '2024-08-15', status: 'In Progress' },
@@ -224,7 +224,7 @@ export const initialProjects: Project[] = [
     startDate: '2023-03-01',
     endDate: '2023-09-30',
     actualEndDate: '2023-09-28',
-    financials: { budget: 80000, spentBudget: 78000, currency: 'USD', billingType: 'Fixed Price' },
+    financials: { budget: 80000, spentBudget: 0, currency: 'USD', billingType: 'Fixed Price' }, // spentBudget will be calculated
     tags: ['Manufacturing', 'Process Improvement', 'Lean Six Sigma'],
     lastUpdated: '2023-10-05T10:00:00Z',
     completionPercent: 100,
@@ -243,7 +243,7 @@ export const initialProjects: Project[] = [
     priority: 'Medium',
     startDate: '2024-09-01',
     endDate: '2025-03-31',
-    financials: { budget: 180000, spentBudget: 5000, currency: 'USD', billingType: 'Fixed Price' },
+    financials: { budget: 180000, spentBudget: 0, currency: 'USD', billingType: 'Fixed Price' }, // spentBudget will be calculated
     milestones: [
         { id: 'm105-1', name: 'Planning & Assessment', dueDate: '2024-10-15', status: 'Pending'},
         { id: 'm105-2', name: 'Development & Migration', dueDate: '2025-01-31', status: 'Pending'},
@@ -318,7 +318,7 @@ export const initialInvoices: Invoice[] = [
   createInvoice('INV-2024-004', initialClients[2], undefined, 'Draft', 5, inv4Items),
 ];
 
-// Mock data for Budgets (note: spentAmount is removed as it will be calculated)
+// Mock data for Budgets
 export const initialBudgets: Budget[] = [
   {
     id: 'bud-proj101',
@@ -330,7 +330,7 @@ export const initialBudgets: Budget[] = [
     currency: 'USD',
     startDate: initialProjects.find(p => p.id === 'proj101')?.startDate || formatISO(subDays(today, 180)),
     endDate: initialProjects.find(p => p.id === 'proj101')?.endDate || formatISO(addDays(today, 180)),
-    status: 'Active', // This status might be dynamically updated later
+    status: 'Active', 
     description: 'Budget for the AI overhaul project with Innovatech Ltd.',
     createdAt: formatISO(subDays(today, 182)),
     updatedAt: formatISO(subDays(today, 10)),
@@ -371,7 +371,7 @@ export const initialBudgets: Budget[] = [
     currency: 'USD',
     startDate: formatISO(subDays(today, 300)),
     endDate: formatISO(addDays(today, 65)), 
-    status: 'Active', // Status would change to Overspent if calculated spent > total
+    status: 'Active', 
     description: 'Annual budget for consultant training, certifications, and conferences.',
     createdAt: formatISO(subDays(today, 300)),
     updatedAt: formatISO(subDays(today, 1)),
@@ -385,7 +385,7 @@ export const initialBudgets: Budget[] = [
     currency: 'USD',
     startDate: formatISO(new Date(today.getFullYear(), 0, 1)),
     endDate: formatISO(new Date(today.getFullYear(), 11, 31)),
-    status: 'Completed',
+    status: 'Completed', // Example of a manually completed budget
     description: 'Budget for all R&D initiatives for the year 2024.',
     createdAt: formatISO(new Date(today.getFullYear(), 0, 1)),
     updatedAt: formatISO(subDays(today, 15)),
@@ -408,7 +408,7 @@ export const initialExpenses: Expense[] = [
     clientNameCache: initialClients.find(cl => cl.id === '1')?.companyName,
     projectId: 'proj101',
     projectNameCache: initialProjects.find(p => p.id === 'proj101')?.name,
-    budgetId: 'bud-proj101', // Link to project budget
+    budgetId: 'bud-proj101', 
     receiptUrl: 'https://placehold.co/200x100.png?text=Receipt1',
     notes: 'Kickoff meeting travel expense.',
     approvedByUserId: 'adminUser1',
@@ -430,7 +430,7 @@ export const initialExpenses: Expense[] = [
     clientNameCache: initialClients.find(cl => cl.id === '2')?.companyName,
     projectId: 'proj202',
     projectNameCache: initialProjects.find(p => p.id === 'proj202')?.name,
-    budgetId: 'bud-proj202', // Link to project budget
+    budgetId: 'bud-proj202', 
     createdAt: formatISO(subDays(today, 5)),
     updatedAt: formatISO(subDays(today, 5)),
   },
@@ -444,7 +444,7 @@ export const initialExpenses: Expense[] = [
     status: 'Approved',
     submittedByConsultantId: 'c2',
     submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c2')?.name,
-    budgetId: 'bud-rd-2024', // Link to R&D budget
+    budgetId: 'bud-rd-2024', 
     receiptUrl: 'https://placehold.co/200x100.png?text=Receipt2',
     approvedByUserId: 'adminUser1',
     approvedDate: formatISO(subDays(today, 12)),
@@ -463,7 +463,6 @@ export const initialExpenses: Expense[] = [
     submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c4')?.name,
     clientId: '4', 
     clientNameCache: initialClients.find(cl => cl.id === '4')?.companyName,
-    // No budget linked for this prospect expense yet
     createdAt: formatISO(subDays(today, 2)),
     updatedAt: formatISO(subDays(today, 2)),
   },
@@ -475,9 +474,9 @@ export const initialExpenses: Expense[] = [
     currency: 'USD',
     category: 'Marketing & Advertising',
     status: 'Approved',
-    submittedByConsultantId: 'c1', // Or a marketing role
+    submittedByConsultantId: 'c1', 
     submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c1')?.name,
-    budgetId: 'bud-marketing-q3', // Link to marketing budget
+    budgetId: 'bud-marketing-q3', 
     approvedByUserId: 'adminUser1',
     approvedDate: formatISO(subDays(today, 18)),
     createdAt: formatISO(subDays(today, 20)),
@@ -493,11 +492,29 @@ export const initialExpenses: Expense[] = [
     status: 'Approved',
     submittedByConsultantId: 'c3',
     submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c3')?.name,
-    budgetId: 'bud-training-annual', // Link to training budget
+    budgetId: 'bud-training-annual', 
     approvedByUserId: 'adminUser1',
     approvedDate: formatISO(subDays(today, 40)),
     createdAt: formatISO(subDays(today, 45)),
     updatedAt: formatISO(subDays(today, 40)),
   },
+  // Expense designed to make 'bud-training-annual' overspent if it was, say, 74500 budget
+  // {
+  //   id: 'exp-007',
+  //   date: formatISO(subDays(today, 3), { representation: 'date' }),
+  //   description: 'Advanced AI Workshop Registration',
+  //   amount: 1000.00,
+  //   currency: 'USD',
+  //   category: 'Training & Development',
+  //   status: 'Pending',
+  //   submittedByConsultantId: 'c2',
+  //   submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c2')?.name,
+  //   budgetId: 'bud-training-annual',
+  //   createdAt: formatISO(subDays(today, 3)),
+  //   updatedAt: formatISO(subDays(today, 3)),
+  // }
 ];
 
+    
+
+    
