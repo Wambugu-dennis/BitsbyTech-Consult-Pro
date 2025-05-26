@@ -17,18 +17,61 @@ export type ProjectTask = {
   title: string;
   description?: string;
   status: ProjectStatusValue;
-  assignee?: string;
+  assigneeId?: string; // Link to Consultant.id
+  assigneeNameCache?: string; // Denormalized for quick display
   dueDate?: string;
+  priority?: 'High' | 'Medium' | 'Low';
+};
+
+export type Milestone = {
+  id: string;
+  name: string;
+  description?: string;
+  dueDate: string;
+  status: 'Pending' | 'In Progress' | 'Completed' | 'Delayed' | 'At Risk';
+};
+
+export type ProjectAttachment = {
+  id: string;
+  fileName: string;
+  fileType?: string;
+  fileSize?: string; // e.g., "2.5 MB"
+  url: string; // Download or view link
+  uploadedAt: string; // ISO date string
+  uploadedBy?: string; // Consultant name or ID
+};
+
+export type ProjectFinancials = {
+  budget: number;
+  spentBudget: number;
+  currency: string; // e.g., "USD"
+  billingType?: 'Fixed Price' | 'Time & Materials' | 'Retainer';
+  hourlyRate?: number; // If T&M
 };
 
 export type Project = {
   id: string;
   name: string;
-  clientName: string;
-  status: string; // e.g., 'On Track', 'At Risk', 'Completed'
-  completionPercent: number;
-  tasks?: ProjectTask[];
+  description: string;
+  clientId: string; // Link to Client.id
+  clientNameCache?: string; // Denormalized for quick display
+  projectManagerId: string; // Link to Consultant.id
+  projectManagerNameCache?: string; // Denormalized
+  teamMemberIds?: string[]; // Links to Consultant.ids
+  status: ProjectStatusValue;
+  priority: 'High' | 'Medium' | 'Low';
+  startDate: string; // ISO date string
+  endDate: string; // Planned end date (ISO date string)
+  actualEndDate?: string; // ISO date string
+  financials: ProjectFinancials;
+  milestones?: Milestone[];
+  tasks?: ProjectTask[]; // Tasks specific to this project
+  tags?: string[];
+  attachments?: ProjectAttachment[];
+  lastUpdated: string; // ISO timestamp string
+  completionPercent?: number; // Overall project completion
 };
+
 
 export type Address = {
   street?: string;
@@ -40,7 +83,7 @@ export type Address = {
 
 export type KeyContact = {
   id: string;
-  name: string;
+  name:string;
   role: string;
   email: string;
   phone?: string;
@@ -62,31 +105,26 @@ export type ClientFinancialSummary = {
 
 export type Client = {
   id: string;
-  companyName: string; // Main identifier for the client company
+  companyName: string;
   industry?: string;
   website?: string;
   logoUrl?: string;
   address?: Address;
   clientTier?: 'Strategic' | 'Key' | 'Standard' | 'Other';
-  status: 'Active' | 'Inactive' | 'Prospect'; // Keep this simple status for overall client state
+  status: 'Active' | 'Inactive' | 'Prospect';
   engagementDetails?: EngagementDetails;
-  keyContacts: KeyContact[]; // Array of key contacts
+  keyContacts: KeyContact[];
   communicationLogs?: CommunicationLog[];
   satisfactionScore?: number; // 0-100
   notes?: string;
   linkedProjectIds?: string[]; // IDs of projects associated with this client
   financialSummary?: ClientFinancialSummary;
-  // Deprecating top-level contact fields in favor of keyContacts array
-  // name: string; // Primary contact person's name
-  // email: string;
-  // phone?: string;
-  // company: string; // Use companyName instead
-  lastContact?: string; // Can be derived from communicationLogs or kept for quick view
+  lastContact?: string;
 };
 
 export type CommunicationLog = {
   id: string;
-  date: string;
+  date: string; // ISO date string
   type: 'Email' | 'Call' | 'Meeting' | 'Note';
   summary: string;
   participants?: string[]; // Names or IDs of participants
@@ -104,8 +142,8 @@ export type ProjectStatusData = {
 };
 
 export type ClientRelationshipData = {
-  client: string; // Likely companyName
-  healthScore: number; // 0-100, can be derived from satisfactionScore or other metrics
+  client: string;
+  healthScore: number;
 };
 
 export type ConsultantStatus = 'Available' | 'On Project' | 'Unavailable';
@@ -119,8 +157,8 @@ export type DetailedSkill = {
 export type Certification = {
   name: string;
   issuingBody: string;
-  dateObtained: string;
-  expiryDate?: string;
+  dateObtained: string; // ISO date string
+  expiryDate?: string; // ISO date string
   credentialId?: string;
 };
 
@@ -128,9 +166,9 @@ export type ProjectHistoryEntry = {
   projectId: string;
   projectName: string;
   roleOnProject: string;
-  startDate: string;
-  endDate?: string;
-  projectStatus: string; // Could be linked to Project type's status
+  startDate: string; // ISO date string
+  endDate?: string; // ISO date string
+  projectStatus: string;
 };
 
 export type Consultant = {
@@ -138,15 +176,15 @@ export type Consultant = {
   name: string;
   email: string;
   role: string;
-  skills: string[]; // For basic display and input, detailedSkills for richer data
-  utilization: number; // Percentage 0-100
+  skills: string[];
+  utilization: number;
   status: ConsultantStatus;
-  currentProject?: string;
+  currentProject?: string; // Potentially current project name or ID
   bio?: string;
   avatarUrl?: string;
   phone?: string;
   projectHistory?: ProjectHistoryEntry[];
   detailedSkills?: DetailedSkill[];
   certifications?: Certification[];
-  // availabilityCalendarData?: any; // Placeholder for complex availability structure
 };
+
