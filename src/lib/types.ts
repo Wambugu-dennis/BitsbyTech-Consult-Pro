@@ -139,6 +139,7 @@ export type RevenueData = {
 export type ProjectStatusData = {
   status: string;
   count: number;
+  fill?: string; // Added for chart consistency
 };
 
 export type ClientRelationshipData = {
@@ -217,6 +218,55 @@ export type Invoice = {
   notes?: string;
   paymentDetails?: string; // e.g., Bank transfer info, payment link
   paymentDate?: string; // ISO date string, if paid
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+};
+
+export type ExpenseStatus = 'Pending' | 'Approved' | 'Rejected';
+
+export type ExpenseCategory = 
+  | 'Travel' 
+  | 'Meals & Entertainment' 
+  | 'Software & Subscriptions' 
+  | 'Office Supplies' 
+  | 'Training & Development' 
+  | 'Marketing & Advertising'
+  | 'Hardware'
+  | 'Consulting Fees (External)'
+  | 'Other';
+
+
+export const expenseCategories: ExpenseCategory[] = [
+  'Travel', 
+  'Meals & Entertainment', 
+  'Software & Subscriptions', 
+  'Office Supplies', 
+  'Training & Development', 
+  'Marketing & Advertising',
+  'Hardware',
+  'Consulting Fees (External)',
+  'Other'
+];
+
+
+export type Expense = {
+  id: string;
+  date: string; // ISO date string
+  description: string;
+  amount: number;
+  currency: string; // e.g., "USD"
+  category: ExpenseCategory | string; // Allow predefined or custom
+  status: ExpenseStatus;
+  submittedByConsultantId?: string; // Link to Consultant.id
+  submittedByConsultantNameCache?: string; // Denormalized
+  clientId?: string; // Link to Client.id
+  clientNameCache?: string; // Denormalized
+  projectId?: string; // Link to Project.id
+  projectNameCache?: string; // Denormalized
+  receiptUrl?: string; // Link to an uploaded receipt
+  notes?: string;
+  approvedByUserId?: string; // User who approved/rejected
+  approvedDate?: string; // ISO date string
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
 };

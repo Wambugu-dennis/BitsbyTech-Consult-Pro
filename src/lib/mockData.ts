@@ -1,6 +1,6 @@
 
-import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem } from "@/lib/types";
-import { PROJECT_STATUS } from "./constants";
+import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, Expense, ExpenseStatus, ExpenseCategory } from "@/lib/types";
+import { PROJECT_STATUS, expenseCategories } from "./constants"; // expenseCategories might not be in constants yet
 import { formatISO, addDays, subDays } from 'date-fns';
 
 // Mock data for Clients
@@ -314,4 +314,78 @@ export const initialInvoices: Invoice[] = [
   createInvoice('INV-2024-002', initialClients[1], initialProjects.find(p => p.clientId === initialClients[1].id), 'Sent', 20, inv2Items),
   createInvoice('INV-2024-003', initialClients[0], initialProjects.find(p => p.clientId === initialClients[0].id && p.id === 'proj105'), 'Overdue', 35, inv3Items),
   createInvoice('INV-2024-004', initialClients[2], undefined, 'Draft', 5, inv4Items),
+];
+
+// Mock data for Expenses
+export const initialExpenses: Expense[] = [
+  {
+    id: 'exp-001',
+    date: formatISO(subDays(today, 10), { representation: 'date' }),
+    description: 'Flight to Innovatech Ltd. for project kickoff (proj101)',
+    amount: 450.75,
+    currency: 'USD',
+    category: 'Travel',
+    status: 'Approved',
+    submittedByConsultantId: 'c1',
+    submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c1')?.name,
+    clientId: '1',
+    clientNameCache: initialClients.find(cl => cl.id === '1')?.companyName,
+    projectId: 'proj101',
+    projectNameCache: initialProjects.find(p => p.id === 'proj101')?.name,
+    receiptUrl: 'https://placehold.co/200x100.png?text=Receipt1',
+    notes: 'Kickoff meeting travel expense.',
+    approvedByUserId: 'adminUser1',
+    approvedDate: formatISO(subDays(today, 8)),
+    createdAt: formatISO(subDays(today, 10)),
+    updatedAt: formatISO(subDays(today, 8)),
+  },
+  {
+    id: 'exp-002',
+    date: formatISO(subDays(today, 5), { representation: 'date' }),
+    description: 'Team Lunch during Alpha Solutions workshop (proj202)',
+    amount: 120.50,
+    currency: 'USD',
+    category: 'Meals & Entertainment',
+    status: 'Pending',
+    submittedByConsultantId: 'c3',
+    submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c3')?.name,
+    clientId: '2',
+    clientNameCache: initialClients.find(cl => cl.id === '2')?.companyName,
+    projectId: 'proj202',
+    projectNameCache: initialProjects.find(p => p.id === 'proj202')?.name,
+    createdAt: formatISO(subDays(today, 5)),
+    updatedAt: formatISO(subDays(today, 5)),
+  },
+  {
+    id: 'exp-003',
+    date: formatISO(subDays(today, 15), { representation: 'date' }),
+    description: 'Software Subscription for AI toolkit',
+    amount: 99.00,
+    currency: 'USD',
+    category: 'Software & Subscriptions',
+    status: 'Approved',
+    submittedByConsultantId: 'c2',
+    submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c2')?.name,
+    // No specific client/project for this general software
+    receiptUrl: 'https://placehold.co/200x100.png?text=Receipt2',
+    approvedByUserId: 'adminUser1',
+    approvedDate: formatISO(subDays(today, 12)),
+    createdAt: formatISO(subDays(today, 15)),
+    updatedAt: formatISO(subDays(today, 12)),
+  },
+  {
+    id: 'exp-004',
+    date: formatISO(subDays(today, 2), { representation: 'date' }),
+    description: 'Local travel for client meeting - Gamma Industries',
+    amount: 35.00,
+    currency: 'USD',
+    category: 'Travel',
+    status: 'Pending',
+    submittedByConsultantId: 'c4',
+    submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c4')?.name,
+    clientId: '4', // Gamma Industries (Prospect)
+    clientNameCache: initialClients.find(cl => cl.id === '4')?.companyName,
+    createdAt: formatISO(subDays(today, 2)),
+    updatedAt: formatISO(subDays(today, 2)),
+  },
 ];
