@@ -47,7 +47,7 @@ export default function FinancesPage() {
             ))}
           </div>
           <div className="mt-4 text-right">
-            <Button variant="outline">View Detailed Dashboard <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Button variant="outline" onClick={() => alert("Detailed financial dashboard coming soon!")}>View Detailed Dashboard <ArrowRight className="ml-2 h-4 w-4" /></Button>
           </div>
         </CardContent>
       </Card>
@@ -90,7 +90,9 @@ export default function FinancesPage() {
               <li>Software Subscription - $150 (Approved)</li>
               <li>Travel for Project Alpha - $450 (Pending)</li>
             </ul>
-            <Button className="w-full" variant="outline">Log & Manage Expenses <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Link href="/finances/expenses" passHref>
+              <Button className="w-full" variant="outline">Log & Manage Expenses <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            </Link>
           </CardContent>
         </Card>
 
@@ -109,7 +111,9 @@ export default function FinancesPage() {
                 <li>Project Alpha: $50K Budget / $35K Spent (70%)</li>
                 <li>Marketing Q3: $20K Budget / $12K Spent (60%)</li>
             </ul>
-            <Button className="w-full" variant="outline">View Budgets <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Link href="/finances/budgets" passHref>
+              <Button className="w-full" variant="outline">View Budgets <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            </Link>
           </CardContent>
         </Card>
 
@@ -125,7 +129,9 @@ export default function FinancesPage() {
               Implement systematic revenue recognition based on project milestones, contract terms, or service delivery periods.
             </CardDescription>
             <p className="text-sm text-muted-foreground mb-4">Configure rules and track recognized vs. deferred revenue.</p>
-            <Button className="w-full" variant="outline">Configure Recognition <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Link href="/finances/revenue-recognition" passHref>
+              <Button className="w-full" variant="outline">Configure Recognition <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            </Link>
           </CardContent>
         </Card>
 
@@ -141,7 +147,9 @@ export default function FinancesPage() {
               Analyze profitability at client, project, consultant, and service-line levels. Make data-driven strategic decisions.
             </CardDescription>
             <p className="text-sm text-muted-foreground mb-4">Integrates data from invoicing, expenses, and resource allocation.</p>
-            <Button className="w-full" variant="outline">Explore Profitability <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Link href="/finances/profitability" passHref>
+              <Button className="w-full" variant="outline">Explore Profitability <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            </Link>
           </CardContent>
         </Card>
          <Card className="bg-primary/10 text-primary-foreground hover:shadow-md transition-shadow border-primary">
