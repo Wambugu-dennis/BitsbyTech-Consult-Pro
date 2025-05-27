@@ -3,29 +3,30 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Brain, Lightbulb, BarChartBig, AlertTriangle, Cpu, HelpCircle, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Brain, Lightbulb, BarChartBig, AlertTriangle, Cpu, HelpCircle, TrendingUp, TableIcon, PieChartIcon, BarChartIcon as LucideBarChartIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, ReferenceDot, LabelList, Cell } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, ReferenceDot, LabelList, Cell, Pie, PieChart as RechartsPieChart } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartConfig } from "@/components/ui/chart";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { handleGetBusinessInsight } from './actions';
 import type { BusinessInsightOutput, BusinessInsightInput } from '@/ai/flows/generate-business-insight';
 import { cn } from '@/lib/utils';
-import { financialHealthData as baseFinancialHealthData } from '@/lib/mockData'; // Re-using some existing mock data for demonstration
+import { financialHealthData as baseFinancialHealthData, initialProjects, initialClients } from '@/lib/mockData';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import type { Project, Client } from '@/lib/types';
 
-
-const predictiveChartData = baseFinancialHealthData.map((d, i) => ({ ...d, month: d.month.substring(0,3) })).slice(0, 9); // Take first 9 months
+const predictiveChartData = baseFinancialHealthData.map((d, i) => ({ ...d, month: d.month.substring(0,3) })).slice(0, 9);
 const forecastMonths = ['Oct', 'Nov', 'Dec'];
 forecastMonths.forEach((month, i) => {
   const lastActualRevenue = predictiveChartData[predictiveChartData.length - 1].revenue;
   const lastActualExpenses = predictiveChartData[predictiveChartData.length - 1].expenses;
   predictiveChartData.push({
     month,
-    revenue: Math.round(lastActualRevenue * (1 + (Math.random() * 0.1 - 0.03 + (i * 0.02)))), // Slight random growth
+    revenue: Math.round(lastActualRevenue * (1 + (Math.random() * 0.1 - 0.03 + (i * 0.02)))),
     expenses: Math.round(lastActualExpenses * (1 + (Math.random() * 0.08 - 0.02 + (i*0.01)))),
     forecastedRevenue: true,
     forecastedExpenses: true,
@@ -35,27 +36,19 @@ forecastMonths.forEach((month, i) => {
 const predictiveChartConfig = {
   revenue: { label: "Revenue ($)", color: "hsl(var(--chart-1))" },
   expenses: { label: "Expenses ($)", color: "hsl(var(--chart-5))" },
-  forecastedRevenue: { label: "Forecasted Revenue ($)", color: "hsl(var(--chart-1))",
-    component: ({ points, ...props }: any) => (
-      <Line {...props} type="monotone" strokeDasharray="5 5" strokeWidth={2} dot={false} />
-    ),
-  },
-  forecastedExpenses: { label: "Forecasted Expenses ($)", color: "hsl(var(--chart-5))",
-    component: ({ points, ...props }: any) => (
-       <Line {...props} type="monotone" strokeDasharray="5 5" strokeWidth={2} dot={false} />
-    ),
-  },
+  forecastedRevenue: { label: "Forecasted Revenue ($)", color: "hsl(var(--chart-1))" },
+  forecastedExpenses: { label: "Forecasted Expenses ($)", color: "hsl(var(--chart-5))" },
 } satisfies ChartConfig;
 
 
 const anomalyData = [
-  { name: 'Project Alpha', completionTime: 60, budgetVariance: 5 },   // days, %
+  { name: 'Project Alpha', completionTime: 60, budgetVariance: 5 },
   { name: 'Project Beta', completionTime: 75, budgetVariance: -2 },
   { name: 'Project Gamma', completionTime: 55, budgetVariance: 3 },
-  { name: 'Project Delta', completionTime: 120, budgetVariance: 15, isAnomaly: true }, // Anomaly
+  { name: 'Project Delta', completionTime: 120, budgetVariance: 15, isAnomaly: true },
   { name: 'Project Epsilon', completionTime: 65, budgetVariance: -5 },
   { name: 'Project Zeta', completionTime: 80, budgetVariance: 0 },
-  { name: 'Project Kappa', completionTime: 45, budgetVariance: 20, isAnomaly: true }, // Anomaly
+  { name: 'Project Kappa', completionTime: 45, budgetVariance: 20, isAnomaly: true },
 ];
 const anomalyChartConfig = {
   completionTime: { label: "Completion Time (Days)", color: "hsl(var(--chart-2))" },
@@ -69,9 +62,10 @@ export default function AiInsightsPage() {
   const [isInsightLoading, setIsInsightLoading] = useState(false);
   const [insightError, setInsightError] = useState<string | null>(null);
 
-  const [customVisDataSource, setCustomVisDataSource] = useState('');
-  const [customVisChartType, setCustomVisChartType] = useState('');
-
+  const [customVisDataSource, setCustomVisDataSource] = useState<string>('');
+  const [customVisChartType, setCustomVisChartType] = useState<string>('');
+  const [generatedCustomChart, setGeneratedCustomChart] = useState<React.ReactNode | null>(null);
+  const [isGeneratingCustomChart, setIsGeneratingCustomChart] = useState(false);
 
   const onGetInsight = async () => {
     if (!insightContext.trim()) {
@@ -89,6 +83,125 @@ export default function AiInsightsPage() {
     }
     setIsInsightLoading(false);
   };
+
+  const handleGenerateCustomVisualization = () => {
+    if (!customVisDataSource || !customVisChartType) {
+      alert("Please select a data source and chart type.");
+      return;
+    }
+    setIsGeneratingCustomChart(true);
+    setGeneratedCustomChart(null); // Clear previous chart
+
+    // Simulate generation delay
+    setTimeout(() => {
+      let chartNode: React.ReactNode = <p className="text-muted-foreground">Selected visualization not yet supported.</p>;
+
+      if (customVisDataSource === 'projects' && customVisChartType === 'bar') {
+        const projectStatusCounts = initialProjects.reduce((acc, project) => {
+          acc[project.status] = (acc[project.status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        const data = Object.entries(projectStatusCounts).map(([status, count]) => ({ status, count }));
+        const chartConfig = { count: { label: "Projects", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
+        chartNode = (
+          <ChartContainer config={chartConfig} className="h-[300px] w-full">
+            <BarChart data={data} layout="vertical">
+              <CartesianGrid horizontal={false} />
+              <XAxis type="number" dataKey="count" />
+              <YAxis type="category" dataKey="status" width={100} />
+              <Tooltip content={<ChartTooltipContent />} />
+              <Legend />
+              <Bar dataKey="count" name="Project Count" fill="var(--color-count)" radius={4} />
+            </BarChart>
+          </ChartContainer>
+        );
+      } else if (customVisDataSource === 'clients' && customVisChartType === 'pie') {
+        const clientTierCounts = initialClients.reduce((acc, client) => {
+          const tier = client.clientTier || 'Other';
+          acc[tier] = (acc[tier] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        const data = Object.entries(clientTierCounts).map(([name, value]) => ({ name, value }));
+        const chartConfig = data.reduce((acc, entry, index) => {
+            acc[entry.name] = { label: entry.name, color: `hsl(var(--chart-${(index % 5) + 1}))`};
+            return acc;
+        }, {} as ChartConfig);
+
+        chartNode = (
+          <ChartContainer config={chartConfig} className="h-[300px] w-full">
+            <RechartsPieChart>
+              <Tooltip content={<ChartTooltipContent nameKey="value" />} />
+              <Legend content={<ChartLegendContent nameKey="name"/>} />
+              <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                 {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={`var(--color-${entry.name})`} />
+                  ))}
+              </Pie>
+            </RechartsPieChart>
+          </ChartContainer>
+        );
+      } else if (customVisDataSource === 'financials' && customVisChartType === 'line') {
+        const data = baseFinancialHealthData.slice(0, 6).map(d => ({ month: d.month.substring(0,3), revenue: d.revenue }));
+        const chartConfig = { revenue: { label: "Revenue", color: "hsl(var(--chart-2))" } } satisfies ChartConfig;
+        chartNode = (
+          <ChartContainer config={chartConfig} className="h-[300px] w-full">
+            <LineChart data={data}>
+              <CartesianGrid vertical={false} />
+              <XAxis dataKey="month" />
+              <YAxis tickFormatter={(value) => `$${value/1000}k`} />
+              <Tooltip content={<ChartTooltipContent />} />
+              <Legend />
+              <Line type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} dot={{r:4}} />
+            </LineChart>
+          </ChartContainer>
+        );
+      } else if (customVisChartType === 'table') {
+        let tableData: any[] = [];
+        let headers: string[] = [];
+        if (customVisDataSource === 'projects') {
+            headers = ["Project Name", "Status", "Client", "Start Date", "End Date"];
+            tableData = initialProjects.slice(0, 5).map(p => ({
+                name: p.name,
+                status: p.status,
+                client: p.clientNameCache,
+                startDate: p.startDate,
+                endDate: p.endDate,
+            }));
+        } else if (customVisDataSource === 'clients') {
+            headers = ["Company Name", "Tier", "Primary Contact", "Industry"];
+            tableData = initialClients.slice(0, 5).map(c => ({
+                companyName: c.companyName,
+                tier: c.clientTier || 'N/A',
+                contact: c.keyContacts[0]?.name || 'N/A',
+                industry: c.industry || 'N/A',
+            }));
+        }
+         chartNode = (
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>{headers.map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow>
+              </TableHeader>
+              <TableBody>
+                {tableData.map((row, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                    {headers.map(header => (
+                      <TableCell key={`${rowIndex}-${header}`}>
+                        {row[header.toLowerCase().replace(/\s+/g, '')] || row[Object.keys(row)[headers.indexOf(header)]] /* Basic mapping */}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        );
+      }
+      setGeneratedCustomChart(chartNode);
+      setIsGeneratingCustomChart(false);
+    }, 1000);
+  };
+
 
   return (
     <div className="space-y-8">
@@ -134,7 +247,6 @@ export default function AiInsightsPage() {
                 </Bar>
                 <Line type="monotone" dataKey="expenses" stroke="var(--color-expenses)" strokeWidth={2} name="Actual Expenses" dot={{r:3}}/>
                 
-                {/* Forecasted parts */}
                 <Line dataKey="revenue" name="Forecasted Revenue" stroke="var(--color-revenue)" strokeDasharray="5 5" type="monotone" connectNulls={true}
                     dot={(props: any) => {
                         if (predictiveChartData[props.index]?.forecastedRevenue) return <ReferenceDot {...props} r={3} fill="var(--color-revenue)" stroke="var(--color-revenue)" />;
@@ -207,26 +319,25 @@ export default function AiInsightsPage() {
             <CardTitle>Customizable Data Visualizations</CardTitle>
           </div>
           <CardDescription>
-            Build and save custom reports and dashboards tailored to your specific needs. (Full builder functionality coming soon)
+            Select a data source and chart type to generate a sample visualization. (This is a simplified demonstration.)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg bg-muted/30">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/10">
                 <div>
                     <label htmlFor="custom-data-source" className="text-sm font-medium text-muted-foreground block mb-1.5">Data Source</label>
-                    <Select value={customVisDataSource} onValueChange={setCustomVisDataSource} disabled>
+                    <Select value={customVisDataSource} onValueChange={setCustomVisDataSource}>
                         <SelectTrigger id="custom-data-source"><SelectValue placeholder="Select data source" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="projects">Projects</SelectItem>
                             <SelectItem value="clients">Clients</SelectItem>
-                            <SelectItem value="consultants">Consultants</SelectItem>
                             <SelectItem value="financials">Financials</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
                 <div>
                     <label htmlFor="custom-chart-type" className="text-sm font-medium text-muted-foreground block mb-1.5">Chart Type</label>
-                    <Select value={customVisChartType} onValueChange={setCustomVisChartType} disabled>
+                    <Select value={customVisChartType} onValueChange={setCustomVisChartType}>
                         <SelectTrigger id="custom-chart-type"><SelectValue placeholder="Select chart type" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="bar">Bar Chart</SelectItem>
@@ -236,17 +347,37 @@ export default function AiInsightsPage() {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="md:col-span-3">
+                <div className="md:col-span-2">
                      <label className="text-sm font-medium text-muted-foreground block mb-1.5">Fields to Plot/Display</label>
-                    <Input placeholder="e.g., Project Status, Client Tier, Revenue (Coming Soon)" disabled />
+                    <Input placeholder="e.g., Project Status, Client Tier (Field selection coming soon)" disabled />
                 </div>
             </div>
             <div className="text-right">
-                <Button disabled>
-                    <Cpu className="mr-2 h-4 w-4" />
-                    Generate & Save Custom Report
+                <Button onClick={handleGenerateCustomVisualization} disabled={isGeneratingCustomChart || !customVisDataSource || !customVisChartType}>
+                    {isGeneratingCustomChart ? (
+                        <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Generating...
+                        </>
+                    ) : (
+                        <> <Cpu className="mr-2 h-4 w-4" /> Generate Custom Visualization </>
+                    )}
                 </Button>
             </div>
+             {generatedCustomChart && (
+              <div className="mt-6 p-4 border rounded-lg bg-muted/20">
+                <h4 className="text-md font-semibold mb-3 text-center text-muted-foreground">Generated Visualization:</h4>
+                {generatedCustomChart}
+              </div>
+            )}
+            {!generatedCustomChart && !isGeneratingCustomChart && (
+                <div className="mt-6 p-4 border border-dashed rounded-lg text-center text-muted-foreground">
+                    Select a data source and chart type, then click "Generate Custom Visualization" to see a sample.
+                </div>
+            )}
         </CardContent>
       </Card>
 
