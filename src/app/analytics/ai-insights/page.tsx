@@ -3,12 +3,12 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Brain, Lightbulb, BarChartBig, AlertTriangle, Cpu, HelpCircle, TrendingUp, TableIcon, PieChartIcon, BarChartIcon as LucideBarChartIcon } from 'lucide-react';
+import { ArrowLeft, Brain, Lightbulb, BarChartBig, AlertTriangle, Cpu, HelpCircle, TrendingUp, TableIcon, PieChartIcon as RechartsPieChartIcon, BarChartIcon as LucideBarChartIcon } from 'lucide-react'; // Changed PieChartIcon alias
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, ReferenceDot, LabelList, Cell, Pie, PieChart as RechartsPieChart } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, ReferenceDot, LabelList, Cell, Pie, PieChart as RechartsPieChart } from 'recharts'; // Keep RechartsPieChart alias
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartConfig } from "@/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { handleGetBusinessInsight } from './actions';
@@ -104,7 +104,7 @@ export default function AiInsightsPage() {
         const data = Object.entries(projectStatusCounts).map(([status, count]) => ({ status, count }));
         const chartConfig = { count: { label: "Projects", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
         chartNode = (
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
+          <ChartContainer config={chartConfig} className="h-[300px] w-full [aspect-ratio:auto]">
             <BarChart data={data} layout="vertical">
               <CartesianGrid horizontal={false} />
               <XAxis type="number" dataKey="count" />
@@ -128,7 +128,7 @@ export default function AiInsightsPage() {
         }, {} as ChartConfig);
 
         chartNode = (
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
+          <ChartContainer config={chartConfig} className="h-[300px] w-full [aspect-ratio:auto]">
             <RechartsPieChart>
               <Tooltip content={<ChartTooltipContent nameKey="value" />} />
               <Legend content={<ChartLegendContent nameKey="name"/>} />
@@ -144,7 +144,7 @@ export default function AiInsightsPage() {
         const data = baseFinancialHealthData.slice(0, 6).map(d => ({ month: d.month.substring(0,3), revenue: d.revenue }));
         const chartConfig = { revenue: { label: "Revenue", color: "hsl(var(--chart-2))" } } satisfies ChartConfig;
         chartNode = (
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
+          <ChartContainer config={chartConfig} className="h-[300px] w-full [aspect-ratio:auto]">
             <LineChart data={data}>
               <CartesianGrid vertical={false} />
               <XAxis dataKey="month" />
@@ -234,7 +234,7 @@ export default function AiInsightsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={predictiveChartConfig} className="h-[350px] w-full">
+          <ChartContainer config={predictiveChartConfig} className="h-[350px] w-full [aspect-ratio:auto]">
             <ResponsiveContainer>
               <ComposedChart data={predictiveChartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false}/>
@@ -285,7 +285,7 @@ export default function AiInsightsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-           <ChartContainer config={anomalyChartConfig} className="h-[350px] w-full">
+           <ChartContainer config={anomalyChartConfig} className="h-[350px] w-full [aspect-ratio:auto]">
             <ResponsiveContainer>
                 <BarChart data={anomalyData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false}/>
@@ -368,7 +368,7 @@ export default function AiInsightsPage() {
                 </Button>
             </div>
              {generatedCustomChart && (
-              <div className="mt-6 p-4 border rounded-lg bg-muted/20">
+              <div className="mt-6 p-4 border rounded-lg bg-muted/20 w-full">
                 <h4 className="text-md font-semibold mb-3 text-center text-muted-foreground">Generated Visualization:</h4>
                 {generatedCustomChart}
               </div>
@@ -458,3 +458,6 @@ export default function AiInsightsPage() {
     </div>
   );
 }
+
+
+    
