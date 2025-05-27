@@ -17,29 +17,9 @@ import { cn } from '@/lib/utils';
 import { financialHealthData as baseFinancialHealthData, initialProjects, initialClients } from '@/lib/mockData';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import type { Project, Client } from '@/lib/types';
+import type { Project, Client, RevenueData } from '@/lib/types';
 import { Label } from '@/components/ui/label';
-
-const predictiveChartData = baseFinancialHealthData.map((d, i) => ({ ...d, month: d.month.substring(0,3) })).slice(0, 9);
-const forecastMonths = ['Oct', 'Nov', 'Dec'];
-forecastMonths.forEach((month, i) => {
-  const lastActualRevenue = predictiveChartData[predictiveChartData.length - 1].revenue;
-  const lastActualExpenses = predictiveChartData[predictiveChartData.length - 1].expenses;
-  predictiveChartData.push({
-    month,
-    revenue: Math.round(lastActualRevenue * (1 + (Math.random() * 0.1 - 0.03 + (i * 0.02)))),
-    expenses: Math.round(lastActualExpenses * (1 + (Math.random() * 0.08 - 0.02 + (i*0.01)))),
-    forecastedRevenue: true,
-    forecastedExpenses: true,
-  });
-});
-
-const predictiveChartConfig = {
-  revenue: { label: "Revenue ($)", color: "hsl(var(--chart-1))" },
-  expenses: { label: "Expenses ($)", color: "hsl(var(--chart-5))" },
-  forecastedRevenue: { label: "Forecasted Revenue ($)", color: "hsl(var(--chart-1))" },
-  forecastedExpenses: { label: "Forecasted Expenses ($)", color: "hsl(var(--chart-5))" },
-} satisfies ChartConfig;
+import { format, addMonths, parseISO } from 'date-fns';
 
 
 const anomalyData = [
@@ -56,6 +36,13 @@ const anomalyChartConfig = {
   budgetVariance: { label: "Budget Variance (%)", color: "hsl(var(--chart-3))" },
 } satisfies ChartConfig;
 
+const predictiveChartBaseConfig = {
+  actualRevenue: { label: "Actual Revenue ($)", color: "hsl(var(--chart-1))" },
+  actualExpenses: { label: "Actual Expenses ($)", color: "hsl(var(--chart-5))" },
+  forecastedRevenueValue: { label: "Forecasted Revenue ($)", color: "hsl(var(--chart-1))" },
+  forecastedExpensesValue: { label: "Forecasted Expenses ($)", color: "hsl(var(--chart-5))" },
+} satisfies ChartConfig;
+
 
 export default function AiInsightsPage() {
   const [insightContext, setInsightContext] = useState('');
@@ -69,6 +56,49 @@ export default function AiInsightsPage() {
   const [isGeneratingCustomChart, setIsGeneratingCustomChart] = useState(false);
 
   const [selectedAnomalyProjectName, setSelectedAnomalyProjectName] = useState<string>("all");
+  const [assumedAnnualGrowthRate, setAssumedAnnualGrowthRate] = useState<number>(5);
+
+
+  const predictiveChartData = useMemo(() => {
+    const historicalData = baseFinancialHealthData.map(d => ({
+      month: format(parseISO(d.date), 'MMM'), // Display month abbreviation
+      fullDate: d.date, // Keep full date for sorting/reference
+      actualRevenue: d.actualRevenue,
+      actualExpenses: d.actualExpenses,
+      isRevenueForecasted: false,
+      isExpensesForecasted: false,
+    }));
+
+    // Sort historical data to be sure
+    historicalData.sort((a, b) => new Date(a.fullDate).getTime() - new Date(b.fullDate).getTime());
+    
+    const lastActualEntry = historicalData[historicalData.length - 1];
+    let lastRevenue = lastActualEntry?.actualRevenue || 0;
+    let lastExpenses = lastActualEntry?.actualExpenses || 0;
+    let lastDate = lastActualEntry ? parseISO(lastActualEntry.fullDate) : new Date();
+
+    const forecast: RevenueData[] = [];
+    const monthlyGrowthRate = assumedAnnualGrowthRate / 100 / 12;
+
+    for (let i = 1; i <= 12; i++) {
+      const forecastDate = addMonths(lastDate, i);
+      lastRevenue = lastRevenue * (1 + monthlyGrowthRate);
+      lastExpenses = lastExpenses * (1 + monthlyGrowthRate);
+      
+      forecast.push({
+        date: formatISO(forecastDate, {representation: 'date'}), // Keep full date for internal use
+        month: format(forecastDate, 'MMM'), // For X-axis label
+        forecastedRevenueValue: Math.round(lastRevenue),
+        forecastedExpensesValue: Math.round(lastExpenses),
+        isRevenueForecasted: true,
+        isExpensesForecasted: true,
+      });
+    }
+    // Combine last N historical points with forecast for display
+    const displayHistorical = historicalData.slice(-12); // Show last 12 historical months or fewer if less data
+    return [...displayHistorical, ...forecast];
+  }, [assumedAnnualGrowthRate]);
+
 
   const onGetInsight = async () => {
     if (!insightContext.trim()) {
@@ -95,7 +125,6 @@ export default function AiInsightsPage() {
     setIsGeneratingCustomChart(true);
     setGeneratedCustomChart(null); 
 
-    // Simulate generation delay
     setTimeout(() => {
       let chartNode: React.ReactNode = (
         <div className="p-4 text-center text-destructive border border-destructive/50 rounded-md bg-destructive/10">
@@ -161,7 +190,7 @@ export default function AiInsightsPage() {
           if (baseFinancialHealthData.length === 0) {
             chartNode = <p className="text-muted-foreground text-center p-4">No financial data available to generate a line chart.</p>;
           } else {
-            const data = baseFinancialHealthData.slice(0, 6).map(d => ({ month: d.month.substring(0,3), revenue: d.revenue }));
+            const data = baseFinancialHealthData.slice(0, 6).map(d => ({ month: format(parseISO(d.date), 'MMM') , revenue: d.actualRevenue }));
             const chartConfig = { revenue: { label: "Revenue", color: "hsl(var(--chart-2))" } } satisfies ChartConfig;
             chartNode = (
               <ChartContainer config={chartConfig} className="h-[300px] w-full [aspect-ratio:auto]">
@@ -232,7 +261,6 @@ export default function AiInsightsPage() {
         }
       } catch (err) {
         console.error("Error generating custom visualization:", err);
-        // chartNode will remain the default error message defined at the start of the function
       }
       
       setGeneratedCustomChart(chartNode);
@@ -275,11 +303,29 @@ export default function AiInsightsPage() {
             <CardTitle>Predictive Analytics for Trends</CardTitle>
           </div>
           <CardDescription>
-            Leverage historical data and AI to forecast future business trends, resource needs, and revenue projections. This chart shows a simulated revenue and expense forecast.
+            Leverage historical data and AI to forecast future business trends. Adjust the assumed annual growth rate to see different projections.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={predictiveChartConfig} className="h-[350px] w-full [aspect-ratio:auto]">
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="growth-rate-filter" className="text-sm font-medium text-muted-foreground shrink-0">
+              Assumed Annual Growth Rate (%):
+            </Label>
+            <Input
+              id="growth-rate-filter"
+              type="number"
+              value={assumedAnnualGrowthRate}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                setAssumedAnnualGrowthRate(isNaN(val) ? 0 : val);
+              }}
+              className="w-full sm:w-[120px]"
+              min="0"
+              max="100"
+              step="0.5"
+            />
+          </div>
+          <ChartContainer config={predictiveChartBaseConfig} className="h-[350px] w-full [aspect-ratio:auto]">
             <ResponsiveContainer>
               <ComposedChart data={predictiveChartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false}/>
@@ -287,28 +333,31 @@ export default function AiInsightsPage() {
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `$${value/1000}k`} />
                 <Tooltip content={<ChartTooltipContent />} />
                 <Legend content={<ChartLegendContent />} />
-                <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} name="Actual Revenue">
-                   <LabelList dataKey="revenue" position="top" formatter={(value: number) => value ? `$${(value/1000).toFixed(0)}k` : ''} fontSize={10} fill="hsl(var(--foreground))"/>
-                </Bar>
-                <Line type="monotone" dataKey="expenses" stroke="var(--color-expenses)" strokeWidth={2} name="Actual Expenses" dot={{r:3}}/>
                 
-                <Line dataKey="revenue" name="Forecasted Revenue" stroke="var(--color-revenue)" strokeDasharray="5 5" type="monotone" connectNulls={true}
+                {/* Actual Data Series */}
+                <Bar dataKey="actualRevenue" fill="var(--color-actualRevenue)" radius={4} name="Actual Revenue">
+                   <LabelList dataKey="actualRevenue" position="top" formatter={(value: number) => value ? `$${(value/1000).toFixed(0)}k` : ''} fontSize={10} fill="hsl(var(--foreground))"/>
+                </Bar>
+                <Line type="monotone" dataKey="actualExpenses" stroke="var(--color-actualExpenses)" strokeWidth={2} name="Actual Expenses" dot={{r:3}}/>
+                
+                {/* Forecasted Data Series */}
+                <Line dataKey="forecastedRevenueValue" name="Forecasted Revenue" stroke="var(--color-forecastedRevenueValue)" strokeDasharray="5 5" type="monotone" connectNulls={true}
                     dot={(props: any) => {
-                        if (predictiveChartData[props.index]?.forecastedRevenue) return <ReferenceDot {...props} r={3} fill="var(--color-revenue)" stroke="var(--color-revenue)" />;
+                        if (predictiveChartData[props.index]?.isRevenueForecasted) return <ReferenceDot {...props} r={3} fill="var(--color-forecastedRevenueValue)" stroke="var(--color-forecastedRevenueValue)" />;
                         return null;
                     }}
                     activeDot={(props: any) => {
-                         if (predictiveChartData[props.index]?.forecastedRevenue) return <ReferenceDot {...props} r={5} fill="var(--color-revenue)" stroke="var(--color-revenue)" />;
+                         if (predictiveChartData[props.index]?.isRevenueForecasted) return <ReferenceDot {...props} r={5} fill="var(--color-forecastedRevenueValue)" stroke="var(--color-forecastedRevenueValue)" />;
                          return null;
                     }}
                 />
-                 <Line dataKey="expenses" name="Forecasted Expenses" stroke="var(--color-expenses)" strokeDasharray="5 5" type="monotone" connectNulls={true}
+                 <Line dataKey="forecastedExpensesValue" name="Forecasted Expenses" stroke="var(--color-forecastedExpensesValue)" strokeDasharray="5 5" type="monotone" connectNulls={true}
                     dot={(props: any) => {
-                        if (predictiveChartData[props.index]?.forecastedExpenses) return <ReferenceDot {...props} r={3} fill="var(--color-expenses)" stroke="var(--color-expenses)" />;
+                        if (predictiveChartData[props.index]?.isExpensesForecasted) return <ReferenceDot {...props} r={3} fill="var(--color-forecastedExpensesValue)" stroke="var(--color-forecastedExpensesValue)" />;
                         return null;
                     }}
                      activeDot={(props: any) => {
-                         if (predictiveChartData[props.index]?.forecastedExpenses) return <ReferenceDot {...props} r={5} fill="var(--color-expenses)" stroke="var(--color-expenses)" />;
+                         if (predictiveChartData[props.index]?.isExpensesForecasted) return <ReferenceDot {...props} r={5} fill="var(--color-forecastedExpensesValue)" stroke="var(--color-forecastedExpensesValue)" />;
                          return null;
                     }}
                  />
@@ -386,7 +435,7 @@ export default function AiInsightsPage() {
         <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/10">
                 <div>
-                    <label htmlFor="custom-data-source" className="text-sm font-medium text-muted-foreground block mb-1.5">Data Source</label>
+                    <Label htmlFor="custom-data-source" className="text-sm font-medium text-muted-foreground block mb-1.5">Data Source</Label>
                     <Select value={customVisDataSource} onValueChange={setCustomVisDataSource}>
                         <SelectTrigger id="custom-data-source"><SelectValue placeholder="Select data source" /></SelectTrigger>
                         <SelectContent>
@@ -397,7 +446,7 @@ export default function AiInsightsPage() {
                     </Select>
                 </div>
                 <div>
-                    <label htmlFor="custom-chart-type" className="text-sm font-medium text-muted-foreground block mb-1.5">Chart Type</label>
+                    <Label htmlFor="custom-chart-type" className="text-sm font-medium text-muted-foreground block mb-1.5">Chart Type</Label>
                     <Select value={customVisChartType} onValueChange={setCustomVisChartType}>
                         <SelectTrigger id="custom-chart-type"><SelectValue placeholder="Select chart type" /></SelectTrigger>
                         <SelectContent>
@@ -409,8 +458,8 @@ export default function AiInsightsPage() {
                     </Select>
                 </div>
                 <div className="md:col-span-2">
-                     <label className="text-sm font-medium text-muted-foreground block mb-1.5">Fields to Plot/Display</label>
-                    <Input placeholder="e.g., Project Status, Client Tier (Advanced field selection coming soon)" disabled />
+                    <Label htmlFor="fields-to-plot" className="text-sm font-medium text-muted-foreground block mb-1.5">Fields to Plot/Display</Label>
+                    <Input id="fields-to-plot" placeholder="e.g., Project Status, Client Tier (Advanced field selection coming soon)" disabled />
                     <p className="text-xs text-muted-foreground mt-1">Note: Dynamic field selection for plotting is a planned future enhancement for a more advanced report builder.</p>
                 </div>
             </div>
@@ -521,7 +570,3 @@ export default function AiInsightsPage() {
     </div>
   );
 }
-
-    
-
-    

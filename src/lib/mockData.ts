@@ -5,6 +5,7 @@ import { expenseCategories, budgetTypes, budgetStatuses, calendarEventTypes } fr
 import { formatISO, addDays, subDays, addMonths, parseISO } from 'date-fns';
 
 const today = new Date();
+const currentYear = today.getFullYear(); // Use current year for mock data for relevance
 
 // Mock data for Clients
 export const initialClients: Client[] = [
@@ -185,7 +186,7 @@ export const initialProjects: Project[] = [
     priority: 'High',
     startDate: formatISO(subDays(today, 90), { representation: 'date' }), 
     endDate: formatISO(addDays(today, 90), { representation: 'date' }),   
-    financials: { budget: 250000, currency: 'USD', billingType: 'Fixed Price' },
+    financials: { budget: 250000, spentBudget: 112500, currency: 'USD', billingType: 'Fixed Price' },
     milestones: [
       { id: 'm101-1', name: 'Phase 1: Discovery & Planning', dueDate: formatISO(subDays(today, 60), { representation: 'date' }), status: 'Completed' },
       { id: 'm101-2', name: 'Phase 2: Model Development', dueDate: formatISO(addDays(today, 30), { representation: 'date' }), status: 'In Progress' },
@@ -209,7 +210,7 @@ export const initialProjects: Project[] = [
     priority: 'High',
     startDate: formatISO(subDays(today, 45), { representation: 'date' }),
     endDate: formatISO(addDays(today, 75), { representation: 'date' }),
-    financials: { budget: 150000, currency: 'USD', billingType: 'Time & Materials', hourlyRate: 150 },
+    financials: { budget: 150000, spentBudget: 45000, currency: 'USD', billingType: 'Time & Materials', hourlyRate: 150 },
     milestones: [
       { id: 'm202-1', name: 'Data Collection & Cleaning', dueDate: formatISO(subDays(today, 15), { representation: 'date' }), status: 'Completed' },
       { id: 'm202-2', name: 'Model Prototyping', dueDate: formatISO(addDays(today, 45), { representation: 'date' }), status: 'In Progress' },
@@ -233,7 +234,7 @@ export const initialProjects: Project[] = [
     startDate: formatISO(subDays(today, 200), { representation: 'date' }),
     endDate: formatISO(subDays(today, 100), { representation: 'date' }),
     actualEndDate: formatISO(subDays(today, 102), { representation: 'date' }),
-    financials: { budget: 80000, currency: 'USD', billingType: 'Fixed Price' },
+    financials: { budget: 80000, spentBudget: 78000, currency: 'USD', billingType: 'Fixed Price' },
     tags: ['Manufacturing', 'Process Improvement', 'Lean Six Sigma'],
     lastUpdated: formatISO(subDays(today, 100)),
     completionPercent: 100,
@@ -257,7 +258,7 @@ export const initialProjects: Project[] = [
     priority: 'Medium',
     startDate: formatISO(addDays(today, 10), { representation: 'date' }),
     endDate: formatISO(addDays(today, 100), { representation: 'date' }),
-    financials: { budget: 180000, currency: 'USD', billingType: 'Fixed Price' },
+    financials: { budget: 180000, spentBudget: 0, currency: 'USD', billingType: 'Fixed Price' },
     milestones: [
         { id: 'm105-1', name: 'Planning & Assessment', dueDate: formatISO(addDays(today, 30), { representation: 'date' }), status: 'Pending'},
         { id: 'm105-2', name: 'Development & Migration', dueDate: formatISO(addDays(today, 75), { representation: 'date' }), status: 'Pending'},
@@ -531,12 +532,19 @@ export const initialExpenses: Expense[] = [
   }
 ];
 
-
+// Use currentYear - 1 for historical data to ensure it's in the past for forecasting.
+const previousYear = currentYear -1;
 export const financialHealthData: RevenueData[] = [
-  { month: 'Jan', revenue: 50000, expenses: 30000 }, { month: 'Feb', revenue: 65000, expenses: 35000 },
-  { month: 'Mar', revenue: 58000, expenses: 32000 }, { month: 'Apr', revenue: 72000, expenses: 40000 },
-  { month: 'May', revenue: 68000, expenses: 38000 }, { month: 'Jun', revenue: 75000, expenses: 42000 },
-  { month: 'Jul', revenue: 82000, expenses: 45000 }, { month: 'Aug', revenue: 78000, expenses: 43000 },
-  { month: 'Sep', revenue: 85000, expenses: 48000 }, { month: 'Oct', revenue: 92000, expenses: 50000 },
-  { month: 'Nov', revenue: 88000, expenses: 47000 }, { month: 'Dec', revenue: 95000, expenses: 52000 },
+  { date: `${previousYear}-01-01`, actualRevenue: 50000, actualExpenses: 30000 }, 
+  { date: `${previousYear}-02-01`, actualRevenue: 65000, actualExpenses: 35000 },
+  { date: `${previousYear}-03-01`, actualRevenue: 58000, actualExpenses: 32000 }, 
+  { date: `${previousYear}-04-01`, actualRevenue: 72000, actualExpenses: 40000 },
+  { date: `${previousYear}-05-01`, actualRevenue: 68000, actualExpenses: 38000 }, 
+  { date: `${previousYear}-06-01`, actualRevenue: 75000, actualExpenses: 42000 },
+  { date: `${previousYear}-07-01`, actualRevenue: 82000, actualExpenses: 45000 }, 
+  { date: `${previousYear}-08-01`, actualRevenue: 78000, actualExpenses: 43000 },
+  { date: `${previousYear}-09-01`, actualRevenue: 85000, actualExpenses: 48000 }, 
+  { date: `${previousYear}-10-01`, actualRevenue: 92000, actualExpenses: 50000 },
+  { date: `${previousYear}-11-01`, actualRevenue: 88000, actualExpenses: 47000 }, 
+  { date: `${previousYear}-12-01`, actualRevenue: 95000, actualExpenses: 52000 },
 ];

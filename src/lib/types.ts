@@ -43,6 +43,7 @@ export type ProjectAttachment = {
 
 export type ProjectFinancials = {
   budget: number;
+  spentBudget: number; // Re-adding for project-specific financials, distinct from Budget module totals
   currency: string; 
   billingType?: 'Fixed Price' | 'Time & Materials' | 'Retainer';
   hourlyRate?: number; 
@@ -190,12 +191,16 @@ export type Client = {
 
 
 export type RevenueData = {
-  month: string;
-  revenue: number;
-  expenses?: number; // Added to support combined financial charts
-  forecastedRevenue?: boolean; // For predictive charts
-  forecastedExpenses?: boolean; // For predictive charts
+  date: string; // YYYY-MM-DD format for easier date manipulation
+  actualRevenue?: number;
+  actualExpenses?: number;
+  forecastedRevenueValue?: number; // Distinct key for forecasted revenue
+  forecastedExpensesValue?: number; // Distinct key for forecasted expenses
+  // Flags to indicate if the *point* contains forecasted data for styling dots/lines
+  isRevenueForecasted?: boolean;
+  isExpensesForecasted?: boolean;
 };
+
 
 export type ProjectStatusData = {
   status: string;
