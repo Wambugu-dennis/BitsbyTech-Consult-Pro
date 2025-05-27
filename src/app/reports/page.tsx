@@ -12,10 +12,10 @@ import {
   Users, 
   UserCog, 
   DollarSign,
-  Settings2, // For Custom Report Builder
-  CalendarClock, // For Scheduled Reporting
-  DownloadCloud, // For Flexible Export
-  Brain // For AI Report Generation
+  Settings2, 
+  CalendarClock, 
+  DownloadCloud, 
+  Brain 
 } from "lucide-react";
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
@@ -119,7 +119,7 @@ export default function ReportsPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           
-          {/* Custom Report Builder */}
+          {/* Custom Report Builder & Visualization Tools */}
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Settings2 className="h-5 w-5 text-accent" />
@@ -211,3 +211,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+
