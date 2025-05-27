@@ -5,10 +5,13 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Briefcase, Users, UserCog, DollarSign, Lightbulb, AlertTriangle, BarChartHorizontalBig, Brain, ArrowRight, FileDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TrendingUp, Briefcase, Users, UserCog, DollarSign, Lightbulb, AlertTriangle, BarChartHorizontalBig, Brain, ArrowRight, FileDown, Filter } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
+import React, { useState, useMemo } from 'react';
+import { initialProjects, initialClients, initialConsultants } from '@/lib/mockData'; // Import master data lists
 
 interface AnalyticsCategory {
   id: string;
@@ -17,31 +20,27 @@ interface AnalyticsCategory {
   description: string;
   reportLink: string;
   dataSources: string;
-  chartComponent: React.FC;
+  chartComponent: React.FC<{ data: any[] }>; // Expect data prop
 }
 
-// Mock Data for Charts
-
-// 1. Project Success Metrics: Profitability
-const projectProfitabilityData = [
-  { name: 'Project Alpha', profitMargin: 25, budget: 50000, actualCost: 37500 },
-  { name: 'Project Beta', profitMargin: 18, budget: 120000, actualCost: 98400 },
-  { name: 'Project Gamma', profitMargin: 32, budget: 75000, actualCost: 51000 },
-  { name: 'Project Delta', profitMargin: 15, budget: 200000, actualCost: 170000 },
-  { name: 'Project Epsilon', profitMargin: 22, budget: 90000, actualCost: 70200 },
-  { name: 'Project Zeta', profitMargin: 28, budget: 60000, actualCost: 43200 },
-  { name: 'Project Kappa', profitMargin: 12, budget: 150000, actualCost: 132000 },
+// Base Mock Data for Charts (will be filtered)
+const baseProjectProfitabilityData = [
+  { id: 'proj101', name: 'Project Alpha (Innovatech)', profitMargin: 25, budget: 50000, actualCost: 37500 },
+  { id: 'proj202', name: 'Project Beta (Alpha Solutions)', profitMargin: 18, budget: 120000, actualCost: 98400 },
+  { id: 'proj301', name: 'Project Gamma (Beta Corp)', profitMargin: 32, budget: 75000, actualCost: 51000 },
+  { id: 'proj105', name: 'Project Delta (Innovatech Cloud)', profitMargin: 15, budget: 200000, actualCost: 170000 },
+  { id: 'projNew1', name: 'Project Epsilon (New Client Co)', profitMargin: 22, budget: 90000, actualCost: 70200 },
+  { id: 'projNew2', name: 'Project Zeta (Another Client)', profitMargin: 28, budget: 60000, actualCost: 43200 },
+  { id: 'projNew3', name: 'Project Kappa (Third Client LLC)', profitMargin: 12, budget: 150000, actualCost: 132000 },
 ];
 const projectProfitabilityChartConfig = {
   profitMargin: { label: 'Profit Margin (%)', color: 'hsl(var(--chart-1))' },
-  budget: { label: 'Budget ($)', color: 'hsl(var(--chart-2))' }, 
-  actualCost: { label: 'Actual Cost ($)', color: 'hsl(var(--chart-3))' }, 
 } satisfies ChartConfig;
 
-const ProjectProfitabilityChart = () => (
+const ProjectProfitabilityChart: React.FC<{ data: any[] }> = ({ data }) => (
   <ChartContainer config={projectProfitabilityChartConfig} className="h-[300px] w-full overflow-x-auto [aspect-ratio:auto]">
     <ResponsiveContainer>
-      <BarChart data={projectProfitabilityData} margin={{ top: 5, right: 20, bottom: 70, left: 0 }}>
+      <BarChart data={data} margin={{ top: 5, right: 20, bottom: 70, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false}/>
         <XAxis 
           dataKey="name" 
@@ -63,24 +62,23 @@ const ProjectProfitabilityChart = () => (
   </ChartContainer>
 );
 
-// 2. Client Relationship Insights: Satisfaction Scores
-const clientSatisfactionData = [
-  { client: 'Innovatech Ltd.', score: 92, segment: 'Strategic' },
-  { client: 'Alpha Solutions International Group', score: 78, segment: 'Key' },
-  { client: 'Beta Corp Manufacturing Division', score: 65, segment: 'Standard' },
-  { client: 'Gamma Industries Global Logistics', score: 88, segment: 'Key' },
-  { client: 'Omega Services & Tech Partnerships', score: 72, segment: 'Standard' },
-  { client: 'Delta Corp Innovations', score: 95, segment: 'Strategic' },
-  { client: 'Epsilon Dynamics Ltd', score: 81, segment: 'Key' },
+const baseClientSatisfactionData = [
+  { id: '1', client: 'Innovatech Ltd.', score: 92, segment: 'Strategic' },
+  { id: '2', client: 'Alpha Solutions', score: 78, segment: 'Key' },
+  { id: '3', client: 'Beta Corp', score: 65, segment: 'Standard' },
+  { id: 'clientNew1', client: 'Gamma Industries Global Logistics', score: 88, segment: 'Key' },
+  { id: 'clientNew2', client: 'Omega Services & Tech Partnerships', score: 72, segment: 'Standard' },
+  { id: 'clientNew3', client: 'Delta Corp Innovations', score: 95, segment: 'Strategic' },
+  { id: 'clientNew4', client: 'Epsilon Dynamics Ltd', score: 81, segment: 'Key' },
 ];
 const clientSatisfactionChartConfig = {
   score: { label: 'Satisfaction Score (%)', color: 'hsl(var(--chart-2))' },
 } satisfies ChartConfig;
 
-const ClientSatisfactionChart = () => (
+const ClientSatisfactionChart: React.FC<{ data: any[] }> = ({ data }) => (
   <ChartContainer config={clientSatisfactionChartConfig} className="h-[300px] w-full overflow-x-auto [aspect-ratio:auto]">
     <ResponsiveContainer>
-      <BarChart data={clientSatisfactionData} layout="vertical" margin={{ top: 5, right: 30, bottom: 5, left: 180 }}>
+      <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, bottom: 5, left: 180 }}>
         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
         <XAxis type="number" stroke="hsl(var(--muted-foreground))" domain={[0, 100]} fontSize={12} tickFormatter={(value) => `${value}%`} />
         <YAxis dataKey="client" type="category" stroke="hsl(var(--muted-foreground))" fontSize={10} width={180} interval={0} />
@@ -92,8 +90,7 @@ const ClientSatisfactionChart = () => (
   </ChartContainer>
 );
 
-// 3. Consultant Performance & Utilization: Average Utilization
-const consultantUtilizationData = [
+const baseConsultantUtilizationData = [
   { month: 'Jan', utilization: 75 }, { month: 'Feb', utilization: 80 }, { month: 'Mar', utilization: 78 },
   { month: 'Apr', utilization: 82 }, { month: 'May', utilization: 70 }, { month: 'Jun', utilization: 85 },
   { month: 'Jul', utilization: 88 }, { month: 'Aug', utilization: 76 }, { month: 'Sep', utilization: 81 },
@@ -103,10 +100,10 @@ const consultantUtilizationChartConfig = {
   utilization: { label: 'Avg. Utilization (%)', color: 'hsl(var(--chart-3))' },
 } satisfies ChartConfig;
 
-const ConsultantUtilizationChart = () => (
+const ConsultantUtilizationChart: React.FC<{ data: any[] }> = ({ data }) => (
   <ChartContainer config={consultantUtilizationChartConfig} className="h-[300px] w-full overflow-x-auto [aspect-ratio:auto]">
     <ResponsiveContainer>
-      <LineChart data={consultantUtilizationData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+      <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis stroke="hsl(var(--muted-foreground))" domain={[0, 100]} fontSize={12} tickFormatter={(value) => `${value}%`} />
@@ -118,8 +115,7 @@ const ConsultantUtilizationChart = () => (
   </ChartContainer>
 );
 
-// 4. Financial Health Indicators: Revenue vs. Expenses
-const financialHealthData = [
+const baseFinancialHealthData = [
   { month: 'Jan', revenue: 50000, expenses: 30000 }, { month: 'Feb', revenue: 65000, expenses: 35000 },
   { month: 'Mar', revenue: 58000, expenses: 32000 }, { month: 'Apr', revenue: 72000, expenses: 40000 },
   { month: 'May', revenue: 68000, expenses: 38000 }, { month: 'Jun', revenue: 75000, expenses: 42000 },
@@ -132,10 +128,10 @@ const financialHealthChartConfig = {
   expenses: { label: 'Expenses ($)', color: 'hsl(var(--chart-5))' },
 } satisfies ChartConfig;
 
-const FinancialHealthChart = () => (
+const FinancialHealthChart: React.FC<{ data: any[] }> = ({ data }) => (
   <ChartContainer config={financialHealthChartConfig} className="h-[300px] w-full overflow-x-auto [aspect-ratio:auto]">
     <ResponsiveContainer>
-      <ComposedChart data={financialHealthData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+      <ComposedChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `$${value/1000}k`} />
@@ -212,9 +208,54 @@ const advancedFeatures = [
 ];
 
 export default function AnalyticsPage() {
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("last12Months");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+  const [selectedClientId, setSelectedClientId] = useState<string>("all");
+  const [selectedConsultantId, setSelectedConsultantId] = useState<string>("all");
 
   const handleDownloadPdf = (reportName: string) => {
     alert(`PDF download functionality for ${reportName} is under development. For now, you can use your browser's 'Print to PDF' feature on the full report page.`);
+  };
+
+  // Memoized and Filtered Data
+  const projectProfitabilityFilteredData = useMemo(() => {
+    if (selectedProjectId === "all") return baseProjectProfitabilityData;
+    // Assuming baseProjectProfitabilityData items have an 'id' that matches initialProjects.id
+    return baseProjectProfitabilityData.filter(p => p.id === selectedProjectId);
+  }, [selectedProjectId]);
+
+  const clientSatisfactionFilteredData = useMemo(() => {
+    if (selectedClientId === "all") return baseClientSatisfactionData;
+    // Assuming baseClientSatisfactionData items have an 'id' that matches initialClients.id
+    return baseClientSatisfactionData.filter(c => c.id === selectedClientId);
+  }, [selectedClientId]);
+
+  const consultantUtilizationFilteredData = useMemo(() => {
+    let data = baseConsultantUtilizationData;
+    if (selectedPeriod === "last3Months") data = data.slice(-3);
+    else if (selectedPeriod === "last6Months") data = data.slice(-6);
+    // "last12Months" or "all" uses the full 12 months of mock data
+    // Consultant-specific filtering would require more granular data - placeholder for now
+    return data;
+  }, [selectedPeriod, selectedConsultantId]);
+
+  const financialHealthFilteredData = useMemo(() => {
+    let data = baseFinancialHealthData;
+    if (selectedPeriod === "last3Months") data = data.slice(-3);
+    else if (selectedPeriod === "last6Months") data = data.slice(-6);
+    // Project/Client specific filtering for financial health would require more granular data
+    return data;
+  }, [selectedPeriod, selectedProjectId, selectedClientId]);
+
+
+  const getChartData = (categoryId: string) => {
+    switch (categoryId) {
+      case 'project-success': return projectProfitabilityFilteredData;
+      case 'client-relationship': return clientSatisfactionFilteredData;
+      case 'consultant-performance': return consultantUtilizationFilteredData;
+      case 'financial-health': return financialHealthFilteredData;
+      default: return [];
+    }
   };
 
   return (
@@ -228,6 +269,74 @@ export default function AnalyticsPage() {
           Gain deeper insights into your consultancy's performance and make data-driven decisions.
         </p>
       </header>
+
+      <Card className="shadow-md">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Global Analytics Filters</CardTitle>
+          </div>
+          <CardDescription>Apply filters to refine the data displayed in the charts below.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label htmlFor="period-filter" className="text-sm font-medium text-muted-foreground block mb-1.5">Period</label>
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger id="period-filter">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="last3Months">Last 3 Months</SelectItem>
+                <SelectItem value="last6Months">Last 6 Months</SelectItem>
+                <SelectItem value="last12Months">Last 12 Months</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label htmlFor="project-filter" className="text-sm font-medium text-muted-foreground block mb-1.5">Focus Project</label>
+            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+              <SelectTrigger id="project-filter">
+                <SelectValue placeholder="Select project" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Projects</SelectItem>
+                {initialProjects.map(project => (
+                  <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label htmlFor="client-filter" className="text-sm font-medium text-muted-foreground block mb-1.5">Focus Client</label>
+            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+              <SelectTrigger id="client-filter">
+                <SelectValue placeholder="Select client" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Clients</SelectItem>
+                {initialClients.map(client => (
+                  <SelectItem key={client.id} value={client.id}>{client.companyName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label htmlFor="consultant-filter" className="text-sm font-medium text-muted-foreground block mb-1.5">Focus Consultant</label>
+            <Select value={selectedConsultantId} onValueChange={setSelectedConsultantId} disabled>
+              <SelectTrigger id="consultant-filter">
+                <SelectValue placeholder="Select consultant (N/A for current charts)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Consultants</SelectItem>
+                {initialConsultants.map(consultant => (
+                  <SelectItem key={consultant.id} value={consultant.id}>{consultant.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">Consultant filter not applied to current aggregated charts.</p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="bg-primary/5 border-primary/20 shadow-md">
         <CardHeader>
@@ -251,10 +360,10 @@ export default function AnalyticsPage() {
                 </AccordionTrigger>
                 <AccordionContent className="p-4 pt-0">
                   <div className="border-t pt-4">
-                    <category.chartComponent />
+                    <category.chartComponent data={getChartData(category.id)} />
                     <div className="mt-4 flex flex-col sm:flex-row justify-end gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleDownloadPdf(category.title)}>
-                            <FileDown className="mr-2 h-4 w-4" /> Download PDF
+                            <FileDown className="mr-2 h-4 w-4" /> Download Sample PDF
                         </Button>
                         <Button asChild variant="default" size="sm">
                           <Link href={category.reportLink}>
@@ -296,5 +405,3 @@ export default function AnalyticsPage() {
     </div>
   );
 }
-
-    
