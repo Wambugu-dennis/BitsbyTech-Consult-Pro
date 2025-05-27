@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import type { Project, Client, RevenueData } from '@/lib/types';
 import { Label } from '@/components/ui/label';
-import { format, addMonths, parseISO } from 'date-fns';
+import { format, addMonths, parseISO, formatISO } from 'date-fns';
 
 
 const anomalyData = [
@@ -570,3 +570,5 @@ export default function AiInsightsPage() {
     </div>
   );
 }
+
+    
