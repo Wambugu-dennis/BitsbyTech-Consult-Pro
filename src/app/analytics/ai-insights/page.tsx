@@ -3,17 +3,19 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Brain, Lightbulb, BarChartBig, AlertTriangle, Cpu, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Brain, Lightbulb, BarChartBig, AlertTriangle, Cpu, HelpCircle, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, ReferenceDot, LabelList } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, ReferenceDot, LabelList, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartConfig } from "@/components/ui/chart";
 import { handleGetBusinessInsight } from './actions';
 import type { BusinessInsightOutput, BusinessInsightInput } from '@/ai/flows/generate-business-insight';
 import { cn } from '@/lib/utils';
 import { financialHealthData as baseFinancialHealthData } from '@/lib/mockData'; // Re-using some existing mock data for demonstration
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 
 const predictiveChartData = baseFinancialHealthData.map((d, i) => ({ ...d, month: d.month.substring(0,3) })).slice(0, 9); // Take first 9 months
