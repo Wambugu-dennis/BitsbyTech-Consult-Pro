@@ -3,14 +3,53 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ArrowLeft, FileDown } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Users, ArrowLeft, FileDown, TrendingUp, Mail, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { initialClients } from "@/lib/mockData";
+import { cn } from "@/lib/utils";
+import { format, differenceInDays, parseISO } from 'date-fns';
+
+const reportData = initialClients.map(client => {
+    const lastContactDate = client.lastContact ? parseISO(client.lastContact) : new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000); // Random last contact if none
+    const daysSinceLastContact = differenceInDays(new Date(), lastContactDate);
+    let engagementLevel: 'High' | 'Medium' | 'Low' = 'Medium';
+    if (daysSinceLastContact <= 30 && (client.communicationLogs?.length || 0) >=2) engagementLevel = 'High';
+    else if (daysSinceLastContact > 90 || (client.communicationLogs?.length || 0) < 1) engagementLevel = 'Low';
+
+    return {
+        id: client.id,
+        companyName: client.companyName,
+        clientTier: client.clientTier || 'Standard',
+        status: client.status,
+        satisfactionScore: client.satisfactionScore || Math.floor(Math.random() * 40 + 60), // Random score if none
+        lastContactDate: format(lastContactDate, 'MMM dd, yyyy'),
+        daysSinceLastContact,
+        engagementLevel,
+        totalBilled: client.financialSummary?.totalBilled || 0,
+        growthOpportunity: (client.satisfactionScore || 0) > 80 && client.status === 'Active' ? 'High' : (client.satisfactionScore || 0) > 70 ? 'Medium' : 'Low',
+    };
+});
 
 export default function ClientRelationshipReportPage() {
   const router = useRouter();
 
   const handleDownloadPdf = () => {
     alert("PDF download functionality for Client Relationship Report is under development. For now, please use your browser's 'Print to PDF' feature.");
+  };
+
+  const getSatisfactionColor = (score: number) => {
+    if (score >= 85) return 'bg-green-500';
+    if (score >= 70) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+  
+  const getTierBadgeClass = (tier: string) => {
+    if (tier === 'Strategic') return 'bg-purple-100 text-purple-700 border-purple-300';
+    if (tier === 'Key') return 'bg-indigo-100 text-indigo-700 border-indigo-300';
+    return 'bg-sky-100 text-sky-700 border-sky-300';
   };
 
   return (
@@ -41,24 +80,67 @@ export default function ClientRelationshipReportPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="min-h-[400px] flex flex-col items-center justify-center bg-muted/50 rounded-md p-8 text-center">
-            <Users className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <p className="text-lg text-muted-foreground mb-2">
-              Detailed client relationship reports and visualizations are under development.
-            </p>
-            <p className="text-sm text-muted-foreground max-w-lg mb-4">
-              This section will feature dashboards visualizing client health scores over time, communication patterns, feedback sentiment analysis, and identification of at-risk accounts or growth opportunities.
-            </p>
-            <h4 className="font-semibold text-foreground mb-2">Upcoming Visualizations:</h4>
-            <ul className="list-disc list-inside text-sm text-muted-foreground text-left mx-auto max-w-md">
-              <li>Client Satisfaction Trend Analysis</li>
-              <li>Engagement Level Heatmaps</li>
-              <li>Retention Rate Cohort Analysis</li>
-              <li>Key Account Health Scorecards</li>
-            </ul>
+           <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client Name</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-center">Satisfaction (%)</TableHead>
+                  <TableHead>Last Contact</TableHead>
+                  <TableHead className="text-center">Engagement Level</TableHead>
+                  <TableHead className="text-right">Total Billed ($)</TableHead>
+                  <TableHead className="text-center">Growth Opportunity</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reportData.map((client) => (
+                  <TableRow key={client.id}>
+                    <TableCell className="font-medium">{client.companyName}</TableCell>
+                    <TableCell>
+                        <Badge variant="outline" className={cn(getTierBadgeClass(client.clientTier))}>{client.clientTier}</Badge>
+                    </TableCell>
+                    <TableCell>
+                        <Badge variant={client.status === 'Active' ? 'default' : 'secondary'}
+                               className={cn(client.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700')}>
+                            {client.status}
+                        </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                           <Progress value={client.satisfactionScore} className="h-2 w-16" indicatorClassName={getSatisfactionColor(client.satisfactionScore)} /> 
+                           {client.satisfactionScore}%
+                        </div>
+                    </TableCell>
+                    <TableCell>{client.lastContactDate} ({client.daysSinceLastContact} days ago)</TableCell>
+                    <TableCell className="text-center">
+                        <Badge variant={client.engagementLevel === 'High' ? 'default' : client.engagementLevel === 'Medium' ? 'secondary' : 'outline'}
+                               className={cn(client.engagementLevel === 'High' ? 'bg-primary/20 text-primary-foreground' : client.engagementLevel === 'Medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700')}>
+                           {client.engagementLevel}
+                        </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{client.totalBilled.toLocaleString()}</TableCell>
+                    <TableCell className="text-center">
+                        <Badge variant={client.growthOpportunity === 'High' ? 'default' : client.growthOpportunity === 'Medium' ? 'secondary' : 'outline'}
+                               className={cn(client.growthOpportunity === 'High' ? 'bg-green-500/20 text-green-700' : client.growthOpportunity === 'Medium' ? 'bg-yellow-500/20 text-yellow-700' : 'bg-gray-100 text-gray-700')}>
+                            {client.growthOpportunity}
+                        </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {reportData.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={8} className="text-center h-24">No client data available for this report.</TableCell>
+                    </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

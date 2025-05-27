@@ -3,14 +3,62 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Briefcase, ArrowLeft, FileDown } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Briefcase, ArrowLeft, FileDown, CheckCircle, XCircle, TrendingUp, DollarSign, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { initialProjects, initialClients } from "@/lib/mockData"; // Assuming clients might be linked
+import { cn } from "@/lib/utils";
+
+// Adapt or reuse baseProjectProfitabilityData or initialProjects
+const reportData = initialProjects.map(project => {
+  const client = initialClients.find(c => c.id === project.clientId);
+  const actualCost = project.financials.spentBudget || (project.financials.budget * (Math.random() * 0.4 + 0.6)); // Simulate spent if not present
+  const profitMargin = project.financials.budget > 0 ? ((project.financials.budget - actualCost) / project.financials.budget) * 100 : 0;
+  const variance = project.financials.budget - actualCost;
+  const deliveryStatus = project.status === "Done" 
+    ? (new Date(project.actualEndDate || project.endDate) <= new Date(project.endDate) ? "On Time" : "Delayed") 
+    : "In Progress";
+  
+  return {
+    id: project.id,
+    name: project.name,
+    clientName: client?.companyName || 'N/A',
+    status: project.status,
+    priority: project.priority,
+    startDate: project.startDate,
+    endDate: project.endDate,
+    actualEndDate: project.actualEndDate,
+    budget: project.financials.budget,
+    actualCost: actualCost,
+    profitMargin: parseFloat(profitMargin.toFixed(1)),
+    variance: parseFloat(variance.toFixed(2)),
+    completionPercent: project.completionPercent || 0,
+    deliveryStatus,
+    scopeAdherence: Math.floor(Math.random() * 30 + 70), // Mock % for scope adherence
+  };
+});
+
 
 export default function ProjectSuccessReportPage() {
   const router = useRouter();
 
   const handleDownloadPdf = () => {
     alert("PDF download functionality for Project Success Report is under development. For now, please use your browser's 'Print to PDF' feature.");
+  };
+
+  const getProfitMarginColor = (margin: number) => {
+    if (margin >= 25) return 'text-green-600';
+    if (margin >= 10) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+  
+  const getStatusBadgeClass = (status: string) => {
+    if (status === 'Done') return 'bg-green-100 text-green-700 border-green-300';
+    if (status === 'In Progress') return 'bg-blue-100 text-blue-700 border-blue-300';
+    if (status === 'To Do') return 'bg-gray-100 text-gray-700 border-gray-300';
+    return 'bg-muted text-muted-foreground';
   };
 
   return (
@@ -35,30 +83,74 @@ export default function ProjectSuccessReportPage() {
       </header>
       <Card>
         <CardHeader>
-          <CardTitle>Detailed Project Performance</CardTitle>
+          <CardTitle>Detailed Project Performance Analysis</CardTitle>
           <CardDescription>
-            This report provides an in-depth look into the performance of your projects, drawing data from Project Management, Financial Modules, and Resource Allocation systems.
+            This table provides an in-depth look into the performance of your projects, drawing data from Project Management, Financial Modules, and Resource Allocation systems.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="min-h-[400px] flex flex-col items-center justify-center bg-muted/50 rounded-md p-8 text-center">
-            <Briefcase className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <p className="text-lg text-muted-foreground mb-2">
-              Detailed project success reports and visualizations are under development.
-            </p>
-            <p className="text-sm text-muted-foreground max-w-lg mb-4">
-              This area will feature interactive charts for KPIs like project budget vs. actuals, burndown charts, task completion rates, and resource efficiency ratios per project. You'll be able to filter by client, project manager, and date ranges.
-            </p>
-            <h4 className="font-semibold text-foreground mb-2">Upcoming Visualizations:</h4>
-            <ul className="list-disc list-inside text-sm text-muted-foreground text-left mx-auto max-w-md">
-              <li>Project Profitability Deep Dive</li>
-              <li>Timeline Adherence & Delay Analysis</li>
-              <li>Scope Creep Monitoring</li>
-              <li>Resource Cost vs. Budget</li>
-            </ul>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Project Name</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Budget ($)</TableHead>
+                  <TableHead className="text-right">Actual Cost ($)</TableHead>
+                  <TableHead className="text-right">Variance ($)</TableHead>
+                  <TableHead className="text-right">Profit Margin (%)</TableHead>
+                  <TableHead className="text-center">Completion (%)</TableHead>
+                  <TableHead className="text-center">Delivery</TableHead>
+                  <TableHead className="text-center">Scope Adherence (%)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reportData.map((project) => (
+                  <TableRow key={project.id}>
+                    <TableCell className="font-medium">{project.name}</TableCell>
+                    <TableCell>{project.clientName}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn(getStatusBadgeClass(project.status))}>
+                        {project.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{project.budget.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{project.actualCost.toLocaleString()}</TableCell>
+                    <TableCell className={cn("text-right font-semibold", project.variance >= 0 ? 'text-green-600' : 'text-red-600')}>
+                      {project.variance.toLocaleString()}
+                    </TableCell>
+                    <TableCell className={cn("text-right font-semibold", getProfitMarginColor(project.profitMargin))}>
+                      {project.profitMargin}%
+                    </TableCell>
+                    <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                            <Progress value={project.completionPercent} className="h-2 w-16" indicatorClassName={project.completionPercent >= 75 ? 'bg-green-500': project.completionPercent >=40 ? 'bg-blue-500': 'bg-yellow-500'} /> 
+                            {project.completionPercent}%
+                        </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={project.deliveryStatus === "On Time" ? "default" : project.deliveryStatus === "Delayed" ? "destructive" : "secondary"}
+                             className={cn(project.deliveryStatus === "On Time" ? "bg-green-100 text-green-700" : project.deliveryStatus === "Delayed" ? "bg-red-100 text-red-700" : "")}
+                      >
+                        {project.deliveryStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">{project.scopeAdherence}%</TableCell>
+                  </TableRow>
+                ))}
+                 {reportData.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={10} className="text-center h-24">No project data available for this report.</TableCell>
+                    </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

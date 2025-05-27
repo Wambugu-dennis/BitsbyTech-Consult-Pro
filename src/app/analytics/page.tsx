@@ -220,13 +220,11 @@ export default function AnalyticsPage() {
   // Memoized and Filtered Data
   const projectProfitabilityFilteredData = useMemo(() => {
     if (selectedProjectId === "all") return baseProjectProfitabilityData;
-    // Assuming baseProjectProfitabilityData items have an 'id' that matches initialProjects.id
     return baseProjectProfitabilityData.filter(p => p.id === selectedProjectId);
   }, [selectedProjectId]);
 
   const clientSatisfactionFilteredData = useMemo(() => {
     if (selectedClientId === "all") return baseClientSatisfactionData;
-    // Assuming baseClientSatisfactionData items have an 'id' that matches initialClients.id
     return baseClientSatisfactionData.filter(c => c.id === selectedClientId);
   }, [selectedClientId]);
 
@@ -235,7 +233,6 @@ export default function AnalyticsPage() {
     if (selectedPeriod === "last3Months") data = data.slice(-3);
     else if (selectedPeriod === "last6Months") data = data.slice(-6);
     // "last12Months" or "all" uses the full 12 months of mock data
-    // Consultant-specific filtering would require more granular data - placeholder for now
     return data;
   }, [selectedPeriod, selectedConsultantId]);
 
@@ -243,7 +240,6 @@ export default function AnalyticsPage() {
     let data = baseFinancialHealthData;
     if (selectedPeriod === "last3Months") data = data.slice(-3);
     else if (selectedPeriod === "last6Months") data = data.slice(-6);
-    // Project/Client specific filtering for financial health would require more granular data
     return data;
   }, [selectedPeriod, selectedProjectId, selectedClientId]);
 
@@ -324,7 +320,7 @@ export default function AnalyticsPage() {
             <label htmlFor="consultant-filter" className="text-sm font-medium text-muted-foreground block mb-1.5">Focus Consultant</label>
             <Select value={selectedConsultantId} onValueChange={setSelectedConsultantId} disabled>
               <SelectTrigger id="consultant-filter">
-                <SelectValue placeholder="Select consultant (N/A for current charts)" />
+                <SelectValue placeholder="Select consultant" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Consultants</SelectItem>
@@ -333,7 +329,7 @@ export default function AnalyticsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">Consultant filter not applied to current aggregated charts.</p>
+            <p className="text-xs text-muted-foreground mt-1">Consultant filter not applied to current overview charts due to aggregated mock data. Detailed consultant reports will allow individual filtering.</p>
           </div>
         </CardContent>
       </Card>
@@ -405,3 +401,5 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
+    
