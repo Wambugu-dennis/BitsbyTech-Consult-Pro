@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Brain, Lightbulb, BarChartBig, AlertTriangle, Cpu, HelpCircle, TrendingUp, TableIcon, PieChartIcon as RechartsPieChart, BarChartIcon as LucideBarChartIcon } from 'lucide-react';
+import { ArrowLeft, Brain, Lightbulb, BarChartBig, AlertTriangle, Cpu, HelpCircle, TrendingUp, TableIcon, PieChartIcon as LucidePieIcon, BarChartIcon as LucideBarChartIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,10 +37,10 @@ const anomalyChartConfig = {
 } satisfies ChartConfig;
 
 const predictiveChartBaseConfig = {
-  actualRevenue: { label: "Actual Revenue ($)", color: "hsl(var(--chart-2))" }, // Updated to Green
-  actualExpenses: { label: "Actual Expenses ($)", color: "hsl(var(--chart-5))" }, // Orange
-  forecastedRevenueValue: { label: "Forecasted Revenue ($)", color: "hsl(var(--chart-2))" }, // Updated to Green
-  forecastedExpensesValue: { label: "Forecasted Expenses ($)", color: "hsl(var(--chart-5))" }, // Orange
+  actualRevenue: { label: "Actual Revenue ($)", color: "hsl(var(--chart-2))" }, 
+  actualExpenses: { label: "Actual Expenses ($)", color: "hsl(var(--chart-5))" }, 
+  forecastedRevenueValue: { label: "Forecasted Revenue ($)", color: "hsl(var(--chart-2))" }, 
+  forecastedExpensesValue: { label: "Forecasted Expenses ($)", color: "hsl(var(--chart-5))" }, 
 } satisfies ChartConfig;
 
 
@@ -570,6 +570,3 @@ export default function AiInsightsPage() {
     </div>
   );
 }
-
-    
-
