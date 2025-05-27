@@ -34,25 +34,25 @@ const projectProfitabilityData = [
 ];
 const projectProfitabilityChartConfig = {
   profitMargin: { label: 'Profit Margin (%)', color: 'hsl(var(--chart-1))' },
-  budget: { label: 'Budget ($)', color: 'hsl(var(--chart-2))' },
-  actualCost: { label: 'Actual Cost ($)', color: 'hsl(var(--chart-3))' },
+  budget: { label: 'Budget ($)', color: 'hsl(var(--chart-2))' }, 
+  actualCost: { label: 'Actual Cost ($)', color: 'hsl(var(--chart-3))' }, 
 } satisfies ChartConfig;
 
 const ProjectProfitabilityChart = () => (
-  <ChartContainer config={projectProfitabilityChartConfig} className="h-[300px] w-full overflow-x-auto">
+  <ChartContainer config={projectProfitabilityChartConfig} className="h-[300px] w-full overflow-x-auto [aspect-ratio:auto]">
     <ResponsiveContainer>
-      <BarChart data={projectProfitabilityData} margin={{ top: 5, right: 20, bottom: 50, left: 0 }}>
+      <BarChart data={projectProfitabilityData} margin={{ top: 5, right: 20, bottom: 70, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false}/>
         <XAxis 
           dataKey="name" 
           stroke="hsl(var(--muted-foreground))" 
-          fontSize={12} 
+          fontSize={10} 
           tickLine={false} 
           axisLine={false} 
-          angle={-30} 
+          angle={-45} 
           textAnchor="end"
           interval={0}
-          height={50} 
+          height={70} 
         />
         <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `${value}%`} />
         <ChartTooltip content={<ChartTooltipContent />} />
@@ -78,12 +78,12 @@ const clientSatisfactionChartConfig = {
 } satisfies ChartConfig;
 
 const ClientSatisfactionChart = () => (
-  <ChartContainer config={clientSatisfactionChartConfig} className="h-[300px] w-full overflow-x-auto">
+  <ChartContainer config={clientSatisfactionChartConfig} className="h-[300px] w-full overflow-x-auto [aspect-ratio:auto]">
     <ResponsiveContainer>
-      <BarChart data={clientSatisfactionData} layout="vertical" margin={{ top: 5, right: 30, bottom: 5, left: 150 }}>
+      <BarChart data={clientSatisfactionData} layout="vertical" margin={{ top: 5, right: 30, bottom: 5, left: 180 }}>
         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
         <XAxis type="number" stroke="hsl(var(--muted-foreground))" domain={[0, 100]} fontSize={12} tickFormatter={(value) => `${value}%`} />
-        <YAxis dataKey="client" type="category" stroke="hsl(var(--muted-foreground))" fontSize={12} width={150} interval={0} />
+        <YAxis dataKey="client" type="category" stroke="hsl(var(--muted-foreground))" fontSize={10} width={180} interval={0} />
         <ChartTooltip content={<ChartTooltipContent />} />
         <ChartLegend content={<ChartLegendContent />} />
         <Bar dataKey="score" fill="var(--color-score)" radius={4} name="Satisfaction Score (%)" />
@@ -104,7 +104,7 @@ const consultantUtilizationChartConfig = {
 } satisfies ChartConfig;
 
 const ConsultantUtilizationChart = () => (
-  <ChartContainer config={consultantUtilizationChartConfig} className="h-[300px] w-full overflow-x-auto">
+  <ChartContainer config={consultantUtilizationChartConfig} className="h-[300px] w-full overflow-x-auto [aspect-ratio:auto]">
     <ResponsiveContainer>
       <LineChart data={consultantUtilizationData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -133,7 +133,7 @@ const financialHealthChartConfig = {
 } satisfies ChartConfig;
 
 const FinancialHealthChart = () => (
-  <ChartContainer config={financialHealthChartConfig} className="h-[300px] w-full overflow-x-auto">
+  <ChartContainer config={financialHealthChartConfig} className="h-[300px] w-full overflow-x-auto [aspect-ratio:auto]">
     <ResponsiveContainer>
       <ComposedChart data={financialHealthData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -296,3 +296,5 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
+    
