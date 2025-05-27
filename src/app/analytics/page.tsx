@@ -14,7 +14,7 @@ interface AnalyticsCategory {
   icon: React.ElementType;
   title: string;
   description: string;
-  detailsPlaceholder: string; // Placeholder text for what was there before
+  detailsPlaceholder: string; 
   dataSources: string;
   chartComponent: React.FC;
 }
@@ -43,7 +43,7 @@ const ProjectProfitabilityChart = () => (
         <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `${value}%`} />
         <ChartTooltip content={<ChartTooltipContent />} />
-        <Legend content={<ChartLegend content={<ChartLegendContent />} />} />
+        <ChartLegend content={<ChartLegendContent />} />
         <Bar yAxisId="left" dataKey="profitMargin" fill="var(--color-profitMargin)" radius={4} name="Profit Margin (%)" />
       </BarChart>
     </ResponsiveContainer>
@@ -70,7 +70,7 @@ const ClientSatisfactionChart = () => (
         <XAxis type="number" stroke="hsl(var(--muted-foreground))" domain={[0, 100]} fontSize={12} tickFormatter={(value) => `${value}%`} />
         <YAxis dataKey="client" type="category" stroke="hsl(var(--muted-foreground))" fontSize={12} width={100} />
         <ChartTooltip content={<ChartTooltipContent />} />
-        <Legend content={<ChartLegend content={<ChartLegendContent />} />} />
+        <ChartLegend content={<ChartLegendContent />} />
         <Bar dataKey="score" fill="var(--color-score)" radius={4} name="Satisfaction Score (%)" />
       </BarChart>
     </ResponsiveContainer>
@@ -95,7 +95,7 @@ const ConsultantUtilizationChart = () => (
         <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis stroke="hsl(var(--muted-foreground))" domain={[0, 100]} fontSize={12} tickFormatter={(value) => `${value}%`} />
         <ChartTooltip content={<ChartTooltipContent />} />
-        <Legend content={<ChartLegend content={<ChartLegendContent />} />} />
+        <ChartLegend content={<ChartLegendContent />} />
         <Line type="monotone" dataKey="utilization" stroke="var(--color-utilization)" strokeWidth={2} dot={false} name="Avg. Utilization (%)" />
       </LineChart>
     </ResponsiveContainer>
@@ -121,7 +121,7 @@ const FinancialHealthChart = () => (
         <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `$${value/1000}k`} />
         <ChartTooltip content={<ChartTooltipContent />} />
-        <Legend content={<ChartLegend content={<ChartLegendContent />} />} />
+        <ChartLegend content={<ChartLegendContent />} />
         <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} name="Revenue" />
         <Line type="monotone" dataKey="expenses" stroke="var(--color-expenses)" strokeWidth={2} name="Expenses" />
       </ComposedChart>
