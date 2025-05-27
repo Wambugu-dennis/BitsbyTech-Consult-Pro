@@ -17,8 +17,8 @@ export type ProjectTask = {
   title: string;
   description?: string;
   status: ProjectStatusValue;
-  assigneeId?: string; // Link to Consultant.id
-  assigneeNameCache?: string; // Denormalized for quick display
+  assigneeId?: string; 
+  assigneeNameCache?: string; 
   dueDate?: string;
   priority?: 'High' | 'Medium' | 'Low';
 };
@@ -27,7 +27,7 @@ export type Milestone = {
   id: string;
   name: string;
   description?: string;
-  dueDate: string; // ISO date string
+  dueDate: string; 
   status: 'Pending' | 'In Progress' | 'Completed' | 'Delayed' | 'At Risk';
 };
 
@@ -35,41 +35,40 @@ export type ProjectAttachment = {
   id: string;
   fileName: string;
   fileType?: string;
-  fileSize?: string; // e.g., "2.5 MB"
-  url: string; // Download or view link
-  uploadedAt: string; // ISO date string
-  uploadedBy?: string; // Consultant name or ID
+  fileSize?: string; 
+  url: string; 
+  uploadedAt: string; 
+  uploadedBy?: string; 
 };
 
 export type ProjectFinancials = {
   budget: number;
-  spentBudget: number; // This will be dynamically calculated from expenses for Budget module
-  currency: string; // e.g., "USD"
+  currency: string; 
   billingType?: 'Fixed Price' | 'Time & Materials' | 'Retainer';
-  hourlyRate?: number; // If T&M
+  hourlyRate?: number; 
 };
 
 export type Project = {
   id: string;
   name: string;
   description: string;
-  clientId: string; // Link to Client.id
-  clientNameCache?: string; // Denormalized for quick display
-  projectManagerId: string; // Link to Consultant.id
-  projectManagerNameCache?: string; // Denormalized
-  teamMemberIds?: string[]; // Links to Consultant.ids
+  clientId: string; 
+  clientNameCache?: string; 
+  projectManagerId: string; 
+  projectManagerNameCache?: string; 
+  teamMemberIds?: string[]; 
   status: ProjectStatusValue;
   priority: 'High' | 'Medium' | 'Low';
-  startDate: string; // ISO date string
-  endDate: string; // Planned end date (ISO date string)
-  actualEndDate?: string; // ISO date string
+  startDate: string; 
+  endDate: string; 
+  actualEndDate?: string; 
   financials: ProjectFinancials;
   milestones?: Milestone[];
-  tasks?: ProjectTask[]; // Tasks specific to this project
+  tasks?: ProjectTask[]; 
   tags?: string[];
   attachments?: ProjectAttachment[];
-  lastUpdated: string; // ISO timestamp string
-  completionPercent?: number; // Overall project completion
+  lastUpdated: string; 
+  completionPercent?: number; 
 };
 
 
@@ -92,7 +91,7 @@ export type KeyContact = {
 export type EngagementDetails = {
   startDate?: string;
   endDate?: string;
-  primaryConsultantId?: string; // Links to Consultant ID
+  primaryConsultantId?: string; 
 };
 
 export type ClientFinancialSummary = {
@@ -100,19 +99,31 @@ export type ClientFinancialSummary = {
   totalPaid?: number;
   outstandingAmount?: number;
   lastInvoiceDate?: string;
-  currency?: string; // e.g., "USD", "EUR"
+  currency?: string; 
 };
 
 export type CommunicationLog = {
   id: string;
-  date: string; // ISO date string
+  date: string; 
   type: 'Email' | 'Call' | 'Meeting' | 'Note';
   summary: string;
-  participants?: string[]; // Names or IDs of participants
-  relatedProjectId?: string; // Optional link to a project
+  participants?: string[]; 
+  relatedProjectId?: string; 
 };
 
-// Calendar Event Types
+export type ClientMeeting = {
+  id: string;
+  title: string;
+  date: string; // ISO Date string
+  time?: string; // e.g., "10:00"
+  endDate?: string; // ISO Date string, for multi-day events
+  endTime?: string; // e.g., "11:00"
+  description?: string;
+  attendees?: string[]; // Names or IDs
+  location?: string; // Physical or virtual
+};
+
+
 export type CalendarEventType = 
   | 'Project Milestone' 
   | 'Project Deadline' 
@@ -136,23 +147,23 @@ export type CalendarEventSource = 'project' | 'client' | 'consultant' | 'general
 
 export interface EventTypeConfig {
   label: string;
-  color: string; // Tailwind color class e.g., "bg-blue-500"
-  borderColor?: string; // e.g., "border-blue-700"
-  textColor?: string; // e.g., "text-white"
+  color: string; 
+  borderColor?: string; 
+  textColor?: string; 
 }
 
 export type CalendarEvent = {
   id: string;
   title: string;
-  start: Date; // Use Date objects for react-day-picker
-  end?: Date; // For multi-day events
+  start: Date; 
+  end?: Date; 
   allDay?: boolean;
   type: CalendarEventType;
   description?: string;
   source: CalendarEventSource;
-  sourceId?: string; // e.g., project.id, client.id, consultant.id
-  relatedLink?: string; // e.g., /projects/[id]
-  attendees?: string[]; // Names or IDs
+  sourceId?: string; 
+  relatedLink?: string; 
+  attendees?: string[]; 
   location?: string;
 };
 
@@ -169,24 +180,27 @@ export type Client = {
   engagementDetails?: EngagementDetails;
   keyContacts: KeyContact[];
   communicationLogs?: CommunicationLog[];
-  satisfactionScore?: number; // 0-100
+  satisfactionScore?: number; 
   notes?: string;
-  linkedProjectIds?: string[]; // IDs of projects associated with this client
+  linkedProjectIds?: string[]; 
   financialSummary?: ClientFinancialSummary;
   lastContact?: string;
-  meetings?: Array<Omit<CalendarEvent, 'id' | 'source' | 'sourceId' | 'type' | 'start' | 'end'> & { id?: string, date: string, time?: string, endDate?: string, endTime?:string }>; // Simplified for mock data
+  meetings?: ClientMeeting[]; 
 };
 
 
 export type RevenueData = {
   month: string;
   revenue: number;
+  expenses?: number; // Added to support combined financial charts
+  forecastedRevenue?: boolean; // For predictive charts
+  forecastedExpenses?: boolean; // For predictive charts
 };
 
 export type ProjectStatusData = {
   status: string;
   count: number;
-  fill?: string; // Added for chart consistency
+  fill?: string; 
 };
 
 export type ClientRelationshipData = {
@@ -205,8 +219,8 @@ export type DetailedSkill = {
 export type Certification = {
   name: string;
   issuingBody: string;
-  dateObtained: string; // ISO date string
-  expiryDate?: string; // ISO date string
+  dateObtained: string; 
+  expiryDate?: string; 
   credentialId?: string;
 };
 
@@ -214,8 +228,8 @@ export type ProjectHistoryEntry = {
   projectId: string;
   projectName: string;
   roleOnProject: string;
-  startDate: string; // ISO date string
-  endDate?: string; // ISO date string
+  startDate: string; 
+  endDate?: string; 
   projectStatus: string;
 };
 
@@ -227,8 +241,8 @@ export type Consultant = {
   skills: string[];
   utilization: number;
   status: ConsultantStatus;
-  currentProject?: string; // Project ID
-  currentProjectNameCache?: string; // Denormalized
+  currentProject?: string; 
+  currentProjectNameCache?: string; 
   bio?: string;
   avatarUrl?: string;
   phone?: string;
@@ -237,37 +251,36 @@ export type Consultant = {
   certifications?: Certification[];
 };
 
-// Financial Types
 export type InvoiceItem = {
   id: string;
   description: string;
   quantity: number;
   unitPrice: number;
-  totalPrice: number; // quantity * unitPrice
+  totalPrice: number; 
 };
 
 export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Void';
 
 export type Invoice = {
-  id: string; // e.g., INV-2024-001
+  id: string; 
   clientId: string;
-  clientNameCache: string; // Denormalized
+  clientNameCache: string; 
   projectId?: string;
-  projectNameCache?: string; // Denormalized
-  issueDate: string; // ISO date string
-  dueDate: string; // ISO date string
+  projectNameCache?: string; 
+  issueDate: string; 
+  dueDate: string; 
   items: InvoiceItem[];
-  subTotal: number; // Sum of all item.totalPrice
-  taxRate?: number; // e.g., 0.08 for 8%
-  taxAmount?: number; // subTotal * taxRate
-  totalAmount: number; // subTotal + taxAmount
+  subTotal: number; 
+  taxRate?: number; 
+  taxAmount?: number; 
+  totalAmount: number; 
   status: InvoiceStatus;
-  currency: string; // e.g., "USD", "EUR"
+  currency: string; 
   notes?: string;
-  paymentDetails?: string; // e.g., Bank transfer info, payment link
-  paymentDate?: string; // ISO date string, if paid
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
+  paymentDetails?: string; 
+  paymentDate?: string; 
+  createdAt: string; 
+  updatedAt: string; 
 };
 
 export type ExpenseStatus = 'Pending' | 'Approved' | 'Rejected';
@@ -299,28 +312,27 @@ export const expenseCategories: ExpenseCategory[] = [
 
 export type Expense = {
   id: string;
-  date: string; // ISO date string
+  date: string; 
   description: string;
   amount: number;
-  currency: string; // e.g., "USD"
-  category: ExpenseCategory | string; // Allow predefined or custom
+  currency: string; 
+  category: ExpenseCategory | string; 
   status: ExpenseStatus;
-  submittedByConsultantId?: string; // Link to Consultant.id
-  submittedByConsultantNameCache?: string; // Denormalized
-  clientId?: string; // Link to Client.id
-  clientNameCache?: string; // Denormalized
-  projectId?: string; // Link to Project.id
-  projectNameCache?: string; // Denormalized
-  budgetId?: string; // Link to Budget.id
-  receiptUrl?: string; // Link to an uploaded receipt
+  submittedByConsultantId?: string; 
+  submittedByConsultantNameCache?: string; 
+  clientId?: string; 
+  clientNameCache?: string; 
+  projectId?: string; 
+  projectNameCache?: string; 
+  budgetId?: string; 
+  receiptUrl?: string; 
   notes?: string;
-  approvedByUserId?: string; // User who approved/rejected
-  approvedDate?: string; // ISO date string
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
+  approvedByUserId?: string; 
+  approvedDate?: string; 
+  createdAt: string; 
+  updatedAt: string; 
 };
 
-// Budget Types
 export type BudgetStatus = 'Planning' | 'Active' | 'Overspent' | 'Completed' | 'On Hold';
 
 export const budgetStatuses: BudgetStatus[] = ['Planning', 'Active', 'Overspent', 'Completed', 'On Hold'];
@@ -333,15 +345,14 @@ export type Budget = {
   name: string;
   type: BudgetType;
   linkedProjectId?: string;
-  linkedProjectNameCache?: string; // Denormalized
-  departmentName?: string; // For Departmental type
+  linkedProjectNameCache?: string; 
+  departmentName?: string; 
   totalAmount: number;
-  // spentAmount is dynamically calculated from linked expenses
   currency: string;
-  startDate: string; // ISO date string
-  endDate: string; // ISO date string
-  status: BudgetStatus; // This can also be dynamically calculated based on spent vs total and dates
+  startDate: string; 
+  endDate: string; 
+  status: BudgetStatus; 
   description?: string;
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
+  createdAt: string; 
+  updatedAt: string; 
 };

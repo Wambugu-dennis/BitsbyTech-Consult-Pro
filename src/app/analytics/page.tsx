@@ -11,7 +11,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 import React, { useState, useMemo } from 'react';
-import { initialProjects, initialClients, initialConsultants } from '@/lib/mockData'; // Import master data lists
+import { initialProjects, initialClients, initialConsultants, financialHealthData as baseFinancialHealthData } from '@/lib/mockData'; 
 
 interface AnalyticsCategory {
   id: string;
@@ -20,10 +20,9 @@ interface AnalyticsCategory {
   description: string;
   reportLink: string;
   dataSources: string;
-  chartComponent: React.FC<{ data: any[] }>; // Expect data prop
+  chartComponent: React.FC<{ data: any[] }>; 
 }
 
-// Base Mock Data for Charts (will be filtered)
 const baseProjectProfitabilityData = [
   { id: 'proj101', name: 'Project Alpha (Innovatech)', profitMargin: 25, budget: 50000, actualCost: 37500 },
   { id: 'proj202', name: 'Project Beta (Alpha Solutions)', profitMargin: 18, budget: 120000, actualCost: 98400 },
@@ -115,14 +114,6 @@ const ConsultantUtilizationChart: React.FC<{ data: any[] }> = ({ data }) => (
   </ChartContainer>
 );
 
-const baseFinancialHealthData = [
-  { month: 'Jan', revenue: 50000, expenses: 30000 }, { month: 'Feb', revenue: 65000, expenses: 35000 },
-  { month: 'Mar', revenue: 58000, expenses: 32000 }, { month: 'Apr', revenue: 72000, expenses: 40000 },
-  { month: 'May', revenue: 68000, expenses: 38000 }, { month: 'Jun', revenue: 75000, expenses: 42000 },
-  { month: 'Jul', revenue: 82000, expenses: 45000 }, { month: 'Aug', revenue: 78000, expenses: 43000 },
-  { month: 'Sep', revenue: 85000, expenses: 48000 }, { month: 'Oct', revenue: 92000, expenses: 50000 },
-  { month: 'Nov', revenue: 88000, expenses: 47000 }, { month: 'Dec', revenue: 95000, expenses: 52000 },
-];
 const financialHealthChartConfig = {
   revenue: { label: 'Revenue ($)', color: 'hsl(var(--chart-1))' },
   expenses: { label: 'Expenses ($)', color: 'hsl(var(--chart-5))' },
@@ -184,28 +175,6 @@ const analyticsCategories: AnalyticsCategory[] = [
   }
 ];
 
-const advancedFeatures = [
-    {
-        icon: Brain,
-        title: "Predictive Analytics for Trends",
-        description: "Leverage historical data and AI to forecast future business trends, resource needs, and revenue projections."
-    },
-    {
-        icon: AlertTriangle,
-        title: "Anomaly Detection",
-        description: "Automatically identify unusual patterns, outliers, or significant deviations in your business data, enabling proactive responses."
-    },
-    {
-        icon: BarChartHorizontalBig,
-        title: "Customizable Data Visualizations",
-        description: "Build and save custom reports and dashboards with a variety of chart types and data filters tailored to your specific needs."
-    },
-    {
-        icon: Lightbulb,
-        title: "Personalized Insights & Recommendations",
-        description: "Receive AI-generated insights and actionable recommendations based on your role, data patterns, and business goals."
-    }
-];
 
 export default function AnalyticsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("last12Months");
@@ -217,7 +186,6 @@ export default function AnalyticsPage() {
     alert(`PDF download functionality for ${reportName} is under development. For now, you can use your browser's 'Print to PDF' feature on the full report page.`);
   };
 
-  // Memoized and Filtered Data
   const projectProfitabilityFilteredData = useMemo(() => {
     if (selectedProjectId === "all") return baseProjectProfitabilityData;
     return baseProjectProfitabilityData.filter(p => p.id === selectedProjectId);
@@ -232,7 +200,6 @@ export default function AnalyticsPage() {
     let data = baseConsultantUtilizationData;
     if (selectedPeriod === "last3Months") data = data.slice(-3);
     else if (selectedPeriod === "last6Months") data = data.slice(-6);
-    // "last12Months" or "all" uses the full 12 months of mock data
     return data;
   }, [selectedPeriod, selectedConsultantId]);
 
@@ -380,26 +347,21 @@ export default function AnalyticsPage() {
         <CardHeader>
           <CardTitle className="text-xl text-accent-foreground flex items-center gap-2">
             <Brain className="h-6 w-6 text-accent" />
-            Advanced AI-Powered Analytics (Coming Soon)
+            AI-Driven Insights Hub
           </CardTitle>
           <CardDescription>
-            The future of Consult Vista analytics will be driven by cutting-edge AI to provide even deeper and more proactive insights.
+            Unlock deeper understanding with advanced AI analytics, predictive modeling, and personalized recommendations.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {advancedFeatures.map(feature => (
-            <div key={feature.title} className="flex items-start gap-3 p-3 border-b last:border-b-0">
-              <feature.icon className="h-5 w-5 text-accent/80 mt-1 shrink-0" />
-              <div>
-                <h4 className="font-semibold text-md text-accent-foreground/90">{feature.title}</h4>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
-              </div>
-            </div>
-          ))}
+        <CardContent className="text-center">
+            <p className="text-muted-foreground mb-4">Explore cutting-edge AI capabilities to transform your data into actionable strategies.</p>
+            <Button asChild size="lg">
+                <Link href="/analytics/ai-insights">
+                    Explore AI Insights <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+            </Button>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    
