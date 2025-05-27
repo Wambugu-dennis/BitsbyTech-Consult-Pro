@@ -2,44 +2,170 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Briefcase, Users, UserCog, DollarSign, Lightbulb, AlertTriangle, BarChartHorizontalBig, Brain } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, Briefcase, Users, UserCog, DollarSign, Lightbulb, AlertTriangle, BarChartHorizontalBig, Brain, ArrowRight } from "lucide-react";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartConfig } from "@/components/ui/chart";
+import { cn } from "@/lib/utils";
 
 interface AnalyticsCategory {
+  id: string;
   icon: React.ElementType;
   title: string;
   description: string;
-  details: string;
+  detailsPlaceholder: string; // Placeholder text for what was there before
   dataSources: string;
+  chartComponent: React.FC;
 }
+
+// Mock Data for Charts
+
+// 1. Project Success Metrics: Profitability
+const projectProfitabilityData = [
+  { name: 'Project Alpha', profitMargin: 25, budget: 50000, actualCost: 37500 },
+  { name: 'Project Beta', profitMargin: 18, budget: 120000, actualCost: 98400 },
+  { name: 'Project Gamma', profitMargin: 32, budget: 75000, actualCost: 51000 },
+  { name: 'Project Delta', profitMargin: 15, budget: 200000, actualCost: 170000 },
+  { name: 'Project Epsilon', profitMargin: 22, budget: 90000, actualCost: 70200 },
+];
+const projectProfitabilityChartConfig = {
+  profitMargin: { label: 'Profit Margin (%)', color: 'hsl(var(--chart-1))' },
+  budget: { label: 'Budget ($)', color: 'hsl(var(--chart-2))' },
+  actualCost: { label: 'Actual Cost ($)', color: 'hsl(var(--chart-3))' },
+} satisfies ChartConfig;
+
+const ProjectProfitabilityChart = () => (
+  <ChartContainer config={projectProfitabilityChartConfig} className="h-[300px] w-full">
+    <ResponsiveContainer>
+      <BarChart data={projectProfitabilityData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+        <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+        <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `${value}%`} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Legend content={<ChartLegend content={<ChartLegendContent />} />} />
+        <Bar yAxisId="left" dataKey="profitMargin" fill="var(--color-profitMargin)" radius={4} name="Profit Margin (%)" />
+      </BarChart>
+    </ResponsiveContainer>
+  </ChartContainer>
+);
+
+// 2. Client Relationship Insights: Satisfaction Scores
+const clientSatisfactionData = [
+  { client: 'Innovatech Ltd.', score: 92, segment: 'Strategic' },
+  { client: 'Alpha Solutions', score: 78, segment: 'Key' },
+  { client: 'Beta Corp', score: 65, segment: 'Standard' },
+  { client: 'Gamma Industries', score: 88, segment: 'Key' },
+  { client: 'Omega Services', score: 72, segment: 'Standard' },
+];
+const clientSatisfactionChartConfig = {
+  score: { label: 'Satisfaction Score (%)', color: 'hsl(var(--chart-2))' },
+} satisfies ChartConfig;
+
+const ClientSatisfactionChart = () => (
+  <ChartContainer config={clientSatisfactionChartConfig} className="h-[300px] w-full">
+    <ResponsiveContainer>
+      <BarChart data={clientSatisfactionData} layout="vertical" margin={{ top: 5, right: 30, bottom: 5, left: 50 }}>
+        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+        <XAxis type="number" stroke="hsl(var(--muted-foreground))" domain={[0, 100]} fontSize={12} tickFormatter={(value) => `${value}%`} />
+        <YAxis dataKey="client" type="category" stroke="hsl(var(--muted-foreground))" fontSize={12} width={100} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Legend content={<ChartLegend content={<ChartLegendContent />} />} />
+        <Bar dataKey="score" fill="var(--color-score)" radius={4} name="Satisfaction Score (%)" />
+      </BarChart>
+    </ResponsiveContainer>
+  </ChartContainer>
+);
+
+// 3. Consultant Performance & Utilization: Average Utilization
+const consultantUtilizationData = [
+  { month: 'Jan', utilization: 75 }, { month: 'Feb', utilization: 80 }, { month: 'Mar', utilization: 78 },
+  { month: 'Apr', utilization: 82 }, { month: 'May', utilization: 70 }, { month: 'Jun', utilization: 85 },
+  { month: 'Jul', utilization: 88 },
+];
+const consultantUtilizationChartConfig = {
+  utilization: { label: 'Avg. Utilization (%)', color: 'hsl(var(--chart-3))' },
+} satisfies ChartConfig;
+
+const ConsultantUtilizationChart = () => (
+  <ChartContainer config={consultantUtilizationChartConfig} className="h-[300px] w-full">
+    <ResponsiveContainer>
+      <LineChart data={consultantUtilizationData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+        <YAxis stroke="hsl(var(--muted-foreground))" domain={[0, 100]} fontSize={12} tickFormatter={(value) => `${value}%`} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Legend content={<ChartLegend content={<ChartLegendContent />} />} />
+        <Line type="monotone" dataKey="utilization" stroke="var(--color-utilization)" strokeWidth={2} dot={false} name="Avg. Utilization (%)" />
+      </LineChart>
+    </ResponsiveContainer>
+  </ChartContainer>
+);
+
+// 4. Financial Health Indicators: Revenue vs. Expenses
+const financialHealthData = [
+  { month: 'Jan', revenue: 50000, expenses: 30000 }, { month: 'Feb', revenue: 65000, expenses: 35000 },
+  { month: 'Mar', revenue: 58000, expenses: 32000 }, { month: 'Apr', revenue: 72000, expenses: 40000 },
+  { month: 'May', revenue: 68000, expenses: 38000 }, { month: 'Jun', revenue: 75000, expenses: 42000 },
+];
+const financialHealthChartConfig = {
+  revenue: { label: 'Revenue ($)', color: 'hsl(var(--chart-1))' },
+  expenses: { label: 'Expenses ($)', color: 'hsl(var(--chart-5))' },
+} satisfies ChartConfig;
+
+const FinancialHealthChart = () => (
+  <ChartContainer config={financialHealthChartConfig} className="h-[300px] w-full">
+    <ResponsiveContainer>
+      <ComposedChart data={financialHealthData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `$${value/1000}k`} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Legend content={<ChartLegend content={<ChartLegendContent />} />} />
+        <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} name="Revenue" />
+        <Line type="monotone" dataKey="expenses" stroke="var(--color-expenses)" strokeWidth={2} name="Expenses" />
+      </ComposedChart>
+    </ResponsiveContainer>
+  </ChartContainer>
+);
+
 
 const analyticsCategories: AnalyticsCategory[] = [
   {
+    id: "project-success",
     icon: Briefcase,
     title: "Project Success Metrics",
     description: "Analyze project profitability, on-time delivery, scope adherence, and resource efficiency.",
-    details: "Interactive charts displaying project KPIs, burndown charts, and efficiency ratios will be available here.",
-    dataSources: "Project Management, Financial Module, Resource Allocation"
+    detailsPlaceholder: "Interactive charts displaying project KPIs, burndown charts, and efficiency ratios will be available here.",
+    dataSources: "Project Management, Financial Module, Resource Allocation",
+    chartComponent: ProjectProfitabilityChart,
   },
   {
+    id: "client-relationship",
     icon: Users,
     title: "Client Relationship Insights",
     description: "Track client satisfaction, engagement levels, retention rates, and identify growth opportunities or at-risk accounts.",
-    details: "Dashboards visualizing client health scores, communication patterns, and feedback trends are under development.",
-    dataSources: "Client Management, Communication Logs, Feedback Systems"
+    detailsPlaceholder: "Dashboards visualizing client health scores, communication patterns, and feedback trends are under development.",
+    dataSources: "Client Management, Communication Logs, Feedback Systems",
+    chartComponent: ClientSatisfactionChart,
   },
   {
+    id: "consultant-performance",
     icon: UserCog,
     title: "Consultant Performance & Utilization",
     description: "Monitor consultant utilization, billable hours, project contributions, skill demand, and overall team efficiency.",
-    details: "Utilization heatmaps, individual performance scorecards, and skill gap analysis tools are planned.",
-    dataSources: "Resource Management, Project Tracking, Timesheet Data"
+    detailsPlaceholder: "Utilization heatmaps, individual performance scorecards, and skill gap analysis tools are planned.",
+    dataSources: "Resource Management, Project Tracking, Timesheet Data",
+    chartComponent: ConsultantUtilizationChart,
   },
   {
+    id: "financial-health",
     icon: DollarSign,
     title: "Financial Health Indicators",
     description: "Visualize revenue streams, expense structures, profit margins by service/client, and cash flow dynamics.",
-    details: "Comprehensive financial dashboards, P&L visualizations, and forecasting models will be implemented.",
-    dataSources: "Financial Module (Invoicing, Expenses, Budgets)"
+    detailsPlaceholder: "Comprehensive financial dashboards, P&L visualizations, and forecasting models will be implemented.",
+    dataSources: "Financial Module (Invoicing, Expenses, Budgets)",
+    chartComponent: FinancialHealthChart,
   }
 ];
 
@@ -83,27 +209,36 @@ export default function AnalyticsPage() {
         <CardHeader>
             <CardTitle className="text-xl text-primary">Core Analytics Areas</CardTitle>
             <CardDescription>
-                Explore key dimensions of your consultancy's operations. Detailed visualizations and interactive reports are under active development for each area.
+                Explore key dimensions of your consultancy's operations. Expand each section to view sample charts. Full interactive reports are under development.
             </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-2">
+        <CardContent>
+          <Accordion type="multiple" className="w-full space-y-4">
             {analyticsCategories.map((category) => (
-            <Card key={category.title} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                <div className="flex items-center gap-3">
-                    <category.icon className="h-7 w-7 text-muted-foreground" />
-                    <CardTitle className="text-lg">{category.title}</CardTitle>
-                </div>
-                <CardDescription className="text-sm pt-1">{category.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                <div className="min-h-[80px] flex flex-col items-start justify-center bg-muted/40 rounded-md p-4 border border-dashed">
-                    <p className="text-xs text-muted-foreground">{category.details}</p>
+              <AccordionItem value={category.id} key={category.id} className="border rounded-lg bg-card hover:shadow-lg transition-shadow">
+                <AccordionTrigger className="p-4 hover:no-underline">
+                  <div className="flex items-start gap-4 text-left">
+                    <category.icon className="h-8 w-8 text-muted-foreground mt-1 shrink-0" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-card-foreground">{category.title}</h3>
+                      <p className="text-sm text-muted-foreground">{category.description}</p>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="p-4 pt-0">
+                  <div className="border-t pt-4">
+                    <category.chartComponent />
+                    <div className="mt-4 text-right">
+                        <Button variant="outline" size="sm" onClick={() => alert(`Navigating to full report for ${category.title} (Not Implemented)`)}>
+                            View Full Report <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground/70 mt-2"><em>Data sources: {category.dataSources}</em></p>
-                </div>
-                </CardContent>
-            </Card>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             ))}
+          </Accordion>
         </CardContent>
       </Card>
 
