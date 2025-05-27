@@ -29,6 +29,8 @@ const projectProfitabilityData = [
   { name: 'Project Gamma', profitMargin: 32, budget: 75000, actualCost: 51000 },
   { name: 'Project Delta', profitMargin: 15, budget: 200000, actualCost: 170000 },
   { name: 'Project Epsilon', profitMargin: 22, budget: 90000, actualCost: 70200 },
+  { name: 'Project Zeta', profitMargin: 28, budget: 60000, actualCost: 43200 },
+  { name: 'Project Kappa', profitMargin: 12, budget: 150000, actualCost: 132000 },
 ];
 const projectProfitabilityChartConfig = {
   profitMargin: { label: 'Profit Margin (%)', color: 'hsl(var(--chart-1))' },
@@ -38,8 +40,8 @@ const projectProfitabilityChartConfig = {
 
 const ProjectProfitabilityChart = () => (
   <ChartContainer config={projectProfitabilityChartConfig} className="h-[300px] w-full overflow-x-auto">
-    <ResponsiveContainer minWidth={500}>
-      <BarChart data={projectProfitabilityData} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+    <ResponsiveContainer>
+      <BarChart data={projectProfitabilityData} margin={{ top: 5, right: 20, bottom: 50, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false}/>
         <XAxis 
           dataKey="name" 
@@ -68,6 +70,8 @@ const clientSatisfactionData = [
   { client: 'Beta Corp Manufacturing Division', score: 65, segment: 'Standard' },
   { client: 'Gamma Industries Global Logistics', score: 88, segment: 'Key' },
   { client: 'Omega Services & Tech Partnerships', score: 72, segment: 'Standard' },
+  { client: 'Delta Corp Innovations', score: 95, segment: 'Strategic' },
+  { client: 'Epsilon Dynamics Ltd', score: 81, segment: 'Key' },
 ];
 const clientSatisfactionChartConfig = {
   score: { label: 'Satisfaction Score (%)', color: 'hsl(var(--chart-2))' },
@@ -75,11 +79,11 @@ const clientSatisfactionChartConfig = {
 
 const ClientSatisfactionChart = () => (
   <ChartContainer config={clientSatisfactionChartConfig} className="h-[300px] w-full overflow-x-auto">
-    <ResponsiveContainer minWidth={500}>
-      <BarChart data={clientSatisfactionData} layout="vertical" margin={{ top: 5, right: 30, bottom: 5, left: 120 }}>
+    <ResponsiveContainer>
+      <BarChart data={clientSatisfactionData} layout="vertical" margin={{ top: 5, right: 30, bottom: 5, left: 150 }}>
         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
         <XAxis type="number" stroke="hsl(var(--muted-foreground))" domain={[0, 100]} fontSize={12} tickFormatter={(value) => `${value}%`} />
-        <YAxis dataKey="client" type="category" stroke="hsl(var(--muted-foreground))" fontSize={12} width={120} interval={0} />
+        <YAxis dataKey="client" type="category" stroke="hsl(var(--muted-foreground))" fontSize={12} width={150} interval={0} />
         <ChartTooltip content={<ChartTooltipContent />} />
         <ChartLegend content={<ChartLegendContent />} />
         <Bar dataKey="score" fill="var(--color-score)" radius={4} name="Satisfaction Score (%)" />
@@ -92,7 +96,8 @@ const ClientSatisfactionChart = () => (
 const consultantUtilizationData = [
   { month: 'Jan', utilization: 75 }, { month: 'Feb', utilization: 80 }, { month: 'Mar', utilization: 78 },
   { month: 'Apr', utilization: 82 }, { month: 'May', utilization: 70 }, { month: 'Jun', utilization: 85 },
-  { month: 'Jul', utilization: 88 },
+  { month: 'Jul', utilization: 88 }, { month: 'Aug', utilization: 76 }, { month: 'Sep', utilization: 81 },
+  { month: 'Oct', utilization: 79 }, { month: 'Nov', utilization: 83 }, { month: 'Dec', utilization: 72 },
 ];
 const consultantUtilizationChartConfig = {
   utilization: { label: 'Avg. Utilization (%)', color: 'hsl(var(--chart-3))' },
@@ -100,7 +105,7 @@ const consultantUtilizationChartConfig = {
 
 const ConsultantUtilizationChart = () => (
   <ChartContainer config={consultantUtilizationChartConfig} className="h-[300px] w-full overflow-x-auto">
-    <ResponsiveContainer minWidth={500}>
+    <ResponsiveContainer>
       <LineChart data={consultantUtilizationData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
@@ -118,6 +123,9 @@ const financialHealthData = [
   { month: 'Jan', revenue: 50000, expenses: 30000 }, { month: 'Feb', revenue: 65000, expenses: 35000 },
   { month: 'Mar', revenue: 58000, expenses: 32000 }, { month: 'Apr', revenue: 72000, expenses: 40000 },
   { month: 'May', revenue: 68000, expenses: 38000 }, { month: 'Jun', revenue: 75000, expenses: 42000 },
+  { month: 'Jul', revenue: 82000, expenses: 45000 }, { month: 'Aug', revenue: 78000, expenses: 43000 },
+  { month: 'Sep', revenue: 85000, expenses: 48000 }, { month: 'Oct', revenue: 92000, expenses: 50000 },
+  { month: 'Nov', revenue: 88000, expenses: 47000 }, { month: 'Dec', revenue: 95000, expenses: 52000 },
 ];
 const financialHealthChartConfig = {
   revenue: { label: 'Revenue ($)', color: 'hsl(var(--chart-1))' },
@@ -126,7 +134,7 @@ const financialHealthChartConfig = {
 
 const FinancialHealthChart = () => (
   <ChartContainer config={financialHealthChartConfig} className="h-[300px] w-full overflow-x-auto">
-    <ResponsiveContainer minWidth={500}>
+    <ResponsiveContainer>
       <ComposedChart data={financialHealthData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
