@@ -4,7 +4,23 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart3, FileDown, ArrowRight, Briefcase, Users, UserCog, DollarSign } from "lucide-react";
+import { 
+  BarChart3, 
+  FileDown, 
+  ArrowRight, 
+  Briefcase, 
+  Users, 
+  UserCog, 
+  DollarSign,
+  Settings2, // For Custom Report Builder
+  CalendarClock, // For Scheduled Reporting
+  DownloadCloud, // For Flexible Export
+  Brain // For AI Report Generation
+} from "lucide-react";
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 interface StandardReportLink {
   title: string;
@@ -101,26 +117,94 @@ export default function ReportsPage() {
             Future enhancements to provide deeper insights and more flexible reporting options.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-            <li>
-              <strong>Custom Report Builder:</strong> Design and save tailored reports selecting specific data points, filters, and visualizations.
-            </li>
-            <li>
-              <strong>Advanced Data Visualization Tools:</strong> Access a wider range of chart types and interactive elements within the custom report builder.
-            </li>
-            <li>
-              <strong>Scheduled Reporting:</strong> Automate the generation and email delivery of key reports on a recurring basis.
-            </li>
-            <li>
-              <strong>Flexible Export Options:</strong> Export report data in various formats including PDF, CSV, and Excel for further analysis or external use.
-            </li>
-             <li>
-              <strong>Natural Language Report Generation (AI):</strong> Future capability to generate narrative summaries explaining data trends and insights.
-            </li>
-          </ul>
+        <CardContent className="space-y-6">
+          
+          {/* Custom Report Builder */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Settings2 className="h-5 w-5 text-accent" />
+              <h4 className="font-semibold text-md">Custom Report Builder & Visualization Tools</h4>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              Design and save tailored reports by selecting specific data points, applying filters, and choosing from a variety of advanced chart types and interactive visualizations.
+            </p>
+            <div className="p-4 border rounded-lg bg-background/50 space-y-3">
+              <p className="text-xs text-center text-muted-foreground italic">Interface Preview (Functionality Coming Soon)</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Select disabled>
+                  <SelectTrigger><SelectValue placeholder="Select Data Source (e.g., Projects)" /></SelectTrigger>
+                  <SelectContent><SelectItem value="projects">Projects</SelectItem></SelectContent>
+                </Select>
+                <Select disabled>
+                  <SelectTrigger><SelectValue placeholder="Select Chart Type (e.g., Bar)" /></SelectTrigger>
+                  <SelectContent><SelectItem value="bar">Bar Chart</SelectItem></SelectContent>
+                </Select>
+              </div>
+              <Input disabled placeholder="Select Fields to Display (e.g., Status, Budget, Client)" />
+              <Button disabled className="w-full sm:w-auto">Launch Report Builder</Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Scheduled Reporting */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <CalendarClock className="h-5 w-5 text-accent" />
+              <h4 className="font-semibold text-md">Scheduled Reporting</h4>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              Automate the generation and email delivery of key reports on a recurring basis (daily, weekly, monthly) to stay informed without manual effort.
+            </p>
+             <div className="p-4 border rounded-lg bg-background/50 space-y-3">
+                <p className="text-xs text-center text-muted-foreground italic">Configuration Preview (Planned Feature)</p>
+                <Select disabled>
+                    <SelectTrigger><SelectValue placeholder="Select Report to Schedule" /></SelectTrigger>
+                </Select>
+                <Input disabled placeholder="Recipient Emails (comma-separated)" />
+                <Select disabled>
+                  <SelectTrigger><SelectValue placeholder="Select Frequency (e.g., Weekly)" /></SelectTrigger>
+                </Select>
+                <Button disabled className="w-full sm:w-auto">Save Schedule</Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Flexible Export Options */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <DownloadCloud className="h-5 w-5 text-accent" />
+              <h4 className="font-semibold text-md">Flexible Export Options</h4>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              Export report data and visualizations in various formats including PDF for presentation, CSV and Excel for further data analysis or integration with other tools.
+            </p>
+            <div className="p-4 border rounded-lg bg-background/50 text-center">
+                <p className="text-xs text-muted-foreground italic mb-2">Export options will be available on generated reports.</p>
+                <div className="flex justify-center gap-2">
+                    <Button variant="outline" disabled size="sm"><FileDown className="mr-1 h-4 w-4"/>Export as PDF</Button>
+                    <Button variant="outline" disabled size="sm"><FileDown className="mr-1 h-4 w-4"/>Export as CSV</Button>
+                    <Button variant="outline" disabled size="sm"><FileDown className="mr-1 h-4 w-4"/>Export as Excel</Button>
+                </div>
+            </div>
+          </div>
+          
+          <Separator />
+
+          {/* Natural Language Report Generation (AI) */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Brain className="h-5 w-5 text-accent" />
+              <h4 className="font-semibold text-md">Natural Language Report Generation (AI)</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              A future capability to leverage AI for generating narrative summaries that explain key data trends, insights, and anomalies found in your reports, making complex data easier to understand.
+            </p>
+          </div>
+
            <div className="mt-4 p-3 bg-muted/50 rounded-md border text-center">
-            <p className="text-sm text-muted-foreground">These advanced features are currently under development and will be rolled out in future updates.</p>
+            <p className="text-sm text-muted-foreground">These advanced reporting features are part of our ongoing development roadmap and will be rolled out in future updates.</p>
           </div>
         </CardContent>
       </Card>
