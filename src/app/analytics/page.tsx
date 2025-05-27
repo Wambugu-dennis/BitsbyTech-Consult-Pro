@@ -1,10 +1,11 @@
 
 'use client';
 
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Briefcase, Users, UserCog, DollarSign, Lightbulb, AlertTriangle, BarChartHorizontalBig, Brain, ArrowRight } from "lucide-react";
+import { TrendingUp, Briefcase, Users, UserCog, DollarSign, Lightbulb, AlertTriangle, BarChartHorizontalBig, Brain, ArrowRight, FileDown } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
@@ -14,7 +15,7 @@ interface AnalyticsCategory {
   icon: React.ElementType;
   title: string;
   description: string;
-  detailsPlaceholder: string; 
+  reportLink: string;
   dataSources: string;
   chartComponent: React.FC;
 }
@@ -136,7 +137,7 @@ const analyticsCategories: AnalyticsCategory[] = [
     icon: Briefcase,
     title: "Project Success Metrics",
     description: "Analyze project profitability, on-time delivery, scope adherence, and resource efficiency.",
-    detailsPlaceholder: "Interactive charts displaying project KPIs, burndown charts, and efficiency ratios will be available here.",
+    reportLink: "/analytics/project-success-report",
     dataSources: "Project Management, Financial Module, Resource Allocation",
     chartComponent: ProjectProfitabilityChart,
   },
@@ -145,7 +146,7 @@ const analyticsCategories: AnalyticsCategory[] = [
     icon: Users,
     title: "Client Relationship Insights",
     description: "Track client satisfaction, engagement levels, retention rates, and identify growth opportunities or at-risk accounts.",
-    detailsPlaceholder: "Dashboards visualizing client health scores, communication patterns, and feedback trends are under development.",
+    reportLink: "/analytics/client-relationship-report",
     dataSources: "Client Management, Communication Logs, Feedback Systems",
     chartComponent: ClientSatisfactionChart,
   },
@@ -154,7 +155,7 @@ const analyticsCategories: AnalyticsCategory[] = [
     icon: UserCog,
     title: "Consultant Performance & Utilization",
     description: "Monitor consultant utilization, billable hours, project contributions, skill demand, and overall team efficiency.",
-    detailsPlaceholder: "Utilization heatmaps, individual performance scorecards, and skill gap analysis tools are planned.",
+    reportLink: "/analytics/consultant-performance-report",
     dataSources: "Resource Management, Project Tracking, Timesheet Data",
     chartComponent: ConsultantUtilizationChart,
   },
@@ -163,7 +164,7 @@ const analyticsCategories: AnalyticsCategory[] = [
     icon: DollarSign,
     title: "Financial Health Indicators",
     description: "Visualize revenue streams, expense structures, profit margins by service/client, and cash flow dynamics.",
-    detailsPlaceholder: "Comprehensive financial dashboards, P&L visualizations, and forecasting models will be implemented.",
+    reportLink: "/analytics/financial-health-report",
     dataSources: "Financial Module (Invoicing, Expenses, Budgets)",
     chartComponent: FinancialHealthChart,
   }
@@ -193,6 +194,11 @@ const advancedFeatures = [
 ];
 
 export default function AnalyticsPage() {
+
+  const handleDownloadPdf = (reportName: string) => {
+    alert(`PDF download functionality for ${reportName} is under development. For now, you can use your browser's 'Print to PDF' feature on the full report page.`);
+  };
+
   return (
     <div className="space-y-8">
       <header className="pb-4 border-b">
@@ -209,7 +215,7 @@ export default function AnalyticsPage() {
         <CardHeader>
             <CardTitle className="text-xl text-primary">Core Analytics Areas</CardTitle>
             <CardDescription>
-                Explore key dimensions of your consultancy's operations. Expand each section to view sample charts. Full interactive reports are under development.
+                Explore key dimensions of your consultancy's operations. Expand each section to view sample charts and access detailed reports.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -228,12 +234,17 @@ export default function AnalyticsPage() {
                 <AccordionContent className="p-4 pt-0">
                   <div className="border-t pt-4">
                     <category.chartComponent />
-                    <div className="mt-4 text-right">
-                        <Button variant="outline" size="sm" onClick={() => alert(`Navigating to full report for ${category.title} (Not Implemented)`)}>
+                    <div className="mt-4 flex flex-col sm:flex-row justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleDownloadPdf(category.title)}>
+                            <FileDown className="mr-2 h-4 w-4" /> Download PDF
+                        </Button>
+                        <Button asChild variant="default" size="sm">
+                          <Link href={category.reportLink}>
                             View Full Report <ArrowRight className="ml-2 h-4 w-4" />
+                          </Link>
                         </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground/70 mt-2"><em>Data sources: {category.dataSources}</em></p>
+                    <p className="text-xs text-muted-foreground/70 mt-2 text-right"><em>Data sources: {category.dataSources}</em></p>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -267,3 +278,4 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
