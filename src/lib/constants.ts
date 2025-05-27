@@ -2,7 +2,6 @@
 import { 
   LayoutDashboard, 
   ShieldAlert, 
-  KanbanSquare, 
   Users, 
   UserCog, 
   Briefcase,
@@ -14,6 +13,7 @@ import {
   HelpCircle,
   type LucideIcon 
 } from 'lucide-react';
+import type { CalendarEventType, EventTypeConfig } from './types';
 
 export interface NavLink {
   href: string;
@@ -59,3 +59,12 @@ export const CONSULTANT_STATUS_VARIANTS: Record<string, "default" | "secondary" 
   Unavailable: 'secondary',
 };
 
+export const EVENT_TYPE_CONFIG: Record<CalendarEventType, EventTypeConfig> = {
+  'Project Milestone': { label: 'Milestone', color: 'bg-purple-500', textColor: 'text-white', borderColor: 'border-purple-700' },
+  'Project Deadline': { label: 'Deadline', color: 'bg-red-600', textColor: 'text-white', borderColor: 'border-red-800' },
+  'Client Meeting': { label: 'Meeting', color: 'bg-sky-500', textColor: 'text-white', borderColor: 'border-sky-700' },
+  'Consultant Assignment': { label: 'Assignment', color: 'bg-orange-500', textColor: 'text-white', borderColor: 'border-orange-700' },
+  'General Task': { label: 'Task', color: 'bg-gray-500', textColor: 'text-white', borderColor: 'border-gray-700' },
+  'Holiday': { label: 'Holiday', color: 'bg-teal-500', textColor: 'text-white', borderColor: 'border-teal-700' },
+  'Other': { label: 'Other', color: 'bg-pink-500', textColor: 'text-white', borderColor: 'border-pink-700' },
+};

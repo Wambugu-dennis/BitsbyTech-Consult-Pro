@@ -27,7 +27,7 @@ export type Milestone = {
   id: string;
   name: string;
   description?: string;
-  dueDate: string;
+  dueDate: string; // ISO date string
   status: 'Pending' | 'In Progress' | 'Completed' | 'Delayed' | 'At Risk';
 };
 
@@ -43,7 +43,7 @@ export type ProjectAttachment = {
 
 export type ProjectFinancials = {
   budget: number;
-  spentBudget: number;
+  spentBudget: number; // This will be dynamically calculated from expenses for Budget module
   currency: string; // e.g., "USD"
   billingType?: 'Fixed Price' | 'Time & Materials' | 'Retainer';
   hourlyRate?: number; // If T&M
@@ -103,6 +103,60 @@ export type ClientFinancialSummary = {
   currency?: string; // e.g., "USD", "EUR"
 };
 
+export type CommunicationLog = {
+  id: string;
+  date: string; // ISO date string
+  type: 'Email' | 'Call' | 'Meeting' | 'Note';
+  summary: string;
+  participants?: string[]; // Names or IDs of participants
+  relatedProjectId?: string; // Optional link to a project
+};
+
+// Calendar Event Types
+export type CalendarEventType = 
+  | 'Project Milestone' 
+  | 'Project Deadline' 
+  | 'Client Meeting' 
+  | 'Consultant Assignment'
+  | 'General Task'
+  | 'Holiday'
+  | 'Other';
+
+export const calendarEventTypes: CalendarEventType[] = [
+  'Project Milestone',
+  'Project Deadline',
+  'Client Meeting',
+  'Consultant Assignment',
+  'General Task',
+  'Holiday',
+  'Other',
+];
+
+export type CalendarEventSource = 'project' | 'client' | 'consultant' | 'general';
+
+export interface EventTypeConfig {
+  label: string;
+  color: string; // Tailwind color class e.g., "bg-blue-500"
+  borderColor?: string; // e.g., "border-blue-700"
+  textColor?: string; // e.g., "text-white"
+}
+
+export type CalendarEvent = {
+  id: string;
+  title: string;
+  start: Date; // Use Date objects for react-day-picker
+  end?: Date; // For multi-day events
+  allDay?: boolean;
+  type: CalendarEventType;
+  description?: string;
+  source: CalendarEventSource;
+  sourceId?: string; // e.g., project.id, client.id, consultant.id
+  relatedLink?: string; // e.g., /projects/[id]
+  attendees?: string[]; // Names or IDs
+  location?: string;
+};
+
+
 export type Client = {
   id: string;
   companyName: string;
@@ -120,16 +174,9 @@ export type Client = {
   linkedProjectIds?: string[]; // IDs of projects associated with this client
   financialSummary?: ClientFinancialSummary;
   lastContact?: string;
+  meetings?: Array<Omit<CalendarEvent, 'id' | 'source' | 'sourceId' | 'type' | 'start' | 'end'> & { id?: string, date: string, time?: string, endDate?: string, endTime?:string }>; // Simplified for mock data
 };
 
-export type CommunicationLog = {
-  id: string;
-  date: string; // ISO date string
-  type: 'Email' | 'Call' | 'Meeting' | 'Note';
-  summary: string;
-  participants?: string[]; // Names or IDs of participants
-  relatedProjectId?: string; // Optional link to a project
-};
 
 export type RevenueData = {
   month: string;
@@ -180,7 +227,8 @@ export type Consultant = {
   skills: string[];
   utilization: number;
   status: ConsultantStatus;
-  currentProject?: string; // Potentially current project name or ID
+  currentProject?: string; // Project ID
+  currentProjectNameCache?: string; // Denormalized
   bio?: string;
   avatarUrl?: string;
   phone?: string;
@@ -288,7 +336,7 @@ export type Budget = {
   linkedProjectNameCache?: string; // Denormalized
   departmentName?: string; // For Departmental type
   totalAmount: number;
-  // spentAmount: number; // This will be calculated from actual expenses linked to this budget
+  // spentAmount is dynamically calculated from linked expenses
   currency: string;
   startDate: string; // ISO date string
   endDate: string; // ISO date string
@@ -297,4 +345,3 @@ export type Budget = {
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
 };
-

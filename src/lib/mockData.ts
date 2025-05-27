@@ -1,8 +1,8 @@
 
-import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, Expense, Budget, BudgetStatus, BudgetType } from "@/lib/types";
-import { expenseCategories, budgetTypes, budgetStatuses } from "@/lib/types"; 
-import { PROJECT_STATUS } from "@/lib/constants";
-import { formatISO, addDays, subDays, addMonths } from 'date-fns';
+import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, Expense, Budget, BudgetStatus, BudgetType, CalendarEvent } from "@/lib/types";
+import { PROJECT_STATUS } from "@/lib/constants"; 
+import { expenseCategories, budgetTypes, budgetStatuses, calendarEventTypes } from "./types"; 
+import { formatISO, addDays, subDays, addMonths, parseISO } from 'date-fns';
 
 const today = new Date();
 
@@ -26,10 +26,14 @@ export const initialClients: Client[] = [
     notes: 'Long-term client, high value. Focus on AI and cloud solutions.',
     linkedProjectIds: ['proj101', 'proj105'], // Matched to initialProjects
     financialSummary: { totalBilled: 120000, totalPaid: 115000, outstandingAmount: 5000, lastInvoiceDate: '2024-07-01', currency: 'USD' },
-    lastContact: '2024-07-15',
+    lastContact: formatISO(subDays(today, 15), { representation: 'date' }),
     communicationLogs: [
-      {id: 'cl1', date: '2024-07-15', type: 'Meeting', summary: 'Quarterly review, positive feedback.', participants: ['Sarah Connor', 'Dr. Eleanor Vance']},
-      {id: 'cl2', date: '2024-06-20', type: 'Email', summary: 'Sent project update for proj105.'}
+      {id: 'cl1', date: formatISO(subDays(today, 15), { representation: 'date' }), type: 'Meeting', summary: 'Quarterly review, positive feedback.', participants: ['Sarah Connor', 'Dr. Eleanor Vance']},
+      {id: 'cl2', date: formatISO(subDays(today, 40), { representation: 'date' }), type: 'Email', summary: 'Sent project update for proj105.'}
+    ],
+    meetings: [
+        { title: 'Quarterly Review with Innovatech', date: formatISO(subDays(today,15), { representation: 'date' }), time: '10:00', description: 'Discuss Q2 performance and Q3 roadmap.', attendees: ['Sarah Connor', 'Dr. Eleanor Vance'], location: 'Innovatech HQ / Video Call'},
+        { title: 'Project Kickoff: AI Overhaul Phase 2', date: formatISO(addDays(today, 5), { representation: 'date' }), time: '14:00', description: 'Initiate phase 2 of AI Overhaul.', attendees: ['John Projectlead', 'Dr. Eleanor Vance', 'Marcus Chen'], location: 'Video Call' }
     ]
   },
   {
@@ -49,7 +53,10 @@ export const initialClients: Client[] = [
     notes: 'Focused on data analytics and patient management systems.',
     linkedProjectIds: ['proj202'], // Matched to initialProjects
     financialSummary: { totalBilled: 75000, totalPaid: 75000, outstandingAmount: 0, lastInvoiceDate: '2024-06-15', currency: 'USD' },
-    lastContact: '2024-07-20',
+    lastContact: formatISO(subDays(today, 10), { representation: 'date' }),
+    meetings: [
+        { title: 'Alpha Solutions Check-in', date: formatISO(addDays(today, 12), { representation: 'date' }), time: '11:00', description: 'Weekly sync on predictive model project.', attendees: ['Robert Neville', 'Aisha Khan'], location: 'Video Call' }
+    ]
   },
   {
     id: '3',
@@ -67,7 +74,7 @@ export const initialClients: Client[] = [
     satisfactionScore: 70,
     notes: 'Previous engagement for process optimization. Potential for follow-up work.',
     financialSummary: { totalBilled: 45000, totalPaid: 45000, outstandingAmount: 0, currency: 'USD' },
-    lastContact: '2023-09-25',
+    lastContact: formatISO(subDays(today, 300), { representation: 'date' }),
     linkedProjectIds: ['proj301'], // Matched to initialProjects
   },
   {
@@ -82,7 +89,7 @@ export const initialClients: Client[] = [
       { id: 'kc4-1', name: 'Bruce Banner', role: 'Procurement Head', email: 'b.banner@gammaind.example.net', phone: '555-0400' }
     ],
     notes: 'Initial discussions for supply chain optimization. Proposal sent.',
-    lastContact: '2024-07-01',
+    lastContact: formatISO(subDays(today, 30), { representation: 'date' }),
   },
 ];
 
@@ -96,7 +103,8 @@ export const initialConsultants: Consultant[] = [
     skills: ['Market Analysis', 'AI Strategy', 'Digital Transformation'],
     utilization: 75,
     status: 'On Project',
-    currentProject: 'Innovatech AI Overhaul (proj101)',
+    currentProject: 'proj101', // Project ID
+    currentProjectNameCache: 'Innovatech AI Overhaul',
     bio: 'Seasoned strategist with 15+ years of experience in driving digital innovation and market growth for Fortune 500 companies. Expert in AI-driven business solutions.',
     avatarUrl: 'https://placehold.co/100x100/64B5F6/FFFFFF.png?text=EV',
     phone: '555-0101',
@@ -109,7 +117,8 @@ export const initialConsultants: Consultant[] = [
     skills: ['Machine Learning', 'Python', 'Big Data Analytics', 'NLP'],
     utilization: 90,
     status: 'On Project',
-    currentProject: 'Alpha Solutions Predictive Model (proj202)',
+    currentProject: 'proj202', // Project ID
+    currentProjectNameCache: 'Alpha Solutions Predictive Model',
     bio: 'Data scientist specializing in machine learning model development and deployment. Passionate about leveraging data to solve complex business problems.',
     avatarUrl: 'https://placehold.co/100x100/FFB74D/FFFFFF.png?text=MC',
     phone: '555-0102',
@@ -133,7 +142,9 @@ export const initialConsultants: Consultant[] = [
     role: 'Junior Analyst',
     skills: ['Data Visualization', 'Excel', 'Market Research'],
     utilization: 20,
-    status: 'Available',
+    status: 'On Project',
+    currentProject: 'proj105',
+    currentProjectNameCache: 'Innovatech Cloud Platform Migration',
     bio: 'Enthusiastic analyst with a knack for transforming data into actionable insights. Proficient in market research and creating compelling data visualizations.',
     avatarUrl: `https://placehold.co/100x100.png?text=JM`,
   },
@@ -144,7 +155,7 @@ export const initialConsultants: Consultant[] = [
     role: 'UX Lead',
     skills: ['User Research', 'Prototyping', 'Interaction Design', 'Figma'],
     utilization: 0,
-    status: 'Unavailable',
+    status: 'Unavailable', // e.g., on leave
     bio: 'Creative UX Lead dedicated to designing intuitive and engaging user experiences. Expert in user-centered design methodologies and modern design tools.',
     avatarUrl: 'https://placehold.co/100x100/E57373/FFFFFF.png?text=SP',
     phone: '555-0105',
@@ -153,11 +164,11 @@ export const initialConsultants: Consultant[] = [
 
 // Mock data for Project Tasks
 export const initialProjectTasks: ProjectTask[] = [
-  { id: 'task-proj101-1', title: 'Discovery Phase for Innovatech', description: 'Initial client meetings and requirement gathering for AI Overhaul.', status: PROJECT_STATUS.TODO, assigneeId: 'c1', dueDate: '2024-08-15', priority: 'High' },
-  { id: 'task-proj202-1', title: 'Develop UI Mockups for Alpha Solutions', description: 'Create wireframes and high-fidelity mockups for predictive model interface.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c5', dueDate: '2024-08-20', priority: 'Medium'  },
-  { id: 'task-proj101-2', title: 'Backend API Integration for Innovatech', description: 'Connect frontend to new microservices for AI features.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c2', dueDate: '2024-09-01', priority: 'High'  },
-  { id: 'task-proj301-1', title: 'Q&A Testing for Beta Corp App', description: 'Comprehensive testing of all features of process optimization app.', status: PROJECT_STATUS.TODO, assigneeId: 'c4', dueDate: '2024-09-10', priority: 'Medium'  },
-  { id: 'task-proj105-1', title: 'Deploy Innovatech Cloud Platform V1', description: 'Final deployment to production environment.', status: PROJECT_STATUS.DONE, assigneeId: 'c1', dueDate: '2024-07-30', priority: 'High'  },
+  { id: 'task-proj101-1', title: 'Discovery Phase for Innovatech', description: 'Initial client meetings and requirement gathering for AI Overhaul.', status: PROJECT_STATUS.TODO, assigneeId: 'c1', dueDate: formatISO(addDays(today,15), { representation: 'date' }), priority: 'High' },
+  { id: 'task-proj202-1', title: 'Develop UI Mockups for Alpha Solutions', description: 'Create wireframes and high-fidelity mockups for predictive model interface.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c5', dueDate: formatISO(addDays(today,20), { representation: 'date' }), priority: 'Medium'  },
+  { id: 'task-proj101-2', title: 'Backend API Integration for Innovatech', description: 'Connect frontend to new microservices for AI features.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c2', dueDate: formatISO(addDays(today,60), { representation: 'date' }), priority: 'High'  },
+  { id: 'task-proj301-1', title: 'Q&A Testing for Beta Corp App', description: 'Comprehensive testing of all features of process optimization app.', status: PROJECT_STATUS.TODO, assigneeId: 'c4', dueDate: formatISO(subDays(today, 50), { representation: 'date' }), priority: 'Medium'  }, // Past due
+  { id: 'task-proj105-1', title: 'Deploy Innovatech Cloud Platform V1', description: 'Final deployment to production environment.', status: PROJECT_STATUS.DONE, assigneeId: 'c1', dueDate: formatISO(subDays(today, 30), { representation: 'date' }), priority: 'High'  },
 ];
 
 
@@ -174,13 +185,13 @@ export const initialProjects: Project[] = [
     teamMemberIds: ['c2', 'c5'], 
     status: PROJECT_STATUS.IN_PROGRESS,
     priority: 'High',
-    startDate: '2024-02-01',
-    endDate: '2024-12-31',
-    financials: { budget: 250000, spentBudget: 0, currency: 'USD', billingType: 'Fixed Price' }, // spentBudget will be calculated
+    startDate: formatISO(subDays(today, 90), { representation: 'date' }), // Approx 3 months ago
+    endDate: formatISO(addDays(today, 90), { representation: 'date' }),   // Approx 3 months from now
+    financials: { budget: 250000, spentBudget: 0, currency: 'USD', billingType: 'Fixed Price' },
     milestones: [
-      { id: 'm101-1', name: 'Phase 1: Discovery & Planning', dueDate: '2024-03-15', status: 'Completed' },
-      { id: 'm101-2', name: 'Phase 2: Model Development', dueDate: '2024-07-30', status: 'In Progress' },
-      { id: 'm101-3', name: 'Phase 3: Integration & Testing', dueDate: '2024-10-31', status: 'Pending' },
+      { id: 'm101-1', name: 'Phase 1: Discovery & Planning', dueDate: formatISO(subDays(today, 60), { representation: 'date' }), status: 'Completed' },
+      { id: 'm101-2', name: 'Phase 2: Model Development', dueDate: formatISO(addDays(today, 30), { representation: 'date' }), status: 'In Progress' },
+      { id: 'm101-3', name: 'Phase 3: Integration & Testing', dueDate: formatISO(addDays(today, 75), { representation: 'date' }), status: 'Pending' },
     ],
     tasks: initialProjectTasks.filter(t => t.id.startsWith('task-proj101')),
     tags: ['AI', 'Machine Learning', 'Cloud Integration'],
@@ -198,13 +209,13 @@ export const initialProjects: Project[] = [
     teamMemberIds: ['c2'], 
     status: PROJECT_STATUS.IN_PROGRESS,
     priority: 'High',
-    startDate: '2024-04-15',
-    endDate: '2024-11-30',
-    financials: { budget: 150000, spentBudget: 0, currency: 'USD', billingType: 'Time & Materials', hourlyRate: 150 }, // spentBudget will be calculated
+    startDate: formatISO(subDays(today, 45), { representation: 'date' }),
+    endDate: formatISO(addDays(today, 75), { representation: 'date' }),
+    financials: { budget: 150000, spentBudget: 0, currency: 'USD', billingType: 'Time & Materials', hourlyRate: 150 },
     milestones: [
-      { id: 'm202-1', name: 'Data Collection & Cleaning', dueDate: '2024-05-30', status: 'Completed' },
-      { id: 'm202-2', name: 'Model Prototyping', dueDate: '2024-08-15', status: 'In Progress' },
-      { id: 'm202-3', name: 'Deployment & Validation', dueDate: '2024-11-15', status: 'Pending' },
+      { id: 'm202-1', name: 'Data Collection & Cleaning', dueDate: formatISO(subDays(today, 15), { representation: 'date' }), status: 'Completed' },
+      { id: 'm202-2', name: 'Model Prototyping', dueDate: formatISO(addDays(today, 45), { representation: 'date' }), status: 'In Progress' },
+      { id: 'm202-3', name: 'Deployment & Validation', dueDate: formatISO(addDays(today, 70), { representation: 'date' }), status: 'Pending' },
     ],
     tasks: initialProjectTasks.filter(t => t.id.startsWith('task-proj202')),
     tags: ['Healthcare', 'Predictive Analytics', 'Data Science'],
@@ -221,14 +232,19 @@ export const initialProjects: Project[] = [
     projectManagerNameCache: 'Aisha Khan',
     status: PROJECT_STATUS.DONE,
     priority: 'Medium',
-    startDate: '2023-03-01',
-    endDate: '2023-09-30',
-    actualEndDate: '2023-09-28',
-    financials: { budget: 80000, spentBudget: 0, currency: 'USD', billingType: 'Fixed Price' }, // spentBudget will be calculated
+    startDate: formatISO(subDays(today, 200), { representation: 'date' }),
+    endDate: formatISO(subDays(today, 100), { representation: 'date' }),
+    actualEndDate: formatISO(subDays(today, 102), { representation: 'date' }),
+    financials: { budget: 80000, spentBudget: 0, currency: 'USD', billingType: 'Fixed Price' },
     tags: ['Manufacturing', 'Process Improvement', 'Lean Six Sigma'],
-    lastUpdated: '2023-10-05T10:00:00Z',
+    lastUpdated: formatISO(subDays(today, 100)),
     completionPercent: 100,
     tasks: initialProjectTasks.filter(t => t.id.startsWith('task-proj301')),
+    milestones: [
+        { id: 'm301-1', name: 'Initial Assessment', dueDate: formatISO(subDays(today, 180), { representation: 'date' }), status: 'Completed' },
+        { id: 'm301-2', name: 'Implementation Phase', dueDate: formatISO(subDays(today, 120), { representation: 'date' }), status: 'Completed' },
+        { id: 'm301-3', name: 'Final Report & Handover', dueDate: formatISO(subDays(today, 100), { representation: 'date' }), status: 'Completed' },
+    ]
   },
   {
     id: 'proj105',
@@ -241,13 +257,13 @@ export const initialProjects: Project[] = [
     teamMemberIds: ['c4'], 
     status: PROJECT_STATUS.TODO,
     priority: 'Medium',
-    startDate: '2024-09-01',
-    endDate: '2025-03-31',
-    financials: { budget: 180000, spentBudget: 0, currency: 'USD', billingType: 'Fixed Price' }, // spentBudget will be calculated
+    startDate: formatISO(addDays(today, 10), { representation: 'date' }),
+    endDate: formatISO(addDays(today, 100), { representation: 'date' }),
+    financials: { budget: 180000, spentBudget: 0, currency: 'USD', billingType: 'Fixed Price' },
     milestones: [
-        { id: 'm105-1', name: 'Planning & Assessment', dueDate: '2024-10-15', status: 'Pending'},
-        { id: 'm105-2', name: 'Development & Migration', dueDate: '2025-01-31', status: 'Pending'},
-        { id: 'm105-3', name: 'Testing & Go-live', dueDate: '2025-03-15', status: 'Pending'},
+        { id: 'm105-1', name: 'Planning & Assessment', dueDate: formatISO(addDays(today, 30), { representation: 'date' }), status: 'Pending'},
+        { id: 'm105-2', name: 'Development & Migration', dueDate: formatISO(addDays(today, 75), { representation: 'date' }), status: 'Pending'},
+        { id: 'm105-3', name: 'Testing & Go-live', dueDate: formatISO(addDays(today, 95), { representation: 'date' }), status: 'Pending'},
     ],
     tasks: initialProjectTasks.filter(t => t.id.startsWith('task-proj105')),
     tags: ['Cloud Migration', 'Infrastructure', 'AWS'],
@@ -302,7 +318,7 @@ const createInvoice = (id: string, client: Client, project: Project | undefined,
     paymentDetails: 'Bank: Global Consultants Bank, Account: 123-456-789, SWIFT: GCBKUS33',
     createdAt: formatISO(subDays(today, daysOffset + 2)),
     updatedAt: formatISO(subDays(today, daysOffset + 1)),
-    paymentDate: status === 'Paid' ? formatISO(subDays(today, daysOffset - 5)) : undefined,
+    paymentDate: status === 'Paid' ? formatISO(subDays(today, daysOffset - 5), { representation: 'date' }) : undefined,
   };
 };
 
@@ -328,12 +344,12 @@ export const initialBudgets: Budget[] = [
     linkedProjectNameCache: initialProjects.find(p => p.id === 'proj101')?.name,
     totalAmount: initialProjects.find(p => p.id === 'proj101')?.financials.budget || 250000,
     currency: 'USD',
-    startDate: initialProjects.find(p => p.id === 'proj101')?.startDate || formatISO(subDays(today, 180)),
-    endDate: initialProjects.find(p => p.id === 'proj101')?.endDate || formatISO(addDays(today, 180)),
+    startDate: initialProjects.find(p => p.id === 'proj101')?.startDate || formatISO(subDays(today, 180), { representation: 'date' }),
+    endDate: initialProjects.find(p => p.id === 'proj101')?.endDate || formatISO(addDays(today, 180), { representation: 'date' }),
     status: 'Active', 
     description: 'Budget for the AI overhaul project with Innovatech Ltd.',
-    createdAt: formatISO(subDays(today, 182)),
-    updatedAt: formatISO(subDays(today, 10)),
+    createdAt: formatISO(subDays(today, 182), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 10), { representation: 'date' }),
   },
   {
     id: 'bud-proj202',
@@ -343,11 +359,11 @@ export const initialBudgets: Budget[] = [
     linkedProjectNameCache: initialProjects.find(p => p.id === 'proj202')?.name,
     totalAmount: initialProjects.find(p => p.id === 'proj202')?.financials.budget || 150000,
     currency: 'USD',
-    startDate: initialProjects.find(p => p.id === 'proj202')?.startDate || formatISO(subDays(today, 90)),
-    endDate: initialProjects.find(p => p.id === 'proj202')?.endDate || formatISO(addDays(today, 90)),
+    startDate: initialProjects.find(p => p.id === 'proj202')?.startDate || formatISO(subDays(today, 90), { representation: 'date' }),
+    endDate: initialProjects.find(p => p.id === 'proj202')?.endDate || formatISO(addDays(today, 90), { representation: 'date' }),
     status: 'Active',
-    createdAt: formatISO(subDays(today, 92)),
-    updatedAt: formatISO(subDays(today, 5)),
+    createdAt: formatISO(subDays(today, 92), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 5), { representation: 'date' }),
   },
   {
     id: 'bud-marketing-q3',
@@ -356,12 +372,12 @@ export const initialBudgets: Budget[] = [
     departmentName: 'Marketing',
     totalAmount: 50000,
     currency: 'USD',
-    startDate: formatISO(addMonths(today, -2)), 
-    endDate: formatISO(addMonths(today, 1)), 
+    startDate: formatISO(addMonths(subDays(today, today.getDate() -1 ), -2), { representation: 'date' }), 
+    endDate: formatISO(addDays(addMonths(subDays(today, today.getDate() -1), -2), 89), { representation: 'date' }),  // Approx 3 months
     status: 'Active',
     description: 'Quarterly budget for all marketing activities.',
-    createdAt: formatISO(addMonths(today, -2)),
-    updatedAt: formatISO(subDays(today, 3)),
+    createdAt: formatISO(addMonths(today, -2), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 3), { representation: 'date' }),
   },
   {
     id: 'bud-training-annual',
@@ -369,12 +385,12 @@ export const initialBudgets: Budget[] = [
     type: 'General',
     totalAmount: 75000,
     currency: 'USD',
-    startDate: formatISO(subDays(today, 300)),
-    endDate: formatISO(addDays(today, 65)), 
+    startDate: formatISO(subDays(today, 300), { representation: 'date' }),
+    endDate: formatISO(addDays(today, 65), { representation: 'date' }), 
     status: 'Active', 
     description: 'Annual budget for consultant training, certifications, and conferences.',
-    createdAt: formatISO(subDays(today, 300)),
-    updatedAt: formatISO(subDays(today, 1)),
+    createdAt: formatISO(subDays(today, 300), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 1), { representation: 'date' }),
   },
    {
     id: 'bud-rd-2024',
@@ -383,12 +399,12 @@ export const initialBudgets: Budget[] = [
     departmentName: 'Research & Development',
     totalAmount: 120000,
     currency: 'USD',
-    startDate: formatISO(new Date(today.getFullYear(), 0, 1)),
-    endDate: formatISO(new Date(today.getFullYear(), 11, 31)),
+    startDate: formatISO(new Date(today.getFullYear(), 0, 1), { representation: 'date' }),
+    endDate: formatISO(new Date(today.getFullYear(), 11, 31), { representation: 'date' }),
     status: 'Completed', // Example of a manually completed budget
     description: 'Budget for all R&D initiatives for the year 2024.',
-    createdAt: formatISO(new Date(today.getFullYear(), 0, 1)),
-    updatedAt: formatISO(subDays(today, 15)),
+    createdAt: formatISO(new Date(today.getFullYear(), 0, 1), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 15), { representation: 'date' }),
   },
 ];
 
@@ -412,9 +428,9 @@ export const initialExpenses: Expense[] = [
     receiptUrl: 'https://placehold.co/200x100.png?text=Receipt1',
     notes: 'Kickoff meeting travel expense.',
     approvedByUserId: 'adminUser1',
-    approvedDate: formatISO(subDays(today, 8)),
-    createdAt: formatISO(subDays(today, 10)),
-    updatedAt: formatISO(subDays(today, 8)),
+    approvedDate: formatISO(subDays(today, 8), { representation: 'date' }),
+    createdAt: formatISO(subDays(today, 10), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 8), { representation: 'date' }),
   },
   {
     id: 'exp-002',
@@ -431,8 +447,8 @@ export const initialExpenses: Expense[] = [
     projectId: 'proj202',
     projectNameCache: initialProjects.find(p => p.id === 'proj202')?.name,
     budgetId: 'bud-proj202', 
-    createdAt: formatISO(subDays(today, 5)),
-    updatedAt: formatISO(subDays(today, 5)),
+    createdAt: formatISO(subDays(today, 5), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 5), { representation: 'date' }),
   },
   {
     id: 'exp-003',
@@ -447,9 +463,9 @@ export const initialExpenses: Expense[] = [
     budgetId: 'bud-rd-2024', 
     receiptUrl: 'https://placehold.co/200x100.png?text=Receipt2',
     approvedByUserId: 'adminUser1',
-    approvedDate: formatISO(subDays(today, 12)),
-    createdAt: formatISO(subDays(today, 15)),
-    updatedAt: formatISO(subDays(today, 12)),
+    approvedDate: formatISO(subDays(today, 12), { representation: 'date' }),
+    createdAt: formatISO(subDays(today, 15), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 12), { representation: 'date' }),
   },
   {
     id: 'exp-004',
@@ -463,8 +479,8 @@ export const initialExpenses: Expense[] = [
     submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c4')?.name,
     clientId: '4', 
     clientNameCache: initialClients.find(cl => cl.id === '4')?.companyName,
-    createdAt: formatISO(subDays(today, 2)),
-    updatedAt: formatISO(subDays(today, 2)),
+    createdAt: formatISO(subDays(today, 2), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 2), { representation: 'date' }),
   },
   {
     id: 'exp-005',
@@ -478,9 +494,9 @@ export const initialExpenses: Expense[] = [
     submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c1')?.name,
     budgetId: 'bud-marketing-q3', 
     approvedByUserId: 'adminUser1',
-    approvedDate: formatISO(subDays(today, 18)),
-    createdAt: formatISO(subDays(today, 20)),
-    updatedAt: formatISO(subDays(today, 18)),
+    approvedDate: formatISO(subDays(today, 18), { representation: 'date' }),
+    createdAt: formatISO(subDays(today, 20), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 18), { representation: 'date' }),
   },
   {
     id: 'exp-006',
@@ -494,27 +510,28 @@ export const initialExpenses: Expense[] = [
     submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c3')?.name,
     budgetId: 'bud-training-annual', 
     approvedByUserId: 'adminUser1',
-    approvedDate: formatISO(subDays(today, 40)),
-    createdAt: formatISO(subDays(today, 45)),
-    updatedAt: formatISO(subDays(today, 40)),
+    approvedDate: formatISO(subDays(today, 40), { representation: 'date' }),
+    createdAt: formatISO(subDays(today, 45), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 40), { representation: 'date' }),
   },
-  // Expense designed to make 'bud-training-annual' overspent if it was, say, 74500 budget
-  // {
-  //   id: 'exp-007',
-  //   date: formatISO(subDays(today, 3), { representation: 'date' }),
-  //   description: 'Advanced AI Workshop Registration',
-  //   amount: 1000.00,
-  //   currency: 'USD',
-  //   category: 'Training & Development',
-  //   status: 'Pending',
-  //   submittedByConsultantId: 'c2',
-  //   submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c2')?.name,
-  //   budgetId: 'bud-training-annual',
-  //   createdAt: formatISO(subDays(today, 3)),
-  //   updatedAt: formatISO(subDays(today, 3)),
-  // }
+  {
+    id: 'exp-007', // Expense to link to proj101, no client directly
+    date: formatISO(subDays(today, 7), { representation: 'date' }),
+    description: 'Cloud Server Costs for AI Model Training (proj101)',
+    amount: 2500.00,
+    currency: 'USD',
+    category: 'Software & Subscriptions',
+    status: 'Approved',
+    submittedByConsultantId: 'c2',
+    submittedByConsultantNameCache: initialConsultants.find(c => c.id === 'c2')?.name,
+    projectId: 'proj101',
+    projectNameCache: initialProjects.find(p => p.id === 'proj101')?.name,
+    clientId: initialProjects.find(p => p.id === 'proj101')?.clientId, // Infer client from project
+    clientNameCache: initialProjects.find(p => p.id === 'proj101')?.clientNameCache,
+    budgetId: 'bud-proj101',
+    approvedByUserId: 'adminUser1',
+    approvedDate: formatISO(subDays(today, 5), { representation: 'date' }),
+    createdAt: formatISO(subDays(today, 7), { representation: 'date' }),
+    updatedAt: formatISO(subDays(today, 5), { representation: 'date' }),
+  }
 ];
-
-    
-
-    
