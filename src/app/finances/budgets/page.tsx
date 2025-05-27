@@ -6,20 +6,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Target, PlusCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { Budget, Project, Expense } from '@/lib/types'; // Added Expense
-import { initialBudgets, initialProjects, initialExpenses } from '@/lib/mockData'; // Added initialExpenses
+import type { Budget, Project, Expense } from '@/lib/types';
+import { initialBudgets, initialProjects, initialExpenses } from '@/lib/mockData';
 import AddBudgetDialog, { type AddBudgetFormData } from '@/components/finances/budgets/add-budget-dialog';
 import BudgetList from '@/components/finances/budgets/budget-list';
 
 export default function BudgetsPage() {
   const router = useRouter();
   const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [allExpenses, setAllExpenses] = useState<Expense[]>([]); // State for all expenses
+  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setBudgets(initialBudgets);
-    setAllExpenses(initialExpenses); // Load initial expenses
+    setAllExpenses(initialExpenses);
     setIsMounted(true);
   }, []);
 
@@ -33,7 +33,6 @@ export default function BudgetsPage() {
       linkedProjectNameCache: project?.name,
       departmentName: formData.departmentName,
       totalAmount: formData.totalAmount,
-      // spentAmount is removed, will be calculated dynamically
       currency: formData.currency,
       startDate: formData.startDate,
       endDate: formData.endDate,
@@ -84,34 +83,41 @@ export default function BudgetsPage() {
         <CardHeader>
           <CardTitle>Budgets Overview</CardTitle>
           <CardDescription>
-            Manage financial plans and track spending against allocated budgets. Actual spending is calculated from linked expenses.
+            Manage financial plans and track spending. Actual spending is calculated dynamically from expenses linked to each budget, providing a live view of Budget vs. Actuals.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BudgetList budgets={budgets} expenses={allExpenses} /> {/* Pass allExpenses here */}
+          <BudgetList budgets={budgets} expenses={allExpenses} />
         </CardContent>
       </Card>
 
        <Card className="mt-6 border-t pt-6 bg-card/50">
         <CardHeader>
-          <CardTitle className="text-xl">Future Enhancements</CardTitle>
+          <CardTitle className="text-xl">Planned Advanced Budgeting Features</CardTitle>
           <CardDescription>
-             Key upcoming features for robust budget management:
+             Key upcoming features for more robust budget management and analysis:
           </CardDescription>
         </CardHeader>
         <CardContent>
-            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-1 md:columns-2">
-              <li>Detailed Budget vs. Actuals Tracking (Expense linking foundational, further UI needed for direct comparison views).</li>
-              <li>Variance Analysis Charts & Alerts</li>
-              <li>Budget Versioning & History</li>
-              <li>Departmental & Project Budget Roll-ups</li>
-              <li>Forecasting and Scenario Planning Tools</li>
-              <li>Integration with Project Financials (Deeper linking to project specific finance views)</li>
+            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+              <li>
+                <strong>Variance Analysis Charts & Alerts:</strong> Visual charts to track budget variance over time, with configurable alerts for significant deviations.
+              </li>
+              <li>
+                <strong>Budget Versioning & History:</strong> Track changes to budgets, view historical versions, and compare different budget scenarios.
+              </li>
+              <li>
+                <strong>Departmental & Project Budget Roll-ups:</strong> Aggregate budget data to view overall financial health by department or for entire projects encompassing multiple sub-budgets.
+              </li>
+              <li>
+                <strong>Forecasting and Scenario Planning Tools:</strong> Advanced tools to forecast future budget needs and model different financial scenarios based on historical data and trends.
+              </li>
+              <li>
+                <strong>Deeper Integration with Project Financials:</strong> More granular linking and views for budget details directly within individual project pages.
+              </li>
             </ul>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    
