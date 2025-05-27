@@ -3,12 +3,12 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Brain, Lightbulb, BarChartBig, AlertTriangle, Cpu, HelpCircle, TrendingUp, TableIcon, PieChartIcon as RechartsPieChartIcon, BarChartIcon as LucideBarChartIcon } from 'lucide-react'; // Changed PieChartIcon alias
+import { ArrowLeft, Brain, Lightbulb, BarChartBig, AlertTriangle, Cpu, HelpCircle, TrendingUp, TableIcon, PieChartIcon as RechartsPieChartIcon, BarChartIcon as LucideBarChartIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, ReferenceDot, LabelList, Cell, Pie, PieChart as RechartsPieChart } from 'recharts'; // Keep RechartsPieChart alias
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, ReferenceDot, LabelList, Cell, Pie, PieChart as RechartsPieChart } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartConfig } from "@/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { handleGetBusinessInsight } from './actions';
@@ -90,113 +90,148 @@ export default function AiInsightsPage() {
       return;
     }
     setIsGeneratingCustomChart(true);
-    setGeneratedCustomChart(null); // Clear previous chart
+    setGeneratedCustomChart(null); 
 
     // Simulate generation delay
     setTimeout(() => {
-      let chartNode: React.ReactNode = <p className="text-muted-foreground">Selected visualization not yet supported.</p>;
+      let chartNode: React.ReactNode = (
+        <div className="p-4 text-center text-destructive border border-destructive/50 rounded-md bg-destructive/10">
+          <p className="font-semibold">Visualization Not Generated</p>
+          <p className="text-sm">The selected combination of data source ({customVisDataSource}) and chart type ({customVisChartType}) is not yet supported or an error occurred.</p>
+        </div>
+      );
 
-      if (customVisDataSource === 'projects' && customVisChartType === 'bar') {
-        const projectStatusCounts = initialProjects.reduce((acc, project) => {
-          acc[project.status] = (acc[project.status] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
-        const data = Object.entries(projectStatusCounts).map(([status, count]) => ({ status, count }));
-        const chartConfig = { count: { label: "Projects", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
-        chartNode = (
-          <ChartContainer config={chartConfig} className="h-[300px] w-full [aspect-ratio:auto]">
-            <BarChart data={data} layout="vertical">
-              <CartesianGrid horizontal={false} />
-              <XAxis type="number" dataKey="count" />
-              <YAxis type="category" dataKey="status" width={100} />
-              <Tooltip content={<ChartTooltipContent />} />
-              <Legend />
-              <Bar dataKey="count" name="Project Count" fill="var(--color-count)" radius={4} />
-            </BarChart>
-          </ChartContainer>
-        );
-      } else if (customVisDataSource === 'clients' && customVisChartType === 'pie') {
-        const clientTierCounts = initialClients.reduce((acc, client) => {
-          const tier = client.clientTier || 'Other';
-          acc[tier] = (acc[tier] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
-        const data = Object.entries(clientTierCounts).map(([name, value]) => ({ name, value }));
-        const chartConfig = data.reduce((acc, entry, index) => {
-            acc[entry.name] = { label: entry.name, color: `hsl(var(--chart-${(index % 5) + 1}))`};
-            return acc;
-        }, {} as ChartConfig);
+      try {
+        if (customVisDataSource === 'projects' && customVisChartType === 'bar') {
+          if (initialProjects.length === 0) {
+            chartNode = <p className="text-muted-foreground text-center p-4">No project data available to generate a bar chart.</p>;
+          } else {
+            const projectStatusCounts = initialProjects.reduce((acc, project) => {
+              acc[project.status] = (acc[project.status] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+            const data = Object.entries(projectStatusCounts).map(([status, count]) => ({ status, count }));
+            const chartConfig = { count: { label: "Projects", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
+            chartNode = (
+              <ChartContainer config={chartConfig} className="h-[300px] w-full [aspect-ratio:auto]">
+                <BarChart data={data} layout="vertical">
+                  <CartesianGrid horizontal={false} />
+                  <XAxis type="number" dataKey="count" />
+                  <YAxis type="category" dataKey="status" width={100} />
+                  <Tooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Bar dataKey="count" name="Project Count" fill="var(--color-count)" radius={4} />
+                </BarChart>
+              </ChartContainer>
+            );
+          }
+        } else if (customVisDataSource === 'clients' && customVisChartType === 'pie') {
+           if (initialClients.length === 0) {
+            chartNode = <p className="text-muted-foreground text-center p-4">No client data available to generate a pie chart.</p>;
+          } else {
+            const clientTierCounts = initialClients.reduce((acc, client) => {
+              const tier = client.clientTier || 'Other';
+              acc[tier] = (acc[tier] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+            const data = Object.entries(clientTierCounts).map(([name, value]) => ({ name, value }));
+            const chartConfig = data.reduce((acc, entry, index) => {
+                acc[entry.name] = { label: entry.name, color: `hsl(var(--chart-${(index % 5) + 1}))`};
+                return acc;
+            }, {} as ChartConfig);
 
-        chartNode = (
-          <ChartContainer config={chartConfig} className="h-[300px] w-full [aspect-ratio:auto]">
-            <RechartsPieChart>
-              <Tooltip content={<ChartTooltipContent nameKey="value" />} />
-              <Legend content={<ChartLegendContent nameKey="name"/>} />
-              <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                 {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={`var(--color-${entry.name})`} />
-                  ))}
-              </Pie>
-            </RechartsPieChart>
-          </ChartContainer>
-        );
-      } else if (customVisDataSource === 'financials' && customVisChartType === 'line') {
-        const data = baseFinancialHealthData.slice(0, 6).map(d => ({ month: d.month.substring(0,3), revenue: d.revenue }));
-        const chartConfig = { revenue: { label: "Revenue", color: "hsl(var(--chart-2))" } } satisfies ChartConfig;
-        chartNode = (
-          <ChartContainer config={chartConfig} className="h-[300px] w-full [aspect-ratio:auto]">
-            <LineChart data={data}>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey="month" />
-              <YAxis tickFormatter={(value) => `$${value/1000}k`} />
-              <Tooltip content={<ChartTooltipContent />} />
-              <Legend />
-              <Line type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} dot={{r:4}} />
-            </LineChart>
-          </ChartContainer>
-        );
-      } else if (customVisChartType === 'table') {
-        let tableData: any[] = [];
-        let headers: string[] = [];
-        if (customVisDataSource === 'projects') {
-            headers = ["Project Name", "Status", "Client", "Start Date", "End Date"];
-            tableData = initialProjects.slice(0, 5).map(p => ({
-                name: p.name,
-                status: p.status,
-                client: p.clientNameCache,
-                startDate: p.startDate,
-                endDate: p.endDate,
-            }));
-        } else if (customVisDataSource === 'clients') {
-            headers = ["Company Name", "Tier", "Primary Contact", "Industry"];
-            tableData = initialClients.slice(0, 5).map(c => ({
-                companyName: c.companyName,
-                tier: c.clientTier || 'N/A',
-                contact: c.keyContacts[0]?.name || 'N/A',
-                industry: c.industry || 'N/A',
-            }));
+            chartNode = (
+              <ChartContainer config={chartConfig} className="h-[300px] w-full [aspect-ratio:auto]">
+                <RechartsPieChart>
+                  <Tooltip content={<ChartTooltipContent nameKey="value" />} />
+                  <Legend content={<ChartLegendContent nameKey="name"/>} />
+                  <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                     {data.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={`var(--color-${entry.name})`} />
+                      ))}
+                  </Pie>
+                </RechartsPieChart>
+              </ChartContainer>
+            );
+          }
+        } else if (customVisDataSource === 'financials' && customVisChartType === 'line') {
+          if (baseFinancialHealthData.length === 0) {
+            chartNode = <p className="text-muted-foreground text-center p-4">No financial data available to generate a line chart.</p>;
+          } else {
+            const data = baseFinancialHealthData.slice(0, 6).map(d => ({ month: d.month.substring(0,3), revenue: d.revenue }));
+            const chartConfig = { revenue: { label: "Revenue", color: "hsl(var(--chart-2))" } } satisfies ChartConfig;
+            chartNode = (
+              <ChartContainer config={chartConfig} className="h-[300px] w-full [aspect-ratio:auto]">
+                <LineChart data={data}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={(value) => `$${value/1000}k`} />
+                  <Tooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Line type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} dot={{r:4}} />
+                </LineChart>
+              </ChartContainer>
+            );
+          }
+        } else if (customVisChartType === 'table') {
+            let tableData: any[] = [];
+            let headers: string[] = [];
+            if (customVisDataSource === 'projects') {
+                if (initialProjects.length === 0) {
+                    chartNode = <p className="text-muted-foreground text-center p-4">No project data available for table view.</p>;
+                } else {
+                    headers = ["Project Name", "Status", "Client", "Start Date", "End Date"];
+                    tableData = initialProjects.slice(0, 5).map(p => ({
+                        name: p.name,
+                        status: p.status,
+                        client: p.clientNameCache,
+                        startDate: p.startDate,
+                        endDate: p.endDate,
+                    }));
+                }
+            } else if (customVisDataSource === 'clients') {
+                 if (initialClients.length === 0) {
+                    chartNode = <p className="text-muted-foreground text-center p-4">No client data available for table view.</p>;
+                } else {
+                    headers = ["Company Name", "Tier", "Primary Contact", "Industry"];
+                    tableData = initialClients.slice(0, 5).map(c => ({
+                        companyName: c.companyName,
+                        tier: c.clientTier || 'N/A',
+                        contact: c.keyContacts[0]?.name || 'N/A',
+                        industry: c.industry || 'N/A',
+                    }));
+                }
+            }
+            if (tableData.length > 0) {
+                 chartNode = (
+                  <div className="rounded-md border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>{headers.map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tableData.map((row, rowIndex) => (
+                          <TableRow key={rowIndex}>
+                            {headers.map(header => (
+                              <TableCell key={`${rowIndex}-${header}`}>
+                                {row[header.toLowerCase().replace(/\s+/g, '')] || row[Object.keys(row)[headers.indexOf(header)]] }
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                );
+            } else if (!chartNode || (chartNode as JSX.Element).type === 'p') { // if chartNode is still the default error or an empty data message
+                 // Keep the existing specific error message if it was set
+            }
         }
-         chartNode = (
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>{headers.map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow>
-              </TableHeader>
-              <TableBody>
-                {tableData.map((row, rowIndex) => (
-                  <TableRow key={rowIndex}>
-                    {headers.map(header => (
-                      <TableCell key={`${rowIndex}-${header}`}>
-                        {row[header.toLowerCase().replace(/\s+/g, '')] || row[Object.keys(row)[headers.indexOf(header)]] /* Basic mapping */}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        );
+      } catch (err) {
+        console.error("Error generating custom visualization:", err);
+        // chartNode will remain the default error message defined at the start of the function
       }
+      
       setGeneratedCustomChart(chartNode);
       setIsGeneratingCustomChart(false);
     }, 1000);
@@ -349,7 +384,8 @@ export default function AiInsightsPage() {
                 </div>
                 <div className="md:col-span-2">
                      <label className="text-sm font-medium text-muted-foreground block mb-1.5">Fields to Plot/Display</label>
-                    <Input placeholder="e.g., Project Status, Client Tier (Field selection coming soon)" disabled />
+                    <Input placeholder="e.g., Project Status, Client Tier (Advanced field selection coming soon)" disabled />
+                    <p className="text-xs text-muted-foreground mt-1">Note: Dynamic field selection for plotting is a planned future enhancement for a more advanced report builder.</p>
                 </div>
             </div>
             <div className="text-right">
@@ -368,14 +404,15 @@ export default function AiInsightsPage() {
                 </Button>
             </div>
              {generatedCustomChart && (
-              <div className="mt-6 p-4 border rounded-lg bg-muted/20 w-full">
-                <h4 className="text-md font-semibold mb-3 text-center text-muted-foreground">Generated Visualization:</h4>
+              <div className="mt-6 p-4 border rounded-lg bg-card shadow-md w-full">
+                <h4 className="text-md font-semibold mb-3 text-center text-primary">Generated Visualization:</h4>
                 {generatedCustomChart}
               </div>
             )}
             {!generatedCustomChart && !isGeneratingCustomChart && (
-                <div className="mt-6 p-4 border border-dashed rounded-lg text-center text-muted-foreground">
-                    Select a data source and chart type, then click "Generate Custom Visualization" to see a sample.
+                <div className="mt-6 p-6 border-2 border-dashed rounded-lg text-center text-muted-foreground bg-muted/30">
+                    <p className="text-base">Your custom visualization will appear here.</p>
+                    <p className="text-sm">Select a data source and chart type, then click "Generate Custom Visualization" to see a sample.</p>
                 </div>
             )}
         </CardContent>
@@ -458,6 +495,5 @@ export default function AiInsightsPage() {
     </div>
   );
 }
-
 
     
