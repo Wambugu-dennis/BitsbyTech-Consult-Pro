@@ -10,12 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck, CheckCircle2, XCircle, PlusCircle, Edit3, Settings as SettingsIcon } from "lucide-react";
+import { ShieldCheck, CheckCircle2, XCircle, PlusCircle, Edit3, Settings as SettingsIcon, UserCog, FileClock, Info } from "lucide-react";
 import type { SystemRole } from '@/lib/types';
 import { systemRoles } from '@/lib/types';
+import { initialSystemUsers } from '@/lib/mockData'; // Corrected import path for initialSystemUsers
 import { cn } from "@/lib/utils";
 import type { LanguagePack } from '@/lib/i18n-config';
 
@@ -40,18 +41,19 @@ const initialMockRolePermissions: Record<SystemRole, RolePermissions> = {
     Dashboard: { view: true }, Clients: { view: true, create: true, edit: true }, Projects: { view: true, create: true, edit: true, manage: true },
     Consultants: { view: true }, Finances_Expenses: { view: true, create: true, approve: true }, Finances_Budgets: { view: true, create: true, edit: true },
     Calendar: { view: true, create: true, edit: true }, Analytics: { view: true }, Reports: { view: true },
+    Settings_Account: { view: true, edit: true }
   },
   Consultant: {
     Dashboard: { view: true }, Clients: { view: true }, Projects: { view: true, edit: true },
     Consultants: { view: true }, Finances_Expenses: { view: true, create: true }, Calendar: { view: true, create: true },
-    Analytics: { view: true },
+    Analytics: { view: true }, Settings_Account: { view: true, edit: true }
   },
   'Finance Manager': {
     Dashboard: { view: true }, Clients: { view: true }, Projects: { view: true },
     Finances_Invoices: { view: true, create: true, edit: true, delete: true, manage: true },
     Finances_Expenses: { view: true, create: true, edit: true, delete: true, approve: true, manage: true },
     Finances_Budgets: { view: true, create: true, edit: true, delete: true, manage: true },
-    Settings_Billing: { view: true, manage: true }, Reports: { view: true },
+    Settings_Billing: { view: true, manage: true }, Reports: { view: true }, Settings_Account: { view: true, edit: true },
   },
   'Client User': { Projects: { view: true }, Calendar: { view: true }, Finances_Invoices: { view: true} },
   Viewer: {
@@ -69,7 +71,6 @@ interface AccessControlSettingsProps {
 export default function AccessControlSettingsSection({ t }: AccessControlSettingsProps) {
   const { toast } = useToast();
   const [selectedRole, setSelectedRole] = useState<SystemRole | null>(null);
-  
   const [activeRolePermissions, setActiveRolePermissions] = useState<Record<SystemRole, RolePermissions>>(
     JSON.parse(JSON.stringify(initialMockRolePermissions)) // Deep copy for initial state
   );
@@ -83,7 +84,6 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
 
   const handleOpenEditPermissionsDialog = (role: SystemRole) => {
     setEditingRole(role);
-    // Deep copy the current active permissions for the role being edited
     const permissionsToEdit = JSON.parse(JSON.stringify(activeRolePermissions[role] || {}));
     setEditablePermissions(permissionsToEdit);
     setShowEditPermissionsDialog(true);
@@ -92,9 +92,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
   const handlePermissionToggle = (module: AppModule, action: PermissionAction) => {
     setEditablePermissions(currentPermissions => {
       if (!currentPermissions) return null;
-      // Ensure immutability
-      const newPermissionsState = JSON.parse(JSON.stringify(currentPermissions));
-      
+      const newPermissionsState = JSON.parse(JSON.stringify(currentPermissions)); // Deep copy
       if (!newPermissionsState[module]) {
         newPermissionsState[module] = {};
       }
@@ -105,13 +103,11 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
   
   const handleSavePermissions = () => {
     if (!editingRole || !editablePermissions) return;
-    
     setActiveRolePermissions(prevActivePermissions => {
         const updatedPermissions = JSON.parse(JSON.stringify(prevActivePermissions));
         updatedPermissions[editingRole] = editablePermissions;
         return updatedPermissions;
     });
-
     toast({
       title: t("Permissions Updated (Simulated)"),
       description: t("Permissions for role '{role}' have been updated for this session. In a real system, this would save to the backend.", { role: t(editingRole as keyof LanguagePack['translations']) }),
@@ -129,8 +125,8 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
     }
     toast({
       title: t("Custom Role Added (Simulated)"),
-      description: t("The custom role '{roleName}' has been created. You would now typically define its permissions. This role is not persisted in this demo.", { roleName: newCustomRoleName }),
-      duration: 4000,
+      description: t("The custom role '{roleName}' has been created. You would now typically define its permissions using the 'Edit Permissions' feature.", { roleName: newCustomRoleName }),
+      duration: 5000,
     });
     setShowAddCustomRoleDialog(false);
     setNewCustomRoleName('');
@@ -138,123 +134,204 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
 
   const currentRolePermissionsToDisplay = selectedRole ? activeRolePermissions[selectedRole] : null;
 
-  return (
-    <Card className="shadow-md">
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <ShieldCheck className="h-7 w-7 text-primary" />
-          <CardTitle className="text-2xl">{t('Access Control (RBAC)')}</CardTitle>
-        </div>
-        <CardDescription className="pt-1 text-base">
-          {t('Define and manage role-based access control policies. This section allows administrators to view and simulate editing permissions for each user role.')}
-          <br />
-          {t('System roles determine what a user can *do* and *see*. This is distinct from the organizational hierarchy, though leadership roles often have broader system permissions.')}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-lg bg-muted/30">
-          <div>
-            <Label htmlFor="role-select" className="text-base font-medium">{t('Select Role to View/Edit Permissions')}</Label>
-            <Select
-              value={selectedRole || ""}
-              onValueChange={(value) => setSelectedRole(value as SystemRole)}
-            >
-              <SelectTrigger id="role-select" className="w-full sm:w-[280px] mt-1">
-                <SelectValue placeholder={t('Select a role...')} />
-              </SelectTrigger>
-              <SelectContent>
-                {systemRoles.map(role => (
-                  <SelectItem key={role} value={role}>{t(role as keyof LanguagePack['translations'])}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 mt-2 sm:mt-0">
-            <Button
-              onClick={() => selectedRole && handleOpenEditPermissionsDialog(selectedRole)}
-              disabled={!selectedRole}
-            >
-              <Edit3 className="mr-2 h-4 w-4" />{t('Edit Permissions for {role}', {role: selectedRole ? t(selectedRole as keyof LanguagePack['translations']) : ''})}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowAddCustomRoleDialog(true)}
-            >
-              <PlusCircle className="mr-2 h-4 w-4" />{t('Add New Custom Role')}
-            </Button>
-          </div>
-        </div>
+  const mockAuditLogs = [
+    { timestamp: "2024-07-28 10:15:00 UTC", event: "Permissions updated for 'Project Manager' role.", user: "Alex Mercer (Admin)"},
+    { timestamp: "2024-07-27 14:30:00 UTC", event: "'Consultant' role assigned to user 'Charles Davis'.", user: "Alex Mercer (Admin)"},
+    { timestamp: "2024-07-26 09:00:00 UTC", event: "Login attempt failed for 'Finance Manager' role (incorrect password).", user: "System"},
+  ];
 
-        {selectedRole && currentRolePermissionsToDisplay && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-3">{t('Current Permissions for {role}', {role: t(selectedRole as keyof LanguagePack['translations'])})}</h3>
-            <div className="rounded-md border overflow-x-auto max-h-[500px]">
-              <Table>
-                <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
-                  <TableRow>
-                    <TableHead className="w-[200px]">{t('Module / Feature')}</TableHead>
-                    {PERMISSION_ACTIONS.map(action => (
-                      <TableHead key={action} className="text-center capitalize w-[120px]">{t(action)}</TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {APP_MODULES.map(module => {
-                    const modulePermissions = currentRolePermissionsToDisplay[module] || {};
-                    // Only render rows for modules that have at least one permission defined or if it's an Admin
-                    if (Object.keys(modulePermissions).length > 0 || selectedRole === 'Administrator') { 
-                        return (
-                            <TableRow key={module}>
-                            <TableCell className="font-medium text-sm">{t(module.replace(/_/g, ' ') as keyof LanguagePack['translations'])}</TableCell>
-                            {PERMISSION_ACTIONS.map(action => {
-                                const isAllowed = modulePermissions[action] === true;
-                                return (
-                                <TableCell key={action} className="text-center">
-                                    <Badge
-                                    variant={isAllowed ? "default" : "secondary"}
-                                    className={cn(
-                                        "text-xs px-2 py-0.5 w-[80px] justify-center", // Added fixed width for consistency
-                                        isAllowed ? "bg-green-100 text-green-700 border-green-300" : "bg-red-100 text-red-700 border-red-300"
-                                    )}
-                                    >
-                                    {isAllowed ? <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> : <XCircle className="h-3.5 w-3.5 mr-1" />}
-                                    {isAllowed ? t('Allowed') : t('Denied')}
-                                    </Badge>
-                                </TableCell>
-                                );
-                            })}
-                            </TableRow>
-                        );
-                    }
-                    return null;
-                  })}
-                   {Object.keys(currentRolePermissionsToDisplay).length === 0 && selectedRole !== 'Administrator' && (
-                     <TableRow>
-                        <TableCell colSpan={PERMISSION_ACTIONS.length + 1} className="text-center text-muted-foreground h-24">
-                            {t('No specific permissions configured for the "{role}" role.', {role: t(selectedRole as keyof LanguagePack['translations'])})}
-                        </TableCell>
-                     </TableRow>
-                   )}
-                </TableBody>
-              </Table>
+  return (
+    <div className="space-y-6">
+      <Card className="shadow-md">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="h-7 w-7 text-primary" />
+            <CardTitle className="text-2xl">{t('Access Control (RBAC)')}</CardTitle>
+          </div>
+          <CardDescription className="pt-1 text-base">
+            {t('Define and manage role-based access control policies. This section allows administrators to view and simulate editing permissions for each user role.')}
+            <br />
+            {t('System roles determine what a user can *do* and *see*. This is distinct from the organizational hierarchy, though leadership roles often have broader system permissions.')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-lg bg-muted/30">
+            <div>
+              <Label htmlFor="role-select" className="text-base font-medium">{t('Select Role to View/Edit Permissions')}</Label>
+              <Select
+                value={selectedRole || ""}
+                onValueChange={(value) => setSelectedRole(value as SystemRole)}
+              >
+                <SelectTrigger id="role-select" className="w-full sm:w-[280px] mt-1">
+                  <SelectValue placeholder={t('Select a role...')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {systemRoles.map(role => (
+                    <SelectItem key={role} value={role}>{t(role as keyof LanguagePack['translations'])}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                onClick={() => selectedRole && handleOpenEditPermissionsDialog(selectedRole)}
+                disabled={!selectedRole}
+              >
+                <Edit3 className="mr-2 h-4 w-4" />{t('Edit Permissions for {role}', {role: selectedRole ? t(selectedRole as keyof LanguagePack['translations']) : ''})}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowAddCustomRoleDialog(true)}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />{t('Add New Custom Role')}
+              </Button>
             </div>
           </div>
-        )}
-         {!selectedRole && (
-            <div className="mt-6 p-6 border-2 border-dashed rounded-lg text-center text-muted-foreground bg-muted/30">
-                 <ShieldCheck className="mx-auto h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-base">{t('Please select a role from the dropdown above to view its specific permissions.')}</p>
+          <p className="text-xs text-muted-foreground">
+            {t('Note: "Add New Custom Role" is a simulation. New roles added here are not persisted. Managing (editing names/deleting) custom roles is a planned future enhancement.')}
+          </p>
+
+          {selectedRole && currentRolePermissionsToDisplay && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-3">{t('Current Permissions for {role}', {role: t(selectedRole as keyof LanguagePack['translations'])})}</h3>
+              <div className="rounded-md border overflow-x-auto max-h-[500px]">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
+                    <TableRow>
+                      <TableHead className="w-[200px]">{t('Module / Feature')}</TableHead>
+                      {PERMISSION_ACTIONS.map(action => (
+                        <TableHead key={action} className="text-center capitalize w-[120px]">{t(action)}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {APP_MODULES.map(module => {
+                      const modulePermissions = currentRolePermissionsToDisplay[module] || {};
+                      if (Object.keys(modulePermissions).length > 0 || selectedRole === 'Administrator') { 
+                          return (
+                              <TableRow key={module}>
+                              <TableCell className="font-medium text-sm">{t(module.replace(/_/g, ' ') as keyof LanguagePack['translations'])}</TableCell>
+                              {PERMISSION_ACTIONS.map(action => {
+                                  const isAllowed = modulePermissions[action] === true;
+                                  return (
+                                  <TableCell key={action} className="text-center">
+                                      <Badge
+                                      variant={isAllowed ? "default" : "secondary"}
+                                      className={cn(
+                                          "text-xs px-2 py-0.5 w-[80px] justify-center",
+                                          isAllowed ? "bg-green-100 text-green-700 border-green-300" : "bg-red-100 text-red-700 border-red-300"
+                                      )}
+                                      >
+                                      {isAllowed ? <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> : <XCircle className="h-3.5 w-3.5 mr-1" />}
+                                      {isAllowed ? t('Allowed') : t('Denied')}
+                                      </Badge>
+                                  </TableCell>
+                                  );
+                              })}
+                              </TableRow>
+                          );
+                      }
+                      return null;
+                    })}
+                    {Object.keys(currentRolePermissionsToDisplay).length === 0 && selectedRole !== 'Administrator' && (
+                      <TableRow>
+                          <TableCell colSpan={PERMISSION_ACTIONS.length + 1} className="text-center text-muted-foreground h-24">
+                              {t('No specific permissions configured for the "{role}" role.', {role: t(selectedRole as keyof LanguagePack['translations'])})}
+                          </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
-         )}
-      </CardContent>
-      <CardFooter className="flex flex-col items-start gap-2 text-sm text-muted-foreground border-t pt-4">
-         <div className="flex items-center gap-2"> <SettingsIcon className="h-5 w-5 text-primary"/> <h4 className="font-semibold text-foreground">{t('Future Capabilities')}</h4></div>
+          )}
+          {!selectedRole && (
+              <div className="mt-6 p-6 border-2 border-dashed rounded-lg text-center text-muted-foreground bg-muted/30">
+                  <ShieldCheck className="mx-auto h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <p className="text-base">{t('Please select a role from the dropdown above to view its specific permissions.')}</p>
+              </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-md mt-6">
+        <CardHeader>
+            <div className="flex items-center gap-3">
+                <UserCog className="h-6 w-6 text-primary" />
+                <CardTitle className="text-xl">{t('User Permission Overrides')}</CardTitle>
+            </div>
+            <CardDescription>
+                {t('Grant or revoke specific permissions for individual users, overriding their assigned role\'s default permissions for exceptional cases. This provides flexibility while maintaining a clear role-based foundation.')}
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div>
+                <Label htmlFor="override-user-select">{t('Select User to Manage Overrides')}</Label>
+                <Select disabled>
+                    <SelectTrigger id="override-user-select" className="w-full sm:w-[280px] mt-1">
+                        <SelectValue placeholder={t('Select a user...')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {/* Placeholder: map over actual users in a real system */}
+                        {initialSystemUsers.map(user => (
+                           <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <Button variant="outline" disabled onClick={() => toast({title: t("Manage Overrides Clicked (Placeholder)"), description: t("This feature is planned for future development.")})}>
+                {t('View/Edit Overrides')}
+            </Button>
+            <p className="text-xs text-muted-foreground">{t('Note: Managing individual permission overrides is an advanced feature planned for future development.')}</p>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-md mt-6">
+        <CardHeader>
+            <div className="flex items-center gap-3">
+                <FileClock className="h-6 w-6 text-primary" />
+                <CardTitle className="text-xl">{t('Access Control Audit Logs')}</CardTitle>
+            </div>
+            <CardDescription>
+                {t('Track all changes made to roles, permissions, and user assignments for security, compliance, and troubleshooting purposes. Logs include who made the change, what was changed, and when.')}
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="max-h-60 overflow-y-auto rounded-md border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>{t('Timestamp')}</TableHead>
+                            <TableHead>{t('Event')}</TableHead>
+                            <TableHead>{t('User')}</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {mockAuditLogs.map((log, index) => (
+                            <TableRow key={index}>
+                                <TableCell className="text-xs">{log.timestamp}</TableCell>
+                                <TableCell className="text-xs">{t(log.event as keyof LanguagePack['translations'], {role: "'Project Manager'", user:"'Charles Davis'"})}</TableCell>
+                                <TableCell className="text-xs">{log.user}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+            <Button variant="outline" disabled onClick={() => toast({title: t("View Full Audit Log Clicked (Placeholder)"), description: t("A comprehensive, filterable audit log viewer is planned.")})}>
+                {t('View Full Audit Log')}
+            </Button>
+        </CardContent>
+      </Card>
+
+
+      <CardFooter className="flex flex-col items-start gap-2 text-sm text-muted-foreground border-t pt-6 mt-6">
+         <div className="flex items-center gap-2"> <Info className="h-5 w-5 text-primary"/> <h4 className="font-semibold text-foreground">{t('RBAC Principles & Future Capabilities')}</h4></div>
         <ul className="list-disc list-inside space-y-1 pl-2">
             <li>{t('Granular permission editor (e.g., view/create/edit/delete per specific data field or action).')}</li>
-            <li>{t('Ability to create and manage fully custom roles with fine-grained permissions.')}</li>
-            <li>{t('Assigning permissions directly to roles through an interactive UI.')}</li>
+            <li>{t('Ability to create and manage fully custom roles with fine-grained permissions (current Add Role is a simulation).')}</li>
+            <li>{t('Assigning permissions directly to roles through an interactive UI (current Edit Permissions is a simulation).')}</li>
             <li>{t('View and manage permission overrides for individual users.')}</li>
-            <li>{t('Audit logs for changes to roles and permissions.')}</li>
+            <li>{t('Comprehensive audit logs for changes to roles and permissions.')}</li>
         </ul>
         <p className="mt-2">{t('This ensures that Consult Vista adheres to the principle of least privilege and provides flexible access control tailored to your organization\'s needs.')}</p>
       </CardFooter>
@@ -264,7 +341,11 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
         <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{t('Edit Permissions for Role: {roleName}', { roleName: editingRole ? t(editingRole as keyof LanguagePack['translations']) : '' })}</DialogTitle>
-            <DialogDescription>{t('Toggle permissions for each module and action. Changes are simulated for this demo and applied for the current session.')}</DialogDescription>
+            <DialogDescription>
+                {t('Toggle permissions for each module and action. Changes are simulated for this demo and applied for the current session.')}
+                <br/>
+                <span className="text-xs text-muted-foreground">{t('(Future: More granular controls, like field-level permissions, will be available.)')}</span>
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4 flex-grow overflow-y-auto">
             {editablePermissions && editingRole ? (
@@ -310,7 +391,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('Add New Custom Role')}</DialogTitle>
-            <DialogDescription>{t('Enter the name for the new custom role. This role will not be persisted in this demo.')}</DialogDescription>
+            <DialogDescription>{t('Enter the name for the new custom role. You can assign permissions after creation using the "Edit Permissions" feature.')}</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Label htmlFor="newCustomRoleName">{t('Role Name')}</Label>
@@ -327,7 +408,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }
 
