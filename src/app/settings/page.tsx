@@ -3,7 +3,23 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Settings as SettingsIcon, 
   UserCircle, 
@@ -12,11 +28,17 @@ import {
   Palette, 
   Globe, 
   CreditCard, 
-  Users as UsersIcon, // Renamed to avoid conflict with potential 'Users' type
+  Users as UsersIcon,
   Shield,
-  Link2, // For Integrations
-  Workflow, // For Workflow Customization
-  Server // For System & Compliance
+  Link2,
+  Workflow,
+  Server,
+  Edit3,
+  Trash2,
+  KeyRound,
+  BellRing,
+  Languages,
+  Paintbrush
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,27 +63,52 @@ interface SettingsMenuItem {
 }
 
 const settingsMenuItems: SettingsMenuItem[] = [
-  { id: 'account', label: 'Account', icon: UserCircle, description: 'Manage your personal account details, profile information, and login credentials.' },
+  { id: 'account', label: 'Account', icon: UserCircle, description: 'Manage your personal account details and profile information.' },
   { id: 'notifications', label: 'Notifications', icon: Bell, description: 'Configure how and when you receive notifications from the system.' },
   { id: 'security', label: 'Security', icon: Lock, description: 'Manage your password, two-factor authentication, and view active sessions.' },
-  { id: 'appearance', label: 'Appearance', icon: Palette, description: 'Customize the look and feel of the application, including theme and layout preferences.' },
-  { id: 'language', label: 'Language', icon: Globe, description: 'Set your preferred language and region for the application interface.' },
+  { id: 'appearance', label: 'Appearance', icon: Palette, description: 'Customize the look and feel of the application, including theme.' },
+  { id: 'language', label: 'Language & Region', icon: Globe, description: 'Set your preferred language and region for the application interface.' },
   { id: 'billing', label: 'Billing', icon: CreditCard, description: 'View your subscription details, payment history, and manage billing information.' },
-  { id: 'userManagement', label: 'User Management', icon: UsersIcon, description: 'Administer user accounts, roles, and permissions. (Typically for Admins)' },
-  { id: 'accessControl', label: 'Access Control', icon: Shield, description: 'Define and manage role-based access control (RBAC) policies. (Typically for Admins)' },
-  { id: 'integrations', label: 'Integrations', icon: Link2, description: 'Connect and manage third-party application integrations with Consult Vista.' },
-  { id: 'workflow', label: 'Workflow Customization', icon: Workflow, description: 'Customize and manage business workflows and approval processes within the platform.' },
-  { id: 'system', label: 'System & Compliance', icon: Server, description: 'Configure system-wide settings, view audit logs, and manage compliance requirements.' },
+  { id: 'userManagement', label: 'User Management', icon: UsersIcon, description: 'Administer user accounts, roles, and permissions. (Admins)' },
+  { id: 'accessControl', label: 'Access Control', icon: Shield, description: 'Define and manage role-based access control (RBAC) policies. (Admins)' },
+  { id: 'integrations', label: 'Integrations', icon: Link2, description: 'Connect and manage third-party application integrations.' },
+  { id: 'workflow', label: 'Workflow Customization', icon: Workflow, description: 'Customize business workflows and approval processes.' },
+  { id: 'system', label: 'System & Compliance', icon: Server, description: 'Configure system-wide settings, view audit logs, and manage compliance.' },
 ];
+
+const mockUserData = {
+  name: 'Alex Mercer',
+  email: 'alex.mercer@consult.com',
+  role: 'Lead Strategist',
+  avatarUrl: 'https://placehold.co/128x128/64B5F6/FFFFFF.png?text=AM',
+  phone: '(555) 123-4567'
+};
 
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('account');
+  const { toast } = useToast();
+
+  const handlePlaceholderAction = (actionMessage: string) => {
+    toast({
+      title: "Feature Under Development",
+      description: `${actionMessage} functionality is not yet implemented.`,
+      duration: 3000,
+    });
+  };
+
+  const handleAccountDeletion = () => {
+    toast({
+      title: "Account Deletion Process",
+      description: "Account deletion initiated (simulated). In a real system, this would be a permanent action.",
+      variant: "destructive",
+      duration: 5000,
+    });
+  }
 
   const renderSectionContent = () => {
     const section = settingsMenuItems.find(item => item.id === activeSection);
     if (!section) {
-      // Fallback if somehow no section is active, though 'account' is default
       return (
           <Card>
             <CardHeader>
@@ -75,6 +122,138 @@ export default function SettingsPage() {
       );
     }
 
+    if (activeSection === 'account') {
+      return (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <UserCircle className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Profile Information</CardTitle>
+              </div>
+              <CardDescription>Manage your personal details and profile picture.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <Avatar className="h-24 w-24 border-2 border-primary/30">
+                  <AvatarImage src={mockUserData.avatarUrl} alt={mockUserData.name} data-ai-hint="user avatar" />
+                  <AvatarFallback className="text-3xl">{mockUserData.name.substring(0,2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-1 text-center sm:text-left">
+                  <h3 className="text-lg font-semibold">{mockUserData.name}</h3>
+                  <p className="text-sm text-muted-foreground">{mockUserData.email}</p>
+                  <p className="text-xs text-muted-foreground">{mockUserData.role}</p>
+                   <Button variant="outline" size="sm" className="mt-2" onClick={() => handlePlaceholderAction("Change Profile Picture")}>
+                    Change Picture
+                  </Button>
+                </div>
+              </div>
+              <Separator />
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="profileName">Full Name</Label>
+                  <Input id="profileName" defaultValue={mockUserData.name} disabled className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="profileEmail">Email Address</Label>
+                  <Input id="profileEmail" type="email" defaultValue={mockUserData.email} disabled className="mt-1" />
+                </div>
+                 <div>
+                  <Label htmlFor="profilePhone">Phone Number</Label>
+                  <Input id="profilePhone" type="tel" defaultValue={mockUserData.phone} disabled className="mt-1" />
+                </div>
+                 <Button onClick={() => handlePlaceholderAction("Edit Profile Details")}>
+                    <Edit3 className="mr-2 h-4 w-4"/> Edit Profile
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Lock className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Security Settings</CardTitle>
+              </div>
+              <CardDescription>Manage your password and account security preferences.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => handlePlaceholderAction("Change Password")}>
+                <KeyRound className="mr-2 h-4 w-4" /> Change Password
+              </Button>
+              <div>
+                <h4 className="font-medium">Two-Factor Authentication (2FA)</h4>
+                <p className="text-sm text-muted-foreground">Enhance your account security by enabling 2FA.</p>
+                <Button variant="outline" size="sm" className="mt-2" onClick={() => handlePlaceholderAction("Setup Two-Factor Authentication")} disabled>
+                  Setup 2FA (Coming Soon)
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Paintbrush className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Preferences</CardTitle>
+              </div>
+              <CardDescription>Personalize your application experience.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div>
+                    <h4 className="font-medium">Appearance & Language</h4>
+                    <p className="text-sm text-muted-foreground">Theme (Dark/Light mode) and language settings can be found in their dedicated sections in the main settings menu.</p>
+                     <div className="flex gap-2 mt-2">
+                        <Button variant="outline" size="sm" onClick={() => setActiveSection('appearance')}>
+                            <Palette className="mr-2 h-4 w-4"/> Go to Appearance
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setActiveSection('language')}>
+                            <Languages className="mr-2 h-4 w-4"/> Go to Language & Region
+                        </Button>
+                     </div>
+                </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-destructive/50">
+            <CardHeader>
+               <div className="flex items-center gap-3">
+                <Trash2 className="h-7 w-7 text-destructive" />
+                <CardTitle className="text-xl text-destructive">Account Management</CardTitle>
+              </div>
+              <CardDescription className="text-destructive/90">Manage critical account actions.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full sm:w-auto">
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete Account
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete your
+                      account and remove your data from our servers.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleAccountDeletion}>Continue</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <p className="text-xs text-muted-foreground mt-2">
+                Deleting your account is permanent. Please be certain before proceeding.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    // Default placeholder for other sections
     return (
       <Card className="shadow-md">
         <CardHeader>
@@ -107,23 +286,25 @@ export default function SettingsPage() {
       </header>
 
       <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-12">
-        <nav className="lg:col-span-3 xl:col-span-2 space-y-1 pr-4 border-r-0 lg:border-r">
-          {settingsMenuItems.map((item) => (
-            <Button
-              key={item.id}
-              variant="ghost"
-              className={cn(
-                "w-full justify-start px-3 py-2.5 text-left h-auto text-base rounded-md",
-                activeSection === item.id 
-                  ? "bg-primary/10 text-primary font-semibold border border-primary/30 shadow-sm" 
-                  : "hover:bg-muted/80 text-muted-foreground hover:text-foreground"
-              )}
-              onClick={() => setActiveSection(item.id)}
-            >
-              <item.icon className={cn("mr-3 h-5 w-5", activeSection === item.id ? "text-primary" : "")} />
-              {item.label}
-            </Button>
-          ))}
+        <nav className="lg:col-span-3 xl:col-span-2 space-y-1 pr-4 border-r-0 lg:border-r lg:h-[calc(100vh-10rem)] lg:sticky lg:top-20">
+          <ScrollArea className="h-full">
+            {settingsMenuItems.map((item) => (
+              <Button
+                key={item.id}
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start px-3 py-2.5 text-left h-auto text-base rounded-md flex items-center gap-3 mb-1",
+                  activeSection === item.id 
+                    ? "bg-primary/10 text-primary font-semibold border border-primary/30 shadow-sm" 
+                    : "hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => setActiveSection(item.id)}
+              >
+                <item.icon className={cn("h-5 w-5 shrink-0", activeSection === item.id ? "text-primary" : "")} />
+                <span className="truncate">{item.label}</span>
+              </Button>
+            ))}
+          </ScrollArea>
         </nav>
 
         <div className="lg:col-span-9 xl:col-span-10">
@@ -131,7 +312,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-       <Card className="mt-6 border-t pt-6 bg-card/50">
+       <Card className="mt-8 border-t pt-6 bg-card/50">
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2">
             <SettingsIcon className="h-6 w-6 text-muted-foreground" />
@@ -158,4 +339,6 @@ export default function SettingsPage() {
   );
 }
 
+// Added ScrollArea for better nav on smaller screens
+import { ScrollArea } from "@/components/ui/scroll-area";
     
