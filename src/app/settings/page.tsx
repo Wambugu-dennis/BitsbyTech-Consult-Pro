@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useLocalization } from '@/context/localization-provider';
-import { useTheme } from '@/context/theme-provider'; // For theme related settings
 import {
   Settings as SettingsIcon,
   UserCircle,
@@ -23,37 +22,11 @@ import {
   Link2,
   Workflow,
   Server,
-  AlertTriangle,
-  Palette,
-  CalendarIcon,
-  Download,
-  Activity,
-  FileText as BillingHistoryIcon,
-  KeyRound,
-  FileLock2,
-  Fingerprint,
-  Network,
-  LogOut,
-  History,
-  UserCheck as UserCheckLucide,
-  UserX,
-  ClipboardList,
-  PlusCircle,
-  Edit3,
-  Trash2,
-  MoreHorizontal,
-  Sun,
-  Moon,
-  Laptop,
-  LayoutDashboard,
-  ImageIcon,
-  Type,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SystemUser, SystemUserStatus, SystemRole } from '@/lib/types';
 import { initialSystemUsers, initialConsultants } from '@/lib/mockData';
-import { format, parseISO, formatISO } from 'date-fns';
-import type { LanguagePack } from '@/lib/i18n-config'; // for t function typings
+import type { LanguagePack } from '@/lib/i18n-config';
 
 // Dynamic imports for submodule components
 const AccountSettingsSection = dynamic(() => import('@/components/settings/account-settings'), { loading: () => <SettingsSectionSkeleton /> });
@@ -84,9 +57,9 @@ type SettingsSectionId =
 
 interface SettingsMenuItem {
   id: SettingsSectionId;
-  labelKey: keyof LanguagePack['translations'];
+  labelKey: keyof LanguagePack['translations']; // Adjusted for direct key usage
   icon: React.ElementType;
-  descriptionKey: keyof LanguagePack['translations'];
+  descriptionKey: keyof LanguagePack['translations']; // Adjusted
 }
 
 const settingsMenuItems: SettingsMenuItem[] = [
@@ -119,12 +92,11 @@ const SettingsSectionSkeleton = () => (
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('account');
-  const { t, formatDate } = useLocalization();
+  const { t, formatDate } = useLocalization(); // t for translations, formatDate for localized dates
   const { toast } = useToast();
-  
+
   // State for User Management - kept in parent as it might be shared with Access Control
   const [systemUsers, setSystemUsers] = useState<SystemUser[]>(initialSystemUsers);
-
 
   const renderSectionContent = () => {
     switch (activeSection) {
@@ -146,7 +118,7 @@ export default function SettingsPage() {
                   formatDate={formatDate} 
                   systemUsers={systemUsers} 
                   setSystemUsers={setSystemUsers} 
-                  initialConsultants={initialConsultants} 
+                  initialConsultants={initialConsultants} // Passed for 'Reports To' but currently uses systemUsers
                   setActiveSection={setActiveSection} 
                 />;
       case 'accessControl':
@@ -158,6 +130,7 @@ export default function SettingsPage() {
       case 'system':
         return <SystemComplianceSettingsSection t={t} />;
       default:
+        // Fallback for any new sections not yet fully implemented
         const fallbackSection = settingsMenuItems.find(item => item.id === activeSection);
         return (
             <Card className="shadow-md">
@@ -194,7 +167,8 @@ export default function SettingsPage() {
       </header>
 
       <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-12">
-        <nav className="lg:col-span-3 xl:col-span-2 space-y-1 pr-4 border-r-0 lg:border-r lg:h-[calc(100vh-12rem)] lg:sticky lg:top-[5.5rem]">
+        {/* Adjusted column spans for wider sidebar */}
+        <nav className="lg:col-span-4 xl:col-span-3 space-y-1 pr-4 border-r-0 lg:border-r lg:h-[calc(100vh-12rem)] lg:sticky lg:top-[5.5rem]">
           <ScrollArea className="h-full">
             {settingsMenuItems.map((item) => (
               <Button
@@ -215,7 +189,8 @@ export default function SettingsPage() {
           </ScrollArea>
         </nav>
 
-        <div className="lg:col-span-9 xl:col-span-10">
+        {/* Adjusted column spans for content area */}
+        <div className="lg:col-span-8 xl:col-span-9">
           {renderSectionContent()}
         </div>
       </div>
@@ -246,5 +221,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

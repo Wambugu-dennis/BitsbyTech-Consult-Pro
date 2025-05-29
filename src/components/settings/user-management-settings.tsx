@@ -39,11 +39,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from "@/hooks/use-toast";
-import { Users as UsersIcon, PlusCircle, Edit3, KeyRound, UserCheck, UserX, Trash2, MoreHorizontal, ShieldCheck } from "lucide-react";
+import { Users as UsersIcon, PlusCircle, Edit3, KeyRound, UserCheck, UserX, Trash2, MoreHorizontal, ShieldCheck, Users2 as HierarchyIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO, formatISO } from 'date-fns';
 import type { SystemUser, SystemUserStatus, SystemRole, Consultant } from '@/lib/types';
-import { systemRoles } from '@/lib/types'; // Removed systemUserStatuses as it's not used here
+import { systemRoles } from '@/lib/types';
 import type { LanguagePack } from '@/lib/i18n-config';
 
 interface UserManagementSettingsProps {
@@ -51,7 +51,7 @@ interface UserManagementSettingsProps {
   formatDate: (date: Date) => string;
   systemUsers: SystemUser[];
   setSystemUsers: React.Dispatch<React.SetStateAction<SystemUser[]>>;
-  initialConsultants: Consultant[]; // For "Reports To" dropdown
+  initialConsultants: Consultant[]; // For "Reports To" dropdown - currently uses systemUsers
   setActiveSection: (sectionId: string) => void;
 }
 
@@ -60,7 +60,7 @@ export default function UserManagementSettingsSection({
   formatDate,
   systemUsers,
   setSystemUsers,
-  initialConsultants, // Not currently used for reportsTo, using systemUsers instead
+  initialConsultants,
   setActiveSection,
 }: UserManagementSettingsProps) {
   const { toast } = useToast();
@@ -131,6 +131,11 @@ export default function UserManagementSettingsSection({
       default: return 'border-border';
     }
   };
+
+  const managers = React.useMemo(() => {
+    const managerIds = new Set(systemUsers.map(u => u.reportsToUserId).filter(Boolean));
+    return systemUsers.filter(u => managerIds.has(u.id));
+  }, [systemUsers]);
 
   return (
     <div className="space-y-6">
@@ -277,6 +282,53 @@ export default function UserManagementSettingsSection({
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3"><HierarchyIcon className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Team Structure & Hierarchy')}</CardTitle></div>
+          <CardDescription>{t('Visualize and manage organizational structure and reporting lines.')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {managers.length > 0 ? (
+            <div className="space-y-4">
+              {managers.map(manager => {
+                const reports = systemUsers.filter(u => u.reportsToUserId === manager.id);
+                return (
+                  <div key={manager.id} className="p-3 border rounded-md bg-muted/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Avatar className="h-10 w-10 border-2 border-primary/30">
+                        <AvatarImage src={manager.avatarUrl} alt={manager.name} data-ai-hint="person avatar"/>
+                        <AvatarFallback>{manager.name.substring(0,1)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-semibold">{manager.name} <span className="text-xs text-muted-foreground">({t(manager.role as keyof LanguagePack['translations'])})</span></p>
+                        <p className="text-xs text-muted-foreground">{t('Manages {count} direct report(s)', { count: reports.length })}</p>
+                      </div>
+                    </div>
+                    {reports.length > 0 && (
+                      <ul className="ml-6 space-y-1 list-disc list-inside">
+                        {reports.map(report => (
+                          <li key={report.id} className="text-sm flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={report.avatarUrl} alt={report.name} data-ai-hint="person avatar"/>
+                              <AvatarFallback className="text-xs">{report.name.substring(0,1)}</AvatarFallback>
+                            </Avatar>
+                            {report.name} <span className="text-xs text-muted-foreground">({t(report.role as keyof LanguagePack['translations'])})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">{t('No reporting structures defined yet. Edit users to assign who they report to.')}</p>
+          )}
+          <p className="text-xs text-muted-foreground mt-3">{t('This is a visual representation of the reporting hierarchy. More advanced tools for team and department management are planned.')}</p>
+        </CardContent>
+      </Card>
+      
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3"><ShieldCheck className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Role & Permission Management')}</CardTitle></div>
@@ -287,18 +339,6 @@ export default function UserManagementSettingsSection({
           <p className="text-xs text-muted-foreground mt-2">{t('Access control ensures users only see and interact with appropriate data and features.')}</p>
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3"><UsersIcon className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Team Structure & Hierarchy')}</CardTitle></div>
-          <CardDescription>{t('Visualize and manage organizational structure and reporting lines.')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">{t('Tools for defining teams, departments, and reporting hierarchies are planned for future development. This will enhance resource allocation and workflow approvals.')}</p>
-          <Button variant="outline" className="mt-3" disabled>{t('Manage Teams (Coming Soon)')}</Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }
-
-    
