@@ -30,7 +30,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge"; // Added Badge import
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Settings as SettingsIcon, 
@@ -63,7 +64,13 @@ import {
   Network,
   FileLock2,
   UserCheck,
-  UserX
+  UserX,
+  Sun,
+  Moon,
+  Laptop,
+  LayoutDashboard,
+  Image as ImageIcon,
+  Type
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -178,13 +185,17 @@ export default function SettingsPage() {
   // State for Security section
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-  const [currentActiveSessions, setCurrentActiveSessions] = useState(mockActiveSessions); // Renamed to avoid conflict
+  const [currentActiveSessions, setCurrentActiveSessions] = useState(mockActiveSessions);
   const [activityAlerts, setActivityAlerts] = useState({
     newDeviceLogin: true,
     failedLogins: true,
     passwordChanged: true,
     twoFactorChanged: false,
   });
+  
+  // State for Appearance section
+  const [currentThemePreference, setCurrentThemePreference] = useState<'light' | 'dark' | 'system'>('system');
+  const [currentAccentColor, setCurrentAccentColor] = useState<string>('defaultBlue');
 
 
   const handleNotificationChange = <K extends keyof NotificationSettings>(
@@ -261,19 +272,23 @@ export default function SettingsPage() {
   };
   
   const handleSignOutSession = (sessionId: string) => {
-    setCurrentActiveSessions(prev => prev.filter(session => session.id !== sessionId)); // Use renamed state variable
+    setCurrentActiveSessions(prev => prev.filter(session => session.id !== sessionId));
     toast({ title: "Session Signed Out", description: `Session ${sessionId} has been remotely signed out (simulated).`});
   };
 
   const handleSignOutAllOtherSessions = () => {
-    if (currentActiveSessions.length > 1) { // Use renamed state variable
-        setCurrentActiveSessions([currentActiveSessions[0]]); 
+    if (currentActiveSessions.length > 1) { 
+        setCurrentActiveSessions(prev => prev.slice(0, 1)); // Keep only the first (assumed current) session
     }
     toast({ title: "All Other Sessions Signed Out", description: "All other active sessions have been remotely signed out (simulated)."});
   };
 
   const handleSaveActivityAlerts = () => {
     toast({ title: "Activity Alert Preferences Saved", description: "Your preferences for account activity alerts have been updated (simulated)." });
+  };
+
+  const handleSaveAppearanceSettings = () => {
+    handlePlaceholderAction("Appearance Settings Saved", `Theme set to ${currentThemePreference}, Accent: ${currentAccentColor}. Global application theme change requires further integration.`);
   };
 
 
@@ -898,6 +913,163 @@ export default function SettingsPage() {
       );
     }
 
+    if (activeSection === 'appearance') {
+      return (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Paintbrush className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Theme & Display Settings</CardTitle>
+              </div>
+              <CardDescription>Personalize the visual appearance of the application.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label className="text-base font-semibold">Application Theme</Label>
+                <p className="text-xs text-muted-foreground mb-2">Select your preferred interface theme.</p>
+                <RadioGroup
+                  value={currentThemePreference}
+                  onValueChange={(value: 'light' | 'dark' | 'system') => setCurrentThemePreference(value)}
+                  className="flex flex-col sm:flex-row gap-2 sm:gap-4"
+                >
+                  <Label htmlFor="theme-light" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", currentThemePreference === 'light' && "border-primary ring-2 ring-primary")}>
+                    <RadioGroupItem value="light" id="theme-light" />
+                    <Sun className="h-5 w-5" /> Light Mode
+                  </Label>
+                  <Label htmlFor="theme-dark" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", currentThemePreference === 'dark' && "border-primary ring-2 ring-primary")}>
+                    <RadioGroupItem value="dark" id="theme-dark" />
+                    <Moon className="h-5 w-5" /> Dark Mode
+                  </Label>
+                  <Label htmlFor="theme-system" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", currentThemePreference === 'system' && "border-primary ring-2 ring-primary")}>
+                    <RadioGroupItem value="system" id="theme-system" />
+                    <Laptop className="h-5 w-5" /> System Default
+                  </Label>
+                </RadioGroup>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Note: Full application theme switching requires integration with a theme provider (e.g., next-themes) and may require a page refresh to take effect system-wide. This is a UI simulation.
+                </p>
+              </div>
+              <Separator />
+              <div>
+                <Label htmlFor="accent-color" className="text-base font-semibold">Accent Color Palette</Label>
+                <p className="text-xs text-muted-foreground mb-2">Choose an accent color for primary actions and highlights.</p>
+                <Select value={currentAccentColor} onValueChange={setCurrentAccentColor} disabled>
+                  <SelectTrigger id="accent-color" className="w-full sm:w-[280px]">
+                    <SelectValue placeholder="Select Accent Color" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="defaultBlue">Default Blue (Current)</SelectItem>
+                    <SelectItem value="consultantGreen">Consultant Green</SelectItem>
+                    <SelectItem value="modernOrange">Modern Orange</SelectItem>
+                    <SelectItem value="professionalPurple">Professional Purple</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">More color palettes coming soon.</p>
+              </div>
+               <Separator />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <Label htmlFor="interface-scale" className="text-base font-semibold">Interface Scale</Label>
+                    <p className="text-xs text-muted-foreground mb-2">Adjust the overall size of UI elements.</p>
+                    <Select defaultValue="default" disabled>
+                        <SelectTrigger id="interface-scale"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="compact">Compact</SelectItem>
+                            <SelectItem value="default">Default</SelectItem>
+                            <SelectItem value="spacious">Spacious</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label htmlFor="data-density" className="text-base font-semibold">Data Density</Label>
+                    <p className="text-xs text-muted-foreground mb-2">Optimize tables and lists for more or less information.</p>
+                    <Select defaultValue="comfortable" disabled>
+                        <SelectTrigger id="data-density"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="compact">Compact (More Data)</SelectItem>
+                            <SelectItem value="comfortable">Comfortable (Balanced)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={handleSaveAppearanceSettings}>Save Appearance Settings</Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <LayoutDashboard className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Dashboard & Widget Customization</CardTitle>
+              </div>
+              <CardDescription>Tailor your dashboard views by arranging widgets and choosing what information to display.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Personalize your dashboard views to prioritize the information most relevant to you. (Feature under development)
+              </p>
+              <div className="p-6 border-2 border-dashed rounded-lg text-center bg-muted/30">
+                <p className="text-muted-foreground mb-2">Visual representation of dashboard customization area.</p>
+                <div className="flex justify-around items-center h-32 opacity-50">
+                    <div className="p-2 border rounded bg-card w-1/3 h-20 text-xs flex items-center justify-center">Widget A</div>
+                    <div className="p-2 border rounded bg-card w-1/3 h-24 text-xs flex items-center justify-center">Widget B</div>
+                </div>
+                 <p className="text-xs text-muted-foreground mt-2">Drag-and-drop widget arrangement and content selection coming soon.</p>
+              </div>
+              <Button variant="outline" className="mt-4" onClick={() => handlePlaceholderAction("Launch Dashboard Layout Editor Clicked")} disabled>
+                Launch Dashboard Layout Editor
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <ImageIcon className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">System Branding (Admin)</CardTitle>
+              </div>
+              <CardDescription>Customize the application with your organization's logo and branding elements.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label className="text-base font-semibold">Company Logo</Label>
+                <div className="flex items-center gap-4 mt-2">
+                  <Avatar className="h-16 w-16 rounded-md border">
+                    <AvatarImage src="https://placehold.co/128x128/333333/FFFFFF.png?text=LOGO" alt="Current Company Logo" data-ai-hint="company logo"/>
+                    <AvatarFallback>LOGO</AvatarFallback>
+                  </Avatar>
+                  <Button variant="outline" onClick={() => handlePlaceholderAction("Upload New Logo Clicked")} disabled>
+                    Upload New Logo
+                  </Button>
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <Label className="text-base font-semibold">Login Screen Customization</Label>
+                 <p className="text-xs text-muted-foreground mb-2">Personalize the login page experience.</p>
+                <div className="space-y-3 mt-2">
+                    <div>
+                        <Label htmlFor="login-welcome-msg">Custom Welcome Message</Label>
+                        <Input id="login-welcome-msg" placeholder="Welcome to Consult Vista" disabled className="mt-1"/>
+                    </div>
+                    <Button variant="outline" onClick={() => handlePlaceholderAction("Upload Login Background Clicked")} disabled>
+                        Upload Login Background Image
+                    </Button>
+                </div>
+              </div>
+               <p className="text-xs text-muted-foreground">System branding features are typically available for System Administrators only.</p>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={() => handlePlaceholderAction("Save Branding Settings Clicked")} disabled>Save Branding Settings</Button>
+            </CardFooter>
+          </Card>
+        </div>
+      );
+    }
+
 
     if (!section) {
       return (
@@ -998,4 +1170,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
