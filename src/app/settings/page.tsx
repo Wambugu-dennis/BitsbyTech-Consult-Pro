@@ -41,6 +41,8 @@ import {
   Paintbrush
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
 
 type SettingsSectionId = 
   | 'account' 
@@ -64,10 +66,10 @@ interface SettingsMenuItem {
 
 const settingsMenuItems: SettingsMenuItem[] = [
   { id: 'account', label: 'Account', icon: UserCircle, description: 'Manage your personal account details and profile information.' },
-  { id: 'notifications', label: 'Notifications', icon: Bell, description: 'Configure how and when you receive notifications from the system.' },
+  { id: 'notifications', label: 'Notifications', icon: BellRing, description: 'Configure how and when you receive notifications from the system.' },
   { id: 'security', label: 'Security', icon: Lock, description: 'Manage your password, two-factor authentication, and view active sessions.' },
-  { id: 'appearance', label: 'Appearance', icon: Palette, description: 'Customize the look and feel of the application, including theme.' },
-  { id: 'language', label: 'Language & Region', icon: Globe, description: 'Set your preferred language and region for the application interface.' },
+  { id: 'appearance', label: 'Appearance', icon: Paintbrush, description: 'Customize the look and feel of the application, including theme.' },
+  { id: 'language', label: 'Language & Region', icon: Languages, description: 'Set your preferred language and region for the application interface.' },
   { id: 'billing', label: 'Billing', icon: CreditCard, description: 'View your subscription details, payment history, and manage billing information.' },
   { id: 'userManagement', label: 'User Management', icon: UsersIcon, description: 'Administer user accounts, roles, and permissions. (Admins)' },
   { id: 'accessControl', label: 'Access Control', icon: Shield, description: 'Define and manage role-based access control (RBAC) policies. (Admins)' },
@@ -77,9 +79,9 @@ const settingsMenuItems: SettingsMenuItem[] = [
 ];
 
 const mockUserData = {
-  name: 'Alex Mercer',
+  name: 'Alex Mercer (Super Admin)',
   email: 'alex.mercer@consult.com',
-  role: 'Lead Strategist',
+  role: 'Lead Strategist & System Administrator',
   avatarUrl: 'https://placehold.co/128x128/64B5F6/FFFFFF.png?text=AM',
   phone: '(555) 123-4567'
 };
@@ -136,7 +138,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-6">
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <Avatar className="h-24 w-24 border-2 border-primary/30">
-                  <AvatarImage src={mockUserData.avatarUrl} alt={mockUserData.name} data-ai-hint="user avatar" />
+                  <AvatarImage src={mockUserData.avatarUrl} alt={mockUserData.name} data-ai-hint="user avatar"/>
                   <AvatarFallback className="text-3xl">{mockUserData.name.substring(0,2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-1 text-center sm:text-left">
@@ -312,7 +314,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-       <Card className="mt-8 border-t pt-6 bg-card/50">
+      <Card className="mt-8 border-t pt-6 bg-card/50">
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2">
             <SettingsIcon className="h-6 w-6 text-muted-foreground" />
@@ -338,7 +340,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-// Added ScrollArea for better nav on smaller screens
-import { ScrollArea } from "@/components/ui/scroll-area";
-    
