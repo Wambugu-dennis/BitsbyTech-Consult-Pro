@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from "@/hooks/use-toast";
-import { Users as UsersIcon, PlusCircle, Edit3, KeyRound, UserCheck, UserX, Trash2, MoreHorizontal, ShieldCheck, Users2 as HierarchyIcon } from "lucide-react";
+import { Users as UsersIcon, PlusCircle, Edit3, KeyRound, UserCheck, UserX, Trash2, MoreHorizontal, ShieldCheck, Users2 as HierarchyIcon, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO, formatISO } from 'date-fns';
 import type { SystemUser, SystemUserStatus, SystemRole, Consultant } from '@/lib/types';
@@ -51,7 +51,7 @@ interface UserManagementSettingsProps {
   formatDate: (date: Date) => string;
   systemUsers: SystemUser[];
   setSystemUsers: React.Dispatch<React.SetStateAction<SystemUser[]>>;
-  initialConsultants: Consultant[]; // For "Reports To" dropdown - currently uses systemUsers
+  initialConsultants: Consultant[];
   setActiveSection: (sectionId: string) => void;
 }
 
@@ -132,10 +132,45 @@ export default function UserManagementSettingsSection({
     }
   };
 
-  const managers = React.useMemo(() => {
-    const managerIds = new Set(systemUsers.map(u => u.reportsToUserId).filter(Boolean));
-    return systemUsers.filter(u => managerIds.has(u.id));
+  const managersAndReports = React.useMemo(() => {
+    const managersMap = new Map<string, { manager: SystemUser; reports: SystemUser[] }>();
+    
+    systemUsers.forEach(user => {
+      if (user.reportsToUserId) {
+        if (!managersMap.has(user.reportsToUserId)) {
+          const manager = systemUsers.find(m => m.id === user.reportsToUserId);
+          if (manager) {
+            managersMap.set(user.reportsToUserId, { manager, reports: [] });
+          }
+        }
+        managersMap.get(user.reportsToUserId)?.reports.push(user);
+      }
+    });
+
+    // Also add managers who might not have direct reports listed but are defined
+    systemUsers.forEach(user => {
+        if (!managersMap.has(user.id) && systemUsers.some(u => u.reportsToUserId === user.id)) {
+             managersMap.set(user.id, { manager: user, reports: systemUsers.filter(u => u.reportsToUserId === user.id) });
+        } else if (managersMap.has(user.id) && managersMap.get(user.id)?.reports.length === 0) {
+             // If a manager is already in the map but has no reports yet from the first pass
+             managersMap.get(user.id)!.reports = systemUsers.filter(u => u.reportsToUserId === user.id);
+        }
+    });
+    
+    // Filter out managers who don't actually have anyone reporting to them, unless they themselves are in the reportsToUserId field of someone else
+    // This logic can be complex depending on desired view (e.g. show all potential managers or only those with reports)
+    // For simplicity, let's just show managers who have reports or are designated as a manager by someone else.
+    const finalManagers = Array.from(managersMap.values());
+    
+    // Add users who are not managers and do not report to anyone (top-level individual contributors)
+    const topLevelIndividuals = systemUsers.filter(user => 
+        !user.reportsToUserId && !finalManagers.some(m => m.manager.id === user.id) && !systemUsers.some(u => u.reportsToUserId === user.id)
+    );
+
+    return { managers: finalManagers, topLevelIndividuals };
+
   }, [systemUsers]);
+
 
   return (
     <div className="space-y-6">
@@ -286,46 +321,71 @@ export default function UserManagementSettingsSection({
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3"><HierarchyIcon className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Team Structure & Hierarchy')}</CardTitle></div>
-          <CardDescription>{t('Visualize and manage organizational structure and reporting lines.')}</CardDescription>
+          <CardDescription>{t('Visualize organizational structure and reporting lines.')}</CardDescription>
         </CardHeader>
         <CardContent>
-          {managers.length > 0 ? (
+          {(managersAndReports.managers.length > 0 || managersAndReports.topLevelIndividuals.length > 0) ? (
             <div className="space-y-4">
-              {managers.map(manager => {
-                const reports = systemUsers.filter(u => u.reportsToUserId === manager.id);
-                return (
-                  <div key={manager.id} className="p-3 border rounded-md bg-muted/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Avatar className="h-10 w-10 border-2 border-primary/30">
-                        <AvatarImage src={manager.avatarUrl} alt={manager.name} data-ai-hint="person avatar"/>
-                        <AvatarFallback>{manager.name.substring(0,1)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">{manager.name} <span className="text-xs text-muted-foreground">({t(manager.role as keyof LanguagePack['translations'])})</span></p>
-                        <p className="text-xs text-muted-foreground">{t('Manages {count} direct report(s)', { count: reports.length })}</p>
-                      </div>
+              {managersAndReports.managers.map(({ manager, reports }) => (
+                <div key={manager.id} className="p-3 border rounded-md bg-muted/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Avatar className="h-10 w-10 border-2 border-primary/30">
+                      <AvatarImage src={manager.avatarUrl} alt={manager.name} data-ai-hint="person avatar"/>
+                      <AvatarFallback>{manager.name.substring(0,1)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold">{manager.name} <span className="text-xs text-muted-foreground">({t(manager.role as keyof LanguagePack['translations'])})</span></p>
+                      {reports.length > 0 && <p className="text-xs text-muted-foreground">{t('Manages {count} direct report(s)', { count: reports.length })}</p>}
+                      {reports.length === 0 && <p className="text-xs text-muted-foreground">{t('Manages 0 direct reports (but is designated manager)')}</p>}
                     </div>
-                    {reports.length > 0 && (
-                      <ul className="ml-6 space-y-1 list-disc list-inside">
-                        {reports.map(report => (
-                          <li key={report.id} className="text-sm flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={report.avatarUrl} alt={report.name} data-ai-hint="person avatar"/>
-                              <AvatarFallback className="text-xs">{report.name.substring(0,1)}</AvatarFallback>
-                            </Avatar>
-                            {report.name} <span className="text-xs text-muted-foreground">({t(report.role as keyof LanguagePack['translations'])})</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
                   </div>
-                );
-              })}
+                  {reports.length > 0 && (
+                    <ul className="ml-6 space-y-1 list-disc list-inside">
+                      {reports.map(report => (
+                        <li key={report.id} className="text-sm flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={report.avatarUrl} alt={report.name} data-ai-hint="person avatar"/>
+                            <AvatarFallback className="text-xs">{report.name.substring(0,1)}</AvatarFallback>
+                          </Avatar>
+                          {report.name} <span className="text-xs text-muted-foreground">({t(report.role as keyof LanguagePack['translations'])})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+              {managersAndReports.topLevelIndividuals.length > 0 && (
+                 <div className="mt-4 pt-3 border-t">
+                    <h4 className="font-medium text-sm text-muted-foreground mb-2">{t('Individuals without direct reports / not managing')}</h4>
+                     {managersAndReports.topLevelIndividuals.map(user => (
+                        <div key={user.id} className="p-2 border rounded-md bg-muted/10 mb-2">
+                            <div className="flex items-center gap-2">
+                                <Avatar className="h-8 w-8"><AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="person avatar"/><AvatarFallback>{user.name.substring(0,1)}</AvatarFallback></Avatar>
+                                <div>
+                                    <p className="font-medium text-sm">{user.name}</p>
+                                    <p className="text-xs text-muted-foreground">{t(user.role as keyof LanguagePack['translations'])}</p>
+                                </div>
+                            </div>
+                        </div>
+                     ))}
+                 </div>
+              )}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">{t('No reporting structures defined yet. Edit users to assign who they report to.')}</p>
           )}
-          <p className="text-xs text-muted-foreground mt-3">{t('This is a visual representation of the reporting hierarchy. More advanced tools for team and department management are planned.')}</p>
+          <div className="mt-3 p-3 border border-blue-500/30 bg-blue-500/5 rounded-md text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2">
+            <Info size={20} className="shrink-0 mt-0.5"/>
+            <div>
+              <p>
+                {t('The Team Structure is defined by setting the "Reports To" field for each user in the table above. This visualization is a reflection of those settings.')}
+              </p>
+              <p className="mt-1">
+                {t('A user\'s role (e.g., Administrator, Project Manager) defines their permissions and capabilities within the system, which is managed separately under Access Control. Often, leadership roles in the hierarchy align with roles granting broader system permissions.')}
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">{t('More advanced tools for team and department management, including visual org chart builders, are planned for future development.')}</p>
         </CardContent>
       </Card>
       
@@ -336,9 +396,11 @@ export default function UserManagementSettingsSection({
         </CardHeader>
         <CardContent>
           <Button variant="outline" onClick={() => setActiveSection('accessControl') }>{t('Configure Roles & Permissions')}</Button>
-          <p className="text-xs text-muted-foreground mt-2">{t('Access control ensures users only see and interact with appropriate data and features.')}</p>
+          <p className="text-xs text-muted-foreground mt-2">{t('Access control ensures users only see and interact with appropriate data and features. System roles (like Administrator, Project Manager) define a user\'s capabilities. The actual permissions for these roles are managed in the "Access Control" section.')}</p>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
