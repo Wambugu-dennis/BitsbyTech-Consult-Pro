@@ -24,6 +24,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -70,14 +71,19 @@ import {
   LayoutDashboard,
   ImageIcon,
   Type,
-  CalendarIcon
+  CalendarIcon,
+  Download,
+  Activity,
+  FileText as BillingHistoryIcon,
+  AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTheme } from '@/context/theme-provider';
-import { useLocalization } from '@/context/localization-provider'; // Import useLocalization
-import { languagePacks, supportedLanguages, supportedRegions, type SupportedLanguage, type SupportedRegion } from '@/lib/i18n-config'; // Import i18n config
+import { useLocalization } from '@/context/localization-provider';
+import { languagePacks, supportedLanguages, supportedRegions, type SupportedLanguage, type SupportedRegion } from '@/lib/i18n-config';
+import { Progress } from '@/components/ui/progress';
 
 type SettingsSectionId = 
   | 'account' 
@@ -94,9 +100,9 @@ type SettingsSectionId =
 
 interface SettingsMenuItem {
   id: SettingsSectionId;
-  labelKey: keyof typeof languagePacks.en.translations; // Use key for translation
+  labelKey: keyof typeof languagePacks.en.translations;
   icon: React.ElementType;
-  description: string; // Keep description in English for now, or add keys too
+  description: string; 
 }
 
 const settingsMenuItems: SettingsMenuItem[] = [
@@ -161,12 +167,46 @@ const mockLoginHistory = [
     { id: 'lh2', timestamp: '2024-07-26 09:55:00 UTC', status: 'Failed', ipAddress: '203.0.113.45', device: 'Unknown Browser', location: 'Unknown (Suspicious)' },
 ];
 
+const mockBillingData = {
+  currentPlan: {
+    name: 'Pro Plan',
+    price: 99, // per month
+    currency: 'USD',
+    features: ['Up to 50 Users', 'Unlimited Projects', 'Advanced Analytics', 'Priority Support'],
+    nextBillingDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 15).toLocaleDateString(),
+  },
+  paymentMethod: {
+    type: 'Visa',
+    last4: '1234',
+    expiry: '12/2025',
+  },
+  billingHistory: [
+    { id: 'INV-SUB-003', date: new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleDateString(), amount: 99, status: 'Paid' },
+    { id: 'INV-SUB-002', date: new Date(new Date().setMonth(new Date().getMonth() - 2)).toLocaleDateString(), amount: 99, status: 'Paid' },
+    { id: 'INV-SUB-001', date: new Date(new Date().setMonth(new Date().getMonth() - 3)).toLocaleDateString(), amount: 99, status: 'Paid' },
+  ],
+  usage: {
+    users: { current: 27, limit: 50 },
+    projects: { current: 187, limit: Infinity }, // Infinity for unlimited
+    storage: { current: 68, limit: 100, unit: 'GB' },
+  },
+  billingAddress: {
+    company: 'Mercer Consulting Inc.',
+    line1: '123 Innovation Drive',
+    city: 'Techville',
+    state: 'CA',
+    zip: '90210',
+    country: 'USA',
+    taxId: 'US-TAX-123456789',
+  }
+};
+
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('account');
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
-  const { language, region, setLanguage, setRegion, t, formatDate } = useLocalization(); // Use Localization context
+  const { language, region, setLanguage, setRegion, t, formatDate } = useLocalization();
 
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
@@ -184,6 +224,8 @@ export default function SettingsPage() {
 
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showUpdatePaymentDialog, setShowUpdatePaymentDialog] = useState(false);
+  const [showEditBillingAddressDialog, setShowEditBillingAddressDialog] = useState(false);
   const [currentActiveSessions, setCurrentActiveSessions] = useState(mockActiveSessions);
   const [activityAlerts, setActivityAlerts] = useState({
     newDeviceLogin: true,
@@ -192,9 +234,6 @@ export default function SettingsPage() {
     twoFactorChanged: false,
   });
   
-  const [currentAccentColor, setCurrentAccentColor] = useState<string>('defaultBlue'); // Placeholder
-
-
   const handleNotificationChange = <K extends keyof NotificationSettings>(
     key: K,
     value: NotificationSettings[K]
@@ -299,7 +338,24 @@ export default function SettingsPage() {
       duration: 3000,
     });
   };
+  
+  const handleUpdatePaymentMethod = () => {
+    setShowUpdatePaymentDialog(false);
+    toast({
+      title: t("Payment Method Updated"),
+      description: t("Your payment method has been successfully updated (simulated)."),
+      duration: 3000,
+    });
+  };
 
+  const handleEditBillingAddress = () => {
+    setShowEditBillingAddressDialog(false);
+    toast({
+      title: t("Billing Address Updated"),
+      description: t("Your billing address has been successfully updated (simulated)."),
+      duration: 3000,
+    });
+  };
 
   const renderSectionContent = () => {
     const section = settingsMenuItems.find(item => item.id === activeSection);
@@ -428,7 +484,6 @@ export default function SettingsPage() {
     }
 
     if (activeSection === 'notifications') {
-      // Content from previous implementation - should be wrapped with t() for labels
       return (
         <div className="space-y-6">
           <Card>
@@ -487,7 +542,7 @@ export default function SettingsPage() {
                 <h4 className="text-md font-semibold mb-3">{t('Detailed Notification Preferences')}</h4>
                 <p className="text-sm text-muted-foreground mb-4">{t('Choose which types of events trigger notifications for each channel. (Only active if master notifications are enabled.)')}</p>
                 {(Object.keys(notificationSettings.preferences) as Array<keyof NotificationSettings['preferences']>).map((eventKey) => {
-                  const eventLabel = t(eventKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()));
+                  const eventLabel = t(eventKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()) as keyof typeof languagePacks.en.translations);
                   const Icon = 
                     eventKey === 'projectUpdates' ? Briefcase :
                     eventKey === 'clientCommunications' ? MessageSquare :
@@ -531,7 +586,7 @@ export default function SettingsPage() {
                     <Select
                         value={notificationSettings.digestFrequency}
                         onValueChange={(value: NotificationSettings['digestFrequency']) => handleNotificationChange('digestFrequency', value) }
-                        disabled // For future implementation
+                        disabled 
                     >
                         <SelectTrigger id="digestFrequency" className="mt-1 w-full sm:w-[250px]">
                             <SelectValue placeholder={t('Select frequency')} />
@@ -554,7 +609,6 @@ export default function SettingsPage() {
     }
 
     if (activeSection === 'security') {
-      // Content from previous implementation - needs labels translated
       return (
         <div className="space-y-6">
           <Card>
@@ -597,7 +651,7 @@ export default function SettingsPage() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-              <p className="text-xs text-muted-foreground">{t('Last password change')}: {new Date(mockUserData.lastPasswordChange).toLocaleDateString()}</p>
+              <p className="text-xs text-muted-foreground">{t('Last password change')}: {formatDate(new Date(mockUserData.lastPasswordChange))}</p>
             </CardContent>
           </Card>
 
@@ -663,8 +717,7 @@ export default function SettingsPage() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3"><Network className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Active Sessions')}</CardTitle></div>
+            <CardHeader><div className="flex items-center gap-3"><Network className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Active Sessions')}</CardTitle></div>
               <CardDescription>{t('View and manage devices currently logged into your account.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -713,7 +766,12 @@ export default function SettingsPage() {
                     {mockLoginHistory.slice(0, 5).map(log => (
                       <TableRow key={log.id}>
                         <TableCell className="text-xs">{log.timestamp}</TableCell>
-                        <TableCell><Badge variant={log.status === 'Success' || log.status.includes('2FA') ? 'default' : 'destructive'} className={cn(log.status === 'Success' || log.status.includes('2FA') ? 'bg-green-500/20 text-green-700' : 'bg-red-500/20 text-red-700')}>{t(log.status)}</Badge></TableCell>
+                        <TableCell>
+                          <Badge variant={log.status === 'Success' || log.status.includes('2FA') ? 'default' : 'destructive'}
+                                 className={cn(log.status === 'Success' || log.status.includes('2FA') ? 'bg-green-500/20 text-green-700' : 'bg-red-500/20 text-red-700')}>
+                            {t(log.status as keyof typeof languagePacks.en.translations)}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-xs">{log.ipAddress}</TableCell><TableCell className="text-xs">{log.device}</TableCell><TableCell className="text-xs">{log.location}</TableCell>
                       </TableRow>
                     ))}
@@ -741,7 +799,7 @@ export default function SettingsPage() {
                 <div className="max-h-60 overflow-y-auto rounded-md border">
                     <Table><TableHeader><TableRow><TableHead>{t('Timestamp')}</TableHead><TableHead>{t('Event')}</TableHead><TableHead>{t('User')}</TableHead><TableHead>{t('IP Address')}</TableHead><TableHead>{t('Details')}</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {mockAuditLogPreview.map(log => (<TableRow key={log.id}><TableCell className="text-xs">{log.timestamp}</TableCell><TableCell className="text-xs font-medium">{t(log.event)}</TableCell><TableCell className="text-xs">{log.user}</TableCell><TableCell className="text-xs">{log.ipAddress}</TableCell><TableCell className="text-xs text-muted-foreground">{t(log.details)}</TableCell></TableRow>))}
+                            {mockAuditLogPreview.map(log => (<TableRow key={log.id}><TableCell className="text-xs">{log.timestamp}</TableCell><TableCell className="text-xs font-medium">{t(log.event as keyof typeof languagePacks.en.translations)}</TableCell><TableCell className="text-xs">{log.user}</TableCell><TableCell className="text-xs">{log.ipAddress}</TableCell><TableCell className="text-xs text-muted-foreground">{t(log.details as keyof typeof languagePacks.en.translations)}</TableCell></TableRow>))}
                         </TableBody>
                     </Table>
                 </div>
@@ -771,7 +829,6 @@ export default function SettingsPage() {
     }
 
     if (activeSection === 'appearance') {
-      // Content from previous implementation - needs labels translated
       return (
         <div className="space-y-6">
           <Card>
@@ -790,8 +847,8 @@ export default function SettingsPage() {
               <div>
                 <Label htmlFor="accent-color" className="text-base font-semibold">{t('Accent Color Palette')}</Label>
                 <p className="text-xs text-muted-foreground mb-2">{t('Choose an accent color for primary actions and highlights.')}</p>
-                <Select value={currentAccentColor} onValueChange={setCurrentAccentColor} disabled>
-                  <SelectTrigger id="accent-color" className="w-full sm:w-[280px]"><SelectValue placeholder={t('Select Accent Color')} /></SelectTrigger>
+                <Select defaultValue="defaultBlue" disabled>
+                  <SelectTrigger id="accent-color" className="w-full sm:w-[280px]"><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="defaultBlue">{t('Default Blue (Current)')}</SelectItem></SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">{t('More color palettes coming soon.')}</p>
@@ -858,7 +915,7 @@ export default function SettingsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {supportedRegions.map((regCode) => (
-                    <SelectItem key={regCode} value={regCode}>{regCode}</SelectItem> // Could map to full names
+                    <SelectItem key={regCode} value={regCode}>{regCode}</SelectItem> 
                   ))}
                 </SelectContent>
               </Select>
@@ -878,6 +935,190 @@ export default function SettingsPage() {
         </Card>
       );
     }
+    
+    if (activeSection === 'billing') {
+      return (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">{t('Current Subscription')}</CardTitle>
+              </div>
+              <CardDescription>{t('Manage your subscription to Consult Vista.')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold">{mockBillingData.currentPlan.name}</h3>
+                <p className="text-muted-foreground">
+                  {t('${price}/month', { price: mockBillingData.currentPlan.price })} - {t('Next billing date')}: {mockBillingData.currentPlan.nextBillingDate}
+                </p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-1">{t('Plan Features')}:</h4>
+                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                  {mockBillingData.currentPlan.features.map(feature => <li key={feature}>{t(feature as keyof typeof languagePacks.en.translations)}</li>)}
+                </ul>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button onClick={() => handlePlaceholderAction("Upgrade Plan Clicked")}>{t('Upgrade Plan')}</Button>
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" >{t('Cancel Subscription')}</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t('Are you sure you want to cancel?')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {t('Your subscription will remain active until {nextBillingDate}. After this date, you will lose access to Pro features.', { nextBillingDate: mockBillingData.currentPlan.nextBillingDate})}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t('Keep Subscription')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handlePlaceholderAction("Subscription Cancellation Confirmed")}>{t('Proceed with Cancellation')}</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <FinancialIcon className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">{t('Payment Method')}</CardTitle>
+              </div>
+              <CardDescription>{t('Update your primary payment method.')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm">
+                {t('Current method')}: {mockBillingData.paymentMethod.type} {t('ending in')} {mockBillingData.paymentMethod.last4} - {t('Expires')} {mockBillingData.paymentMethod.expiry}
+              </p>
+              <Dialog open={showUpdatePaymentDialog} onOpenChange={setShowUpdatePaymentDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">{t('Update Payment Method')}</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{t('Update Payment Method')}</DialogTitle>
+                    <DialogDescription>{t('Enter your new card details. This is a simulated form.')}</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div><Label htmlFor="cardNumber">{t('Card Number')}</Label><Input id="cardNumber" placeholder="**** **** **** ****" /></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><Label htmlFor="expiryDate">{t('Expiry Date (MM/YY)')}</Label><Input id="expiryDate" placeholder="MM/YY" /></div>
+                      <div><Label htmlFor="cvc">{t('CVC')}</Label><Input id="cvc" placeholder="123" /></div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowUpdatePaymentDialog(false)}>{t('Cancel')}</Button>
+                    <Button onClick={handleUpdatePaymentMethod}>{t('Save Payment Method')}</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <BillingHistoryIcon className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">{t('Billing History')}</CardTitle>
+              </div>
+              <CardDescription>{t('View your past invoices for Consult Vista subscription.')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-72 overflow-y-auto rounded-md border">
+                <Table>
+                  <TableHeader><TableRow><TableHead>{t('Invoice ID')}</TableHead><TableHead>{t('Date')}</TableHead><TableHead className="text-right">{t('Amount')}</TableHead><TableHead className="text-center">{t('Status')}</TableHead><TableHead className="text-right">{t('Actions')}</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {mockBillingData.billingHistory.map(invoice => (
+                      <TableRow key={invoice.id}>
+                        <TableCell className="font-mono">{invoice.id}</TableCell>
+                        <TableCell>{invoice.date}</TableCell>
+                        <TableCell className="text-right">{mockBillingData.currentPlan.currency} {invoice.amount.toFixed(2)}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={invoice.status === 'Paid' ? 'default' : 'destructive'} className={cn(invoice.status === 'Paid' ? 'bg-green-500/20 text-green-700' : '')}>
+                            {t(invoice.status as keyof typeof languagePacks.en.translations)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => handlePlaceholderAction("Download Invoice PDF Triggered")}>
+                            <Download className="h-4 w-4" /> <span className="sr-only">{t('Download PDF')}</span>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+           <Card>
+            <CardHeader>
+                <div className="flex items-center gap-3"><Activity className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Usage & Limits')}</CardTitle></div>
+                <CardDescription>{t('Monitor your current usage against your plan allowances.')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+                <div>
+                    <div className="flex justify-between mb-1"><span>{t('Users')}</span><span>{mockBillingData.usage.users.current} / {mockBillingData.usage.users.limit}</span></div>
+                    <Progress value={(mockBillingData.usage.users.current / mockBillingData.usage.users.limit) * 100} className="h-2" />
+                </div>
+                <div>
+                    <div className="flex justify-between mb-1"><span>{t('Projects')}</span><span>{mockBillingData.usage.projects.current} / {mockBillingData.usage.projects.limit === Infinity ? t('Unlimited') : mockBillingData.usage.projects.limit}</span></div>
+                    <Progress value={mockBillingData.usage.projects.limit === Infinity ? 100 : (mockBillingData.usage.projects.current / mockBillingData.usage.projects.limit) * 100} className="h-2" indicatorClassName={mockBillingData.usage.projects.limit === Infinity ? 'bg-green-500' : undefined}/>
+                </div>
+                <div>
+                    <div className="flex justify-between mb-1"><span>{t('Data Storage')}</span><span>{mockBillingData.usage.storage.current}{mockBillingData.usage.storage.unit} / {mockBillingData.usage.storage.limit}{mockBillingData.usage.storage.unit}</span></div>
+                    <Progress value={(mockBillingData.usage.storage.current / mockBillingData.usage.storage.limit) * 100} className="h-2" />
+                </div>
+                 <Button variant="outline" size="sm" className="mt-2" onClick={() => handlePlaceholderAction("View Usage Details Clicked")}>{t('View Usage Details')}</Button>
+            </CardContent>
+           </Card>
+
+           <Card>
+            <CardHeader>
+                <div className="flex items-center gap-3"><UserCircle className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Billing Address & Tax Info')}</CardTitle></div>
+                <CardDescription>{t('Manage the billing details for your organization.')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+                <p className="font-medium">{mockBillingData.billingAddress.company}</p>
+                <p>{mockBillingData.billingAddress.line1}</p>
+                <p>{mockBillingData.billingAddress.city}, {mockBillingData.billingAddress.state} {mockBillingData.billingAddress.zip}</p>
+                <p>{mockBillingData.billingAddress.country}</p>
+                <p className="mt-2"><strong>{t('Tax ID')}:</strong> {mockBillingData.billingAddress.taxId || t('Not Provided')}</p>
+                <Dialog open={showEditBillingAddressDialog} onOpenChange={setShowEditBillingAddressDialog}>
+                    <DialogTrigger asChild>
+                         <Button variant="outline" className="mt-2">{t('Edit Billing Information')}</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>{t('Edit Billing Information')}</DialogTitle><DialogDescription>{t('Update your company\'s billing address and tax details.')}</DialogDescription></DialogHeader>
+                        <div className="space-y-3 py-4">
+                            <div><Label htmlFor="companyNameBill">{t('Company Name')}</Label><Input id="companyNameBill" defaultValue={mockBillingData.billingAddress.company} /></div>
+                            <div><Label htmlFor="addressLine1Bill">{t('Address Line 1')}</Label><Input id="addressLine1Bill" defaultValue={mockBillingData.billingAddress.line1} /></div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div><Label htmlFor="cityBill">{t('City')}</Label><Input id="cityBill" defaultValue={mockBillingData.billingAddress.city} /></div>
+                                <div><Label htmlFor="stateBill">{t('State/Province')}</Label><Input id="stateBill" defaultValue={mockBillingData.billingAddress.state} /></div>
+                            </div>
+                             <div className="grid grid-cols-2 gap-3">
+                                <div><Label htmlFor="zipBill">{t('ZIP/Postal Code')}</Label><Input id="zipBill" defaultValue={mockBillingData.billingAddress.zip} /></div>
+                                <div><Label htmlFor="countryBill">{t('Country')}</Label><Input id="countryBill" defaultValue={mockBillingData.billingAddress.country} /></div>
+                            </div>
+                            <div><Label htmlFor="taxIdBill">{t('Tax ID (Optional)')}</Label><Input id="taxIdBill" defaultValue={mockBillingData.billingAddress.taxId} /></div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowEditBillingAddressDialog(false)}>{t('Cancel')}</Button>
+                            <Button onClick={handleEditBillingAddress}>{t('Save Billing Information')}</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </CardContent>
+           </Card>
+        </div>
+      );
+    }
 
 
     if (!section) {
@@ -894,6 +1135,7 @@ export default function SettingsPage() {
       );
     }
 
+    // Fallback for sections not yet detailed
     return (
       <Card className="shadow-md">
         <CardHeader>
@@ -901,7 +1143,7 @@ export default function SettingsPage() {
             <section.icon className="h-7 w-7 text-primary" />
             <CardTitle className="text-2xl">{t(section.labelKey)}</CardTitle>
           </div>
-          <CardDescription className="pt-1 text-base">{t(section.description)}</CardDescription>
+          <CardDescription className="pt-1 text-base">{t(section.description as keyof typeof languagePacks.en.translations)}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="min-h-[250px] flex flex-col items-center justify-center bg-muted/30 rounded-lg p-8 border border-dashed">
