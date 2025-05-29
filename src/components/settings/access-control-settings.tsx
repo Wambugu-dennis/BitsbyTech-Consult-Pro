@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label"; // Added import
 import { useToast } from "@/hooks/use-toast";
-import { useLocalization } from '@/context/localization-provider';
 import { ShieldCheck, CheckCircle2, XCircle, PlusCircle, Edit3, Settings as SettingsIcon } from "lucide-react";
 import type { SystemRole } from '@/lib/types';
-import { systemRoles } from '@/lib/types'; // Ensure systemRoles are exported from types.ts
+import { systemRoles } from '@/lib/types'; 
 import { cn } from "@/lib/utils";
-import type { LanguagePack } from '@/lib/i18n-config'; // For t function typing
+import type { LanguagePack } from '@/lib/i18n-config';
 
 const APP_MODULES = [
   'Dashboard',
@@ -47,38 +47,38 @@ const mockRolePermissions: Record<SystemRole, RolePermissions> = {
   'Project Manager': {
     Dashboard: { view: true },
     Clients: { view: true, create: true, edit: true },
-    Projects: { view: true, create: true, edit: true, manage: true }, // manage might imply task assignment, status updates
+    Projects: { view: true, create: true, edit: true, manage: true }, 
     Consultants: { view: true },
-    Finances_Expenses: { view: true, create: true, approve: true }, // Approve project expenses
-    Finances_Budgets: { view: true, create: true, edit: true }, // Manage project budgets
+    Finances_Expenses: { view: true, create: true, approve: true }, 
+    Finances_Budgets: { view: true, create: true, edit: true }, 
     Calendar: { view: true, create: true, edit: true },
     Analytics: { view: true },
     Reports: { view: true },
   },
   Consultant: {
     Dashboard: { view: true },
-    Clients: { view: true }, // View clients they are associated with
-    Projects: { view: true, edit: true }, // Edit tasks assigned to them, update progress
-    Consultants: { view: true }, // View their own profile
-    Finances_Expenses: { view: true, create: true }, // Log their own expenses
-    Calendar: { view: true, create: true }, // Manage their own calendar
-    Analytics: { view: true }, // View relevant project analytics
+    Clients: { view: true }, 
+    Projects: { view: true, edit: true }, 
+    Consultants: { view: true }, 
+    Finances_Expenses: { view: true, create: true }, 
+    Calendar: { view: true, create: true }, 
+    Analytics: { view: true }, 
   },
   'Finance Manager': {
     Dashboard: { view: true },
     Clients: { view: true },
-    Projects: { view: true }, // View project financial details
+    Projects: { view: true }, 
     Finances_Invoices: { view: true, create: true, edit: true, delete: true, manage: true },
     Finances_Expenses: { view: true, create: true, edit: true, delete: true, approve: true, manage: true },
     Finances_Budgets: { view: true, create: true, edit: true, delete: true, manage: true },
-    Settings_Billing: { view: true, manage: true }, // Manage company's subscription to Consult Vista
-    Reports: { view: true }, // Generate financial reports
+    Settings_Billing: { view: true, manage: true }, 
+    Reports: { view: true }, 
   },
-  'Client User': { // Hypothetical external client role
-    Projects: { view: true }, // View projects they are part of
-    Calendar: { view: true }, // View relevant project timelines/meetings
+  'Client User': { 
+    Projects: { view: true }, 
+    Calendar: { view: true }, 
   },
-  Viewer: { // Read-only role
+  Viewer: { 
     Dashboard: { view: true },
     Clients: { view: true },
     Projects: { view: true },
@@ -174,7 +174,6 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
                 <TableBody>
                   {APP_MODULES.map(module => {
                     const modulePermissions = currentPermissions[module] || {};
-                    // Only render row if there's any permission defined for this module for the role
                     if (Object.keys(modulePermissions).length > 0) {
                         return (
                             <TableRow key={module}>
@@ -199,9 +198,9 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
                             </TableRow>
                         );
                     }
-                    return null; // Don't render row if no permissions for this module/role
+                    return null; 
                   })}
-                   {Object.keys(currentPermissions).length === 0 && (
+                   {Object.values(currentPermissions).every(modulePerms => Object.keys(modulePerms).length === 0) && (
                      <TableRow>
                         <TableCell colSpan={PERMISSION_ACTIONS.length + 1} className="text-center text-muted-foreground h-24">
                             {t('No specific permissions configured for the "{role}" role. It may have default deny or rely on inherited permissions not shown here.', {role: t(selectedRole as keyof LanguagePack['translations'])})}
@@ -233,3 +232,5 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
     </Card>
   );
 }
+
+    
