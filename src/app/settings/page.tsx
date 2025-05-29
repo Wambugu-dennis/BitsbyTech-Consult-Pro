@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // Added React
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -69,13 +69,13 @@ import {
   Moon,
   Laptop,
   LayoutDashboard,
-  Image as ImageIcon,
+  ImageIcon,
   Type
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
+import { useTheme } from '@/context/theme-provider'; // Import useTheme
 
 type SettingsSectionId = 
   | 'account' 
@@ -167,6 +167,7 @@ const mockLoginHistory = [
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('account');
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme(); // Use the theme context
 
   // State for Notifications section
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
@@ -193,8 +194,7 @@ export default function SettingsPage() {
     twoFactorChanged: false,
   });
   
-  // State for Appearance section
-  const [currentThemePreference, setCurrentThemePreference] = useState<'light' | 'dark' | 'system'>('system');
+  // State for Appearance section - currentThemePreference is now from useTheme
   const [currentAccentColor, setCurrentAccentColor] = useState<string>('defaultBlue');
 
 
@@ -288,7 +288,12 @@ export default function SettingsPage() {
   };
 
   const handleSaveAppearanceSettings = () => {
-    handlePlaceholderAction("Appearance Settings Saved", `Theme set to ${currentThemePreference}, Accent: ${currentAccentColor}. Global application theme change requires further integration.`);
+    // Theme is already set by the RadioGroup via context
+    toast({
+      title: "Appearance Settings Saved",
+      description: `Theme preference updated to ${theme}. Accent color setting is a placeholder.`,
+      duration: 3000,
+    });
   };
 
 
@@ -929,26 +934,23 @@ export default function SettingsPage() {
                 <Label className="text-base font-semibold">Application Theme</Label>
                 <p className="text-xs text-muted-foreground mb-2">Select your preferred interface theme.</p>
                 <RadioGroup
-                  value={currentThemePreference}
-                  onValueChange={(value: 'light' | 'dark' | 'system') => setCurrentThemePreference(value)}
+                  value={theme} // Use theme from context
+                  onValueChange={(value: 'light' | 'dark' | 'system') => setTheme(value)} // Use setTheme from context
                   className="flex flex-col sm:flex-row gap-2 sm:gap-4"
                 >
-                  <Label htmlFor="theme-light" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", currentThemePreference === 'light' && "border-primary ring-2 ring-primary")}>
+                  <Label htmlFor="theme-light" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", theme === 'light' && "border-primary ring-2 ring-primary")}>
                     <RadioGroupItem value="light" id="theme-light" />
                     <Sun className="h-5 w-5" /> Light Mode
                   </Label>
-                  <Label htmlFor="theme-dark" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", currentThemePreference === 'dark' && "border-primary ring-2 ring-primary")}>
+                  <Label htmlFor="theme-dark" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", theme === 'dark' && "border-primary ring-2 ring-primary")}>
                     <RadioGroupItem value="dark" id="theme-dark" />
                     <Moon className="h-5 w-5" /> Dark Mode
                   </Label>
-                  <Label htmlFor="theme-system" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", currentThemePreference === 'system' && "border-primary ring-2 ring-primary")}>
+                  <Label htmlFor="theme-system" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", theme === 'system' && "border-primary ring-2 ring-primary")}>
                     <RadioGroupItem value="system" id="theme-system" />
                     <Laptop className="h-5 w-5" /> System Default
                   </Label>
                 </RadioGroup>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Note: Full application theme switching requires integration with a theme provider (e.g., next-themes) and may require a page refresh to take effect system-wide. This is a UI simulation.
-                </p>
               </div>
               <Separator />
               <div>
