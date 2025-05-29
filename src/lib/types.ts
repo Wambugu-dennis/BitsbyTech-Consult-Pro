@@ -357,7 +357,7 @@ export type Budget = {
   currency: string;
   startDate: string;
   endDate: string;
-  status: BudgetStatus;
+  status: BudgetStatus; // This could be dynamic based on dates and spending
   description?: string;
   createdAt: string;
   updatedAt: string;
