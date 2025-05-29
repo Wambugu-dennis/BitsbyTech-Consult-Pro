@@ -34,6 +34,13 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
   Settings as SettingsIcon,
   UserCircle,
   Bell,
@@ -89,7 +96,7 @@ import { Progress } from '@/components/ui/progress';
 import type { SystemUser, SystemUserStatus, SystemRole } from '@/lib/types';
 import { initialSystemUsers, initialConsultants } from '@/lib/mockData'; // consultants for "Reports To"
 import { systemRoles, systemUserStatuses } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, formatISO } from 'date-fns';
 
 
 type SettingsSectionId =
@@ -180,7 +187,7 @@ const mockBillingData = {
     price: 99, // per month
     currency: 'USD',
     features: ['Up to 50 Users', 'Unlimited Projects', 'Advanced Analytics', 'Priority Support'],
-    nextBillingDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 15).toLocaleDateString(),
+    nextBillingDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 15).toISOString(), // Store as ISO string
   },
   paymentMethod: {
     type: 'Visa',
@@ -188,9 +195,9 @@ const mockBillingData = {
     expiry: '12/2025',
   },
   billingHistory: [
-    { id: 'INV-SUB-003', date: new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleDateString(), amount: 99, status: 'Paid' },
-    { id: 'INV-SUB-002', date: new Date(new Date().setMonth(new Date().getMonth() - 2)).toLocaleDateString(), amount: 99, status: 'Paid' },
-    { id: 'INV-SUB-001', date: new Date(new Date().setMonth(new Date().getMonth() - 3)).toLocaleDateString(), amount: 99, status: 'Paid' },
+    { id: 'INV-SUB-003', date: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString(), amount: 99, status: 'Paid' },
+    { id: 'INV-SUB-002', date: new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString(), amount: 99, status: 'Paid' },
+    { id: 'INV-SUB-001', date: new Date(new Date().setMonth(new Date().getMonth() - 3)).toISOString(), amount: 99, status: 'Paid' },
   ],
   usage: {
     users: { current: 27, limit: 50 },
@@ -279,8 +286,8 @@ export default function SettingsPage() {
 
   const handlePlaceholderAction = (actionMessageKey: string, descriptionKey?: string) => {
     toast({
-      title: t(actionMessageKey),
-      description: descriptionKey ? t(descriptionKey) : t("This functionality is for demonstration."),
+      title: t(actionMessageKey as keyof typeof languagePacks.en.translations),
+      description: descriptionKey ? t(descriptionKey as keyof typeof languagePacks.en.translations) : t("This functionality is for demonstration."),
       duration: 3000,
     });
   };
@@ -323,12 +330,12 @@ export default function SettingsPage() {
 
   const handleSignOutSession = (sessionId: string) => {
     setCurrentActiveSessions(prev => prev.filter(session => session.id !== sessionId));
-    toast({ title: t("Session Signed Out"), description: t("Session {sessionId} has been remotely signed out (simulated).", {sessionId})});
+    toast({ title: t("Session Signed Out"), description: t("Session {sessionId} has been remotely signed out (simulated).", {sessionId: sessionId})});
   };
 
   const handleSignOutAllOtherSessions = () => {
     if (currentActiveSessions.length > 1) {
-        setCurrentActiveSessions(prev => prev.slice(0, 1));
+        setCurrentActiveSessions(prev => prev.slice(0, 1)); // Keep only the first (current) session
     }
     toast({ title: t("All Other Sessions Signed Out"), description: t("All other active sessions have been remotely signed out (simulated).")});
   };
@@ -340,7 +347,7 @@ export default function SettingsPage() {
   const handleSaveAppearanceSettings = () => {
     toast({
       title: t("Appearance Settings Saved"),
-      description: t("Theme preference updated to {theme}. Accent color is a placeholder.", { theme }),
+      description: t("Theme preference updated to {theme}. Accent color is a placeholder.", { theme: theme }),
       duration: 3000,
     });
   };
@@ -385,7 +392,7 @@ export default function SettingsPage() {
     setSystemUsers(prev => [newUser, ...prev]);
     setShowInviteUserDialog(false);
     setInviteUserFormData({ name: '', email: '', role: systemRoles[2] as SystemRole }); // Reset form
-    toast({ title: t("User Invited"), description: t("{name} has been invited as a {role}.", { name: newUser.name, role: newUser.role }) });
+    toast({ title: t("User Invited"), description: t("{name} has been invited as a {role}.", { name: newUser.name, role: t(newUser.role as keyof typeof languagePacks.en.translations) }) });
   };
 
   const handleOpenEditUserDialog = (user: SystemUser) => {
@@ -415,12 +422,12 @@ export default function SettingsPage() {
   const handleToggleUserStatus = (userId: string, currentStatus: SystemUserStatus) => {
     const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
     setSystemUsers(prev => prev.map(u => u.id === userId ? { ...u, status: newStatus } : u));
-    toast({ title: t("User Status Updated"), description: t("User {userId} status changed to {newStatus}.", { userId, newStatus }) });
+    toast({ title: t("User Status Updated"), description: t("User {userId} status changed to {newStatus}.", { userId: userId, newStatus: t(newStatus as keyof typeof languagePacks.en.translations) }) });
   };
 
    const handleDeleteUser = (userId: string) => {
     setSystemUsers(prev => prev.filter(u => u.id !== userId));
-    toast({ title: t("User Deleted"), description: t("User {userId} has been deleted (simulated).", { userId }), variant: "destructive" });
+    toast({ title: t("User Deleted"), description: t("User {userId} has been deleted (simulated).", { userId: userId }), variant: "destructive" });
   };
 
   const getStatusBadgeClass = (status: SystemUserStatus) => {
@@ -623,9 +630,9 @@ export default function SettingsPage() {
                   const Icon =
                     eventKey === 'projectUpdates' ? Briefcase :
                     eventKey === 'clientCommunications' ? MessageSquare :
-                    eventKey === 'taskManagement' ? UsersIcon :
+                    eventKey === 'taskManagement' ? UsersIcon : // Re-using UsersIcon for Task for now
                     eventKey === 'financialAlerts' ? FinancialIcon :
-                    Server;
+                    Server; // Default icon
                   return (
                     <div key={eventKey} className="mb-4 p-3 border rounded-md bg-card/50">
                       <div className="flex items-center gap-2 mb-2">
@@ -1225,7 +1232,7 @@ export default function SettingsPage() {
                       <Label htmlFor="inviteRole">{t('Role')}</Label>
                       <Select value={inviteUserFormData.role} onValueChange={(value: SystemRole) => setInviteUserFormData(prev => ({...prev, role: value}))}>
                         <SelectTrigger id="inviteRole"><SelectValue /></SelectTrigger>
-                        <SelectContent>{systemRoles.map(role => <SelectItem key={role} value={role}>{t(role)}</SelectItem>)}</SelectContent>
+                        <SelectContent>{systemRoles.map(role => <SelectItem key={role} value={role}>{t(role as keyof typeof languagePacks.en.translations)}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                   </div>
@@ -1260,9 +1267,9 @@ export default function SettingsPage() {
                         </div>
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
-                      <TableCell><Badge variant="outline">{t(user.role)}</Badge></TableCell>
+                      <TableCell><Badge variant="outline">{t(user.role as keyof typeof languagePacks.en.translations)}</Badge></TableCell>
                       <TableCell>{user.reportsToUserNameCache || t('N/A')}</TableCell>
-                      <TableCell><Badge variant="outline" className={cn(getStatusBadgeClass(user.status))}>{t(user.status)}</Badge></TableCell>
+                      <TableCell><Badge variant="outline" className={cn(getStatusBadgeClass(user.status))}>{t(user.status as keyof typeof languagePacks.en.translations)}</Badge></TableCell>
                       <TableCell className="text-xs">{user.lastLogin ? formatDate(parseISO(user.lastLogin)) : t('Never')}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -1320,7 +1327,7 @@ export default function SettingsPage() {
                         <Label htmlFor="editRole">{t('Role')}</Label>
                         <Select value={editUserFormData.role} onValueChange={(value: SystemRole) => setEditUserFormData(prev => ({...prev, role: value}))}>
                           <SelectTrigger id="editRole"><SelectValue /></SelectTrigger>
-                          <SelectContent>{systemRoles.map(role => <SelectItem key={role} value={role}>{t(role)}</SelectItem>)}</SelectContent>
+                          <SelectContent>{systemRoles.map(role => <SelectItem key={role} value={role}>{t(role as keyof typeof languagePacks.en.translations)}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                        <div>
@@ -1467,3 +1474,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
