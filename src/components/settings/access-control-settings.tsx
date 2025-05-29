@@ -2,7 +2,7 @@
 // src/components/settings/access-control-settings.tsx
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,10 +31,10 @@ const PERMISSION_ACTIONS = ['view', 'create', 'edit', 'delete', 'approve', 'mana
 type PermissionAction = typeof PERMISSION_ACTIONS[number];
 
 type ModulePermissionSet = Partial<Record<PermissionAction, boolean>>;
-type RolePermissions = Partial<Record<AppModule, ModulePermissionSet>>;
+export type RolePermissions = Partial<Record<AppModule, ModulePermissionSet>>;
 
-// Mock permissions - these would come from a backend in a real app
-const mockRolePermissions: Record<SystemRole, RolePermissions> = {
+// Initial mock permissions - these are the defaults.
+const initialMockRolePermissions: Record<SystemRole, RolePermissions> = {
   Administrator: Object.fromEntries(APP_MODULES.map(module => [module, { view: true, create: true, edit: true, delete: true, approve: true, manage: true }])) as RolePermissions,
   'Project Manager': {
     Dashboard: { view: true }, Clients: { view: true, create: true, edit: true }, Projects: { view: true, create: true, edit: true, manage: true },
@@ -61,6 +61,7 @@ const mockRolePermissions: Record<SystemRole, RolePermissions> = {
   },
 };
 
+
 interface AccessControlSettingsProps {
   t: (key: string, replacements?: Record<string, string | number>) => string;
 }
@@ -68,15 +69,22 @@ interface AccessControlSettingsProps {
 export default function AccessControlSettingsSection({ t }: AccessControlSettingsProps) {
   const { toast } = useToast();
   const [selectedRole, setSelectedRole] = useState<SystemRole | null>(null);
+  
+  const [activeRolePermissions, setActiveRolePermissions] = useState<Record<SystemRole, RolePermissions>>(
+    JSON.parse(JSON.stringify(initialMockRolePermissions)) // Deep copy for initial state
+  );
+
   const [showEditPermissionsDialog, setShowEditPermissionsDialog] = useState(false);
-  const [showAddCustomRoleDialog, setShowAddCustomRoleDialog] = useState(false);
   const [editingRole, setEditingRole] = useState<SystemRole | null>(null);
   const [editablePermissions, setEditablePermissions] = useState<RolePermissions | null>(null);
+
+  const [showAddCustomRoleDialog, setShowAddCustomRoleDialog] = useState(false);
   const [newCustomRoleName, setNewCustomRoleName] = useState('');
 
   const handleOpenEditPermissionsDialog = (role: SystemRole) => {
     setEditingRole(role);
-    const permissionsToEdit = JSON.parse(JSON.stringify(mockRolePermissions[role] || {}));
+    // Deep copy the current active permissions for the role being edited
+    const permissionsToEdit = JSON.parse(JSON.stringify(activeRolePermissions[role] || {}));
     setEditablePermissions(permissionsToEdit);
     setShowEditPermissionsDialog(true);
   };
@@ -84,7 +92,9 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
   const handlePermissionToggle = (module: AppModule, action: PermissionAction) => {
     setEditablePermissions(currentPermissions => {
       if (!currentPermissions) return null;
-      const newPermissionsState = JSON.parse(JSON.stringify(currentPermissions)); // Deep copy
+      // Ensure immutability
+      const newPermissionsState = JSON.parse(JSON.stringify(currentPermissions));
+      
       if (!newPermissionsState[module]) {
         newPermissionsState[module] = {};
       }
@@ -94,10 +104,17 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
   };
   
   const handleSavePermissions = () => {
-    if (!editingRole) return;
+    if (!editingRole || !editablePermissions) return;
+    
+    setActiveRolePermissions(prevActivePermissions => {
+        const updatedPermissions = JSON.parse(JSON.stringify(prevActivePermissions));
+        updatedPermissions[editingRole] = editablePermissions;
+        return updatedPermissions;
+    });
+
     toast({
       title: t("Permissions Updated (Simulated)"),
-      description: t("Permissions for role '{role}' have been updated in this session. In a real system, this would save to the backend.", { role: t(editingRole as keyof LanguagePack['translations']) }),
+      description: t("Permissions for role '{role}' have been updated for this session. In a real system, this would save to the backend.", { role: t(editingRole as keyof LanguagePack['translations']) }),
       duration: 4000,
     });
     setShowEditPermissionsDialog(false);
@@ -112,14 +129,14 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
     }
     toast({
       title: t("Custom Role Added (Simulated)"),
-      description: t("The custom role '{roleName}' has been created. You would now typically define its permissions.", { roleName: newCustomRoleName }),
+      description: t("The custom role '{roleName}' has been created. You would now typically define its permissions. This role is not persisted in this demo.", { roleName: newCustomRoleName }),
       duration: 4000,
     });
     setShowAddCustomRoleDialog(false);
     setNewCustomRoleName('');
   };
 
-  const currentRolePermissionsToDisplay = selectedRole ? mockRolePermissions[selectedRole] : null;
+  const currentRolePermissionsToDisplay = selectedRole ? activeRolePermissions[selectedRole] : null;
 
   return (
     <Card className="shadow-md">
@@ -129,7 +146,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
           <CardTitle className="text-2xl">{t('Access Control (RBAC)')}</CardTitle>
         </div>
         <CardDescription className="pt-1 text-base">
-          {t('Define and manage role-based access control policies. This section allows administrators to view permissions for each user role, controlling access to modules and features.')}
+          {t('Define and manage role-based access control policies. This section allows administrators to view and simulate editing permissions for each user role.')}
           <br />
           {t('System roles determine what a user can *do* and *see*. This is distinct from the organizational hierarchy, though leadership roles often have broader system permissions.')}
         </CardDescription>
@@ -137,7 +154,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
       <CardContent className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-lg bg-muted/30">
           <div>
-            <Label htmlFor="role-select" className="text-base font-medium">{t('Select Role to View Permissions')}</Label>
+            <Label htmlFor="role-select" className="text-base font-medium">{t('Select Role to View/Edit Permissions')}</Label>
             <Select
               value={selectedRole || ""}
               onValueChange={(value) => setSelectedRole(value as SystemRole)}
@@ -170,20 +187,21 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
 
         {selectedRole && currentRolePermissionsToDisplay && (
           <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-3">{t('Permissions for {role}', {role: t(selectedRole as keyof LanguagePack['translations'])})}</h3>
+            <h3 className="text-lg font-semibold mb-3">{t('Current Permissions for {role}', {role: t(selectedRole as keyof LanguagePack['translations'])})}</h3>
             <div className="rounded-md border overflow-x-auto max-h-[500px]">
               <Table>
                 <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
                   <TableRow>
                     <TableHead className="w-[200px]">{t('Module / Feature')}</TableHead>
                     {PERMISSION_ACTIONS.map(action => (
-                      <TableHead key={action} className="text-center capitalize">{t(action)}</TableHead>
+                      <TableHead key={action} className="text-center capitalize w-[120px]">{t(action)}</TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {APP_MODULES.map(module => {
                     const modulePermissions = currentRolePermissionsToDisplay[module] || {};
+                    // Only render rows for modules that have at least one permission defined or if it's an Admin
                     if (Object.keys(modulePermissions).length > 0 || selectedRole === 'Administrator') { 
                         return (
                             <TableRow key={module}>
@@ -195,7 +213,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
                                     <Badge
                                     variant={isAllowed ? "default" : "secondary"}
                                     className={cn(
-                                        "text-xs px-2 py-0.5",
+                                        "text-xs px-2 py-0.5 w-[80px] justify-center", // Added fixed width for consistency
                                         isAllowed ? "bg-green-100 text-green-700 border-green-300" : "bg-red-100 text-red-700 border-red-300"
                                     )}
                                     >
@@ -246,7 +264,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
         <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{t('Edit Permissions for Role: {roleName}', { roleName: editingRole ? t(editingRole as keyof LanguagePack['translations']) : '' })}</DialogTitle>
-            <DialogDescription>{t('Toggle permissions for each module and action. Changes are simulated for this demo.')}</DialogDescription>
+            <DialogDescription>{t('Toggle permissions for each module and action. Changes are simulated for this demo and applied for the current session.')}</DialogDescription>
           </DialogHeader>
           <div className="py-4 flex-grow overflow-y-auto">
             {editablePermissions && editingRole ? (
@@ -282,7 +300,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditPermissionsDialog(false)}>{t('Cancel')}</Button>
-            <Button onClick={handleSavePermissions}>{t('Save Permissions (Simulated)')}</Button>
+            <Button onClick={handleSavePermissions}>{t('Save Permissions (Current Session)')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -292,7 +310,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('Add New Custom Role')}</DialogTitle>
-            <DialogDescription>{t('Enter the name for the new custom role.')}</DialogDescription>
+            <DialogDescription>{t('Enter the name for the new custom role. This role will not be persisted in this demo.')}</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Label htmlFor="newCustomRoleName">{t('Role Name')}</Label>
@@ -312,3 +330,4 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
     </Card>
   );
 }
+
