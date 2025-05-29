@@ -7,10 +7,12 @@ import AddClientDialog from "@/components/clients/add-client-dialog";
 import type { AddClientFormData } from '@/components/clients/add-client-dialog';
 import type { Client, KeyContact } from "@/lib/types";
 import { initialClients } from '@/lib/mockData'; 
+import { useLocalization } from '@/context/localization-provider'; // Import for translation
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const { t } = useLocalization(); // Use the hook
 
   useEffect(() => {
     setClients(initialClients);
@@ -23,19 +25,18 @@ export default function ClientsPage() {
     setClients(prevClients => [
       ...prevClients,
       { 
-        ...newClientDialogData, // Spread data from dialog (companyName, industry, website)
-        id: String(Date.now()), // Simple ID generation
-        status: 'Prospect', // Default status for new clients
+        ...newClientDialogData, 
+        id: String(Date.now()), 
+        status: 'Prospect', 
         logoUrl: `https://placehold.co/100x100.png?text=${newClientDialogData.companyName.substring(0,2).toUpperCase()}`,
-        keyContacts: newClientDialogData.keyContacts.map(kc => ({...kc, id: String(Date.now() + Math.random())})), // Add IDs to keyContacts
+        keyContacts: newClientDialogData.keyContacts.map(kc => ({...kc, id: String(Date.now() + Math.random())})), 
         lastContact: new Date().toISOString().split('T')[0],
-        // Initialize other complex fields with defaults or empty states
         address: {},
         communicationLogs: [],
         engagementDetails: { startDate: new Date().toISOString().split('T')[0]},
         financialSummary: { totalBilled: 0, totalPaid: 0, outstandingAmount: 0, currency: 'USD'},
         linkedProjectIds: [],
-        satisfactionScore: 0, // Neutral initial score
+        satisfactionScore: 0,
         clientTier: 'Standard',
       }
     ]);
@@ -46,9 +47,9 @@ export default function ClientsPage() {
       <div className="space-y-6">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t('Clients')}</h1>
             <p className="text-muted-foreground">
-              Manage your client companies and their engagement details.
+              {t('Manage your client companies and their engagement details.')}
             </p>
           </div>
         </header>
@@ -64,9 +65,9 @@ export default function ClientsPage() {
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('Clients')}</h1>
           <p className="text-muted-foreground">
-            Manage your client companies and their engagement details.
+            {t('Manage your client companies and their engagement details.')}
           </p>
         </div>
         <AddClientDialog onAddClient={handleAddClient} />
@@ -75,3 +76,5 @@ export default function ClientsPage() {
     </div>
   );
 }
+
+    

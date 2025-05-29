@@ -4,7 +4,8 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import AppLayout from '@/components/layout/app-layout';
 import { Toaster } from "@/components/ui/toaster";
-import { ThemeProvider } from '@/context/theme-provider'; // Import ThemeProvider
+import { ThemeProvider } from '@/context/theme-provider';
+import { LocalizationProvider } from '@/context/localization-provider'; // Import LocalizationProvider
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -21,8 +22,6 @@ export const metadata: Metadata = {
   description: 'Strategic insights and project management for consultants.',
 };
 
-// Small script to apply theme from localStorage before hydration to reduce FOUC
-// This is a simplified approach. Next-themes handles this more robustly.
 const InitializeTheme = () => {
   if (typeof window !== 'undefined') {
     const storedTheme = localStorage.getItem('vite-ui-theme') as ('light' | 'dark' | 'system') | null;
@@ -41,7 +40,7 @@ const InitializeTheme = () => {
       document.documentElement.classList.remove('dark');
     }
   }
-  return null; // This component doesn't render anything visible
+  return null; 
 };
 
 
@@ -53,12 +52,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* 
-          Ideally, a script here would set the theme class before any rendering.
-          For simplicity with current constraints, we'll rely on ThemeProvider's useEffect,
-          which might cause a brief flash on initial load if preference differs from system.
-          The `InitializeTheme` component is a client-side attempt to mitigate this.
-        */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <InitializeTheme />
@@ -66,10 +59,14 @@ export default function RootLayout({
           defaultTheme="system"
           storageKey="vite-ui-theme"
         >
-          <AppLayout>{children}</AppLayout>
-          <Toaster />
+          <LocalizationProvider> {/* Wrap with LocalizationProvider */}
+            <AppLayout>{children}</AppLayout>
+            <Toaster />
+          </LocalizationProvider>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+
+    

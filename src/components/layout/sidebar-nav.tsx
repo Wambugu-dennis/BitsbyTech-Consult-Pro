@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -9,9 +10,11 @@ import {
 } from '@/components/ui/sidebar';
 import { navLinks } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { useLocalization } from '@/context/localization-provider'; // Import useLocalization
 
 export default function SidebarNav() {
   const pathname = usePathname();
+  const { t } = useLocalization(); // Get translation function
 
   return (
     <SidebarMenu className="p-2">
@@ -26,11 +29,12 @@ export default function SidebarNav() {
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                 : 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
             )}
-            tooltip={link.label}
+            tooltip={t(link.label as keyof typeof languagePacks.en.translations)} // Translate tooltip
           >
             <Link href={link.href}>
               <link.icon className="h-5 w-5" />
-              <span className="group-data-[collapsible=icon]:hidden">{link.label}</span>
+              {/* Translate link label */}
+              <span className="group-data-[collapsible=icon]:hidden">{t(link.label as keyof typeof languagePacks.en.translations)}</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -38,3 +42,5 @@ export default function SidebarNav() {
     </SidebarMenu>
   );
 }
+
+    

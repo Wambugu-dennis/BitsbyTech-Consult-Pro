@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react'; // Added React
+import React, { useState, useEffect } from 'react'; 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -24,7 +24,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -70,12 +69,15 @@ import {
   Laptop,
   LayoutDashboard,
   ImageIcon,
-  Type
+  Type,
+  CalendarIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTheme } from '@/context/theme-provider'; // Import useTheme
+import { useTheme } from '@/context/theme-provider';
+import { useLocalization } from '@/context/localization-provider'; // Import useLocalization
+import { languagePacks, supportedLanguages, supportedRegions, type SupportedLanguage, type SupportedRegion } from '@/lib/i18n-config'; // Import i18n config
 
 type SettingsSectionId = 
   | 'account' 
@@ -92,23 +94,23 @@ type SettingsSectionId =
 
 interface SettingsMenuItem {
   id: SettingsSectionId;
-  label: string;
+  labelKey: keyof typeof languagePacks.en.translations; // Use key for translation
   icon: React.ElementType;
-  description: string;
+  description: string; // Keep description in English for now, or add keys too
 }
 
 const settingsMenuItems: SettingsMenuItem[] = [
-  { id: 'account', label: 'Account', icon: UserCircle, description: 'Manage your personal account details and profile information.' },
-  { id: 'notifications', label: 'Notifications', icon: BellRing, description: 'Configure how and when you receive notifications from the system.' },
-  { id: 'security', label: 'Security', icon: Lock, description: 'Manage your password, two-factor authentication, and view active sessions.' },
-  { id: 'appearance', label: 'Appearance', icon: Paintbrush, description: 'Customize the look and feel of the application, including theme.' },
-  { id: 'language', label: 'Language & Region', icon: Languages, description: 'Set your preferred language and region for the application interface.' },
-  { id: 'billing', label: 'Billing', icon: CreditCard, description: 'View your subscription details, payment history, and manage billing information.' },
-  { id: 'userManagement', label: 'User Management', icon: UsersIcon, description: 'Administer user accounts, roles, and permissions. (Admins)' },
-  { id: 'accessControl', label: 'Access Control', icon: ShieldCheck, description: 'Define and manage role-based access control (RBAC) policies. (Admins)' },
-  { id: 'integrations', label: 'Integrations', icon: Link2, description: 'Connect and manage third-party application integrations.' },
-  { id: 'workflow', label: 'Workflow Customization', icon: Workflow, description: 'Customize business workflows and approval processes.' },
-  { id: 'system', label: 'System & Compliance', icon: Server, description: 'Configure system-wide settings, view audit logs, and manage compliance.' },
+  { id: 'account', labelKey: 'Account', icon: UserCircle, description: 'Manage your personal account details and profile information.' },
+  { id: 'notifications', labelKey: 'Notifications', icon: BellRing, description: 'Configure how and when you receive notifications from the system.' },
+  { id: 'security', labelKey: 'Security', icon: Lock, description: 'Manage your password, two-factor authentication, and view active sessions.' },
+  { id: 'appearance', labelKey: 'Appearance', icon: Paintbrush, description: 'Customize the look and feel of the application, including theme.' },
+  { id: 'language', labelKey: 'Language & Region', icon: Languages, description: 'Set your preferred language and region for the application interface.' },
+  { id: 'billing', labelKey: 'Billing', icon: CreditCard, description: 'View your subscription details, payment history, and manage billing information.' },
+  { id: 'userManagement', labelKey: 'User Management', icon: UsersIcon, description: 'Administer user accounts, roles, and permissions. (Admins)' },
+  { id: 'accessControl', labelKey: 'Access Control', icon: ShieldCheck, description: 'Define and manage role-based access control (RBAC) policies. (Admins)' },
+  { id: 'integrations', labelKey: 'Integrations', icon: Link2, description: 'Connect and manage third-party application integrations.' },
+  { id: 'workflow', labelKey: 'Workflow Customization', icon: Workflow, description: 'Customize business workflows and approval processes.' },
+  { id: 'system', labelKey: 'System & Compliance', icon: Server, description: 'Configure system-wide settings, view audit logs, and manage compliance.' },
 ];
 
 const mockUserData = {
@@ -152,24 +154,21 @@ const mockAuditLogPreview = [
     { id: 'log1', timestamp: '2024-07-25 10:00:00 UTC', event: 'Successful login', user: 'Alex Mercer', ipAddress: '192.168.1.101', details: 'Login via web browser' },
     { id: 'log2', timestamp: '2024-07-25 09:30:00 UTC', event: 'Password change attempt (failed)', user: 'Alex Mercer', ipAddress: '203.0.113.45', details: 'Incorrect current password' },
     { id: 'log3', timestamp: '2024-07-24 15:00:00 UTC', event: '2FA setup completed', user: 'Alex Mercer', ipAddress: '192.168.1.101', details: 'Authenticator app registered' },
-    { id: 'log4', timestamp: '2024-07-23 11:00:00 UTC', event: 'API Key "ProjectRead" created', user: 'Alex Mercer', ipAddress: '192.168.1.101', details: 'Permissions: read-only project data' },
-    { id: 'log5', timestamp: '2024-07-22 18:00:00 UTC', event: 'User Role "Project Manager" updated', user: 'Alex Mercer', ipAddress: '192.168.1.101', details: 'Added permission "approve_expenses_low_value"' },
 ];
 
 const mockLoginHistory = [
     { id: 'lh1', timestamp: '2024-07-26 10:00:00 UTC', status: 'Success', ipAddress: '192.168.1.101', device: 'Chrome on Windows', location: 'New York, USA' },
     { id: 'lh2', timestamp: '2024-07-26 09:55:00 UTC', status: 'Failed', ipAddress: '203.0.113.45', device: 'Unknown Browser', location: 'Unknown (Suspicious)' },
-    { id: 'lh3', timestamp: '2024-07-25 14:30:00 UTC', status: 'Success', ipAddress: '10.0.0.5', device: 'Safari on macOS', location: 'London, UK (Trusted)' },
-    { id: 'lh4', timestamp: '2024-07-25 08:15:00 UTC', status: 'Success (2FA)', ipAddress: '172.16.0.20', device: 'Mobile App (iOS)', location: 'San Francisco, USA' },
 ];
 
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('account');
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme(); // Use the theme context
+  const { theme, setTheme } = useTheme();
+  const { language, region, setLanguage, setRegion, t, formatDate } = useLocalization(); // Use Localization context
 
-  // State for Notifications section
+
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     masterEnable: true,
     channels: { email: true, inApp: true, push: false },
@@ -183,7 +182,6 @@ export default function SettingsPage() {
     digestFrequency: 'daily',
   });
 
-  // State for Security section
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [currentActiveSessions, setCurrentActiveSessions] = useState(mockActiveSessions);
@@ -194,8 +192,7 @@ export default function SettingsPage() {
     twoFactorChanged: false,
   });
   
-  // State for Appearance section - currentThemePreference is now from useTheme
-  const [currentAccentColor, setCurrentAccentColor] = useState<string>('defaultBlue');
+  const [currentAccentColor, setCurrentAccentColor] = useState<string>('defaultBlue'); // Placeholder
 
 
   const handleNotificationChange = <K extends keyof NotificationSettings>(
@@ -227,18 +224,18 @@ export default function SettingsPage() {
   };
 
 
-  const handlePlaceholderAction = (actionMessage: string, description?: string) => {
+  const handlePlaceholderAction = (actionMessageKey: string, descriptionKey?: string) => {
     toast({
-      title: actionMessage,
-      description: description || "This functionality is for demonstration and not fully implemented.",
+      title: t(actionMessageKey),
+      description: descriptionKey ? t(descriptionKey) : t("This functionality is for demonstration."),
       duration: 3000,
     });
   };
 
   const handleAccountDeletion = () => {
     toast({
-      title: "Account Deletion Process",
-      description: "Account deletion initiated (simulated). In a real system, this would be a permanent action with further confirmations.",
+      title: t("Account Deletion Process"),
+      description: t("Account deletion initiated (simulated). This would be permanent."),
       variant: "destructive",
       duration: 5000,
     });
@@ -246,8 +243,8 @@ export default function SettingsPage() {
 
   const handleSaveNotificationSettings = () => {
     toast({
-      title: "Settings Saved",
-      description: "Your notification preferences have been updated (simulated).",
+      title: t("Settings Saved"),
+      description: t("Your notification preferences have been updated (simulated)."),
       duration: 3000,
     });
   };
@@ -255,8 +252,8 @@ export default function SettingsPage() {
   const handleChangePassword = () => {
     setShowPasswordDialog(false);
     toast({
-      title: "Password Changed Successfully",
-      description: "Your password has been updated (simulated).",
+      title: t("Password Changed Successfully"),
+      description: t("Your password has been updated (simulated)."),
       duration: 3000,
     });
   };
@@ -264,34 +261,41 @@ export default function SettingsPage() {
   const handleToggle2FA = () => {
     if (is2FAEnabled) {
         setIs2FAEnabled(false);
-        toast({ title: "Two-Factor Authentication Disabled (Simulated)" });
+        toast({ title: t("Two-Factor Authentication Disabled (Simulated)") });
     } else {
         setIs2FAEnabled(true);
-        handlePlaceholderAction("2FA Setup Process", "The 2FA setup process (e.g., QR code, app pairing) would begin here.");
+        handlePlaceholderAction("2FA Setup Process", "The 2FA setup process (QR code, app pairing) would begin here.");
     }
   };
   
   const handleSignOutSession = (sessionId: string) => {
     setCurrentActiveSessions(prev => prev.filter(session => session.id !== sessionId));
-    toast({ title: "Session Signed Out", description: `Session ${sessionId} has been remotely signed out (simulated).`});
+    toast({ title: t("Session Signed Out"), description: t("Session {sessionId} has been remotely signed out (simulated).", {sessionId})});
   };
 
   const handleSignOutAllOtherSessions = () => {
     if (currentActiveSessions.length > 1) { 
-        setCurrentActiveSessions(prev => prev.slice(0, 1)); // Keep only the first (assumed current) session
+        setCurrentActiveSessions(prev => prev.slice(0, 1));
     }
-    toast({ title: "All Other Sessions Signed Out", description: "All other active sessions have been remotely signed out (simulated)."});
+    toast({ title: t("All Other Sessions Signed Out"), description: t("All other active sessions have been remotely signed out (simulated).")});
   };
 
   const handleSaveActivityAlerts = () => {
-    toast({ title: "Activity Alert Preferences Saved", description: "Your preferences for account activity alerts have been updated (simulated)." });
+    toast({ title: t("Activity Alert Preferences Saved"), description: t("Your preferences for account activity alerts have been updated (simulated).") });
   };
 
   const handleSaveAppearanceSettings = () => {
-    // Theme is already set by the RadioGroup via context
     toast({
-      title: "Appearance Settings Saved",
-      description: `Theme preference updated to ${theme}. Accent color setting is a placeholder.`,
+      title: t("Appearance Settings Saved"),
+      description: t("Theme preference updated to {theme}. Accent color is a placeholder.", { theme }),
+      duration: 3000,
+    });
+  };
+
+  const handleSaveLanguageSettings = () => {
+     toast({
+      title: t("Settings Saved"),
+      description: t("Language and region preferences have been updated (simulated)."),
       duration: 3000,
     });
   };
@@ -307,9 +311,9 @@ export default function SettingsPage() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <UserCircle className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Profile Information</CardTitle>
+                <CardTitle className="text-xl">{t('Profile Information')}</CardTitle>
               </div>
-              <CardDescription>Manage your personal details and profile picture.</CardDescription>
+              <CardDescription>{t('Manage your personal details and profile picture.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -322,26 +326,26 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">{mockUserData.email}</p>
                   <p className="text-xs text-muted-foreground">{mockUserData.role}</p>
                    <Button variant="outline" size="sm" className="mt-2" onClick={() => handlePlaceholderAction("Change Profile Picture Triggered")}>
-                    Change Picture
+                    {t('Change Picture')}
                   </Button>
                 </div>
               </div>
               <Separator />
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="profileName">Full Name</Label>
+                  <Label htmlFor="profileName">{t('Full Name')}</Label>
                   <Input id="profileName" defaultValue={mockUserData.name} disabled className="mt-1" />
                 </div>
                 <div>
-                  <Label htmlFor="profileEmail">Email Address</Label>
+                  <Label htmlFor="profileEmail">{t('Email Address')}</Label>
                   <Input id="profileEmail" type="email" defaultValue={mockUserData.email} disabled className="mt-1" />
                 </div>
                  <div>
-                  <Label htmlFor="profilePhone">Phone Number</Label>
+                  <Label htmlFor="profilePhone">{t('Phone Number')}</Label>
                   <Input id="profilePhone" type="tel" defaultValue={mockUserData.phone} disabled className="mt-1" />
                 </div>
                  <Button onClick={() => handlePlaceholderAction("Edit Profile Details Triggered")}>
-                    <Edit3 className="mr-2 h-4 w-4"/> Edit Profile
+                    <Edit3 className="mr-2 h-4 w-4"/> {t('Edit Profile')}
                 </Button>
               </div>
             </CardContent>
@@ -350,16 +354,16 @@ export default function SettingsPage() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <Lock className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Security Settings (Basic)</CardTitle>
+                <CardTitle className="text-xl">{t('Security Settings (Basic)')}</CardTitle>
               </div>
-              <CardDescription>Manage your password and basic security options.</CardDescription>
+              <CardDescription>{t('Manage your password and basic security options.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
                <Button variant="outline" onClick={() => { setActiveSection('security'); handlePlaceholderAction("Redirecting to Full Security Settings...");}}>
-                    Go to Full Security Settings
+                    {t('Go to Full Security Settings')}
                 </Button>
                 <p className="text-xs text-muted-foreground mt-1">
-                    Advanced options like Two-Factor Authentication, Active Sessions, and Audit Logs are available in the main "Security" section.
+                    {t('Advanced options like Two-Factor Authentication, Active Sessions, and Audit Logs are available in the main "Security" section.')}
                 </p>
             </CardContent>
           </Card>
@@ -367,20 +371,20 @@ export default function SettingsPage() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <Paintbrush className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Preferences</CardTitle>
+                <CardTitle className="text-xl">{t('Preferences')}</CardTitle>
               </div>
-              <CardDescription>Personalize your application experience.</CardDescription>
+              <CardDescription>{t('Personalize your application experience.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div>
-                    <h4 className="font-medium">Appearance & Language</h4>
-                    <p className="text-sm text-muted-foreground">Theme (Dark/Light mode) and language settings can be found in their dedicated sections in the main settings menu.</p>
+                    <h4 className="font-medium">{t('Appearance & Language')}</h4>
+                    <p className="text-sm text-muted-foreground">{t('Theme (Dark/Light mode) and language settings can be found in their dedicated sections in the main settings menu.')}</p>
                      <div className="flex gap-2 mt-2">
                         <Button variant="outline" size="sm" onClick={() => setActiveSection('appearance')}>
-                            <Palette className="mr-2 h-4 w-4"/> Go to Appearance
+                            <Palette className="mr-2 h-4 w-4"/> {t('Go to Appearance')}
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => setActiveSection('language')}>
-                            <Languages className="mr-2 h-4 w-4"/> Go to Language & Region
+                            <Languages className="mr-2 h-4 w-4"/> {t('Go to Language & Region')}
                         </Button>
                      </div>
                 </div>
@@ -390,33 +394,32 @@ export default function SettingsPage() {
             <CardHeader>
                <div className="flex items-center gap-3">
                 <Trash2 className="h-7 w-7 text-destructive" />
-                <CardTitle className="text-xl text-destructive">Account Management</CardTitle>
+                <CardTitle className="text-xl text-destructive">{t('Account Management')}</CardTitle>
               </div>
-              <CardDescription className="text-destructive/90">Manage critical account actions.</CardDescription>
+              <CardDescription className="text-destructive/90">{t('Manage critical account actions.')}</CardDescription>
             </CardHeader>
             <CardContent>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" className="w-full sm:w-auto">
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete Account
+                    <Trash2 className="mr-2 h-4 w-4" /> {t('Delete Account')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('Are you absolutely sure?')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete your
-                      account and remove your data from our servers.
+                      {t('This action cannot be undone. This will permanently delete your account and remove your data from our servers.')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleAccountDeletion}>Continue</AlertDialogAction>
+                    <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleAccountDeletion}>{t('Continue')}</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
               <p className="text-xs text-muted-foreground mt-2">
-                Deleting your account is permanent. Please be certain before proceeding.
+                {t('Deleting your account is permanent. Please be certain before proceeding.')}
               </p>
             </CardContent>
           </Card>
@@ -425,21 +428,22 @@ export default function SettingsPage() {
     }
 
     if (activeSection === 'notifications') {
+      // Content from previous implementation - should be wrapped with t() for labels
       return (
         <div className="space-y-6">
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
                 <BellRing className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Notification Settings</CardTitle>
+                <CardTitle className="text-xl">{t('Notification Settings')}</CardTitle>
               </div>
-              <CardDescription>Manage how and when you receive alerts from Consult Vista.</CardDescription>
+              <CardDescription>{t('Manage how and when you receive alerts from Consult Vista.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
                 <div>
-                  <Label htmlFor="masterEnable" className="text-base font-semibold">Enable All Notifications</Label>
-                  <p className="text-xs text-muted-foreground">Master control for all application alerts.</p>
+                  <Label htmlFor="masterEnable" className="text-base font-semibold">{t('Enable All Notifications')}</Label>
+                  <p className="text-xs text-muted-foreground">{t('Master control for all application alerts.')}</p>
                 </div>
                 <Switch
                   id="masterEnable"
@@ -449,10 +453,10 @@ export default function SettingsPage() {
               </div>
               <Separator />
               <div>
-                <h4 className="text-md font-semibold mb-3">Notification Channels</h4>
+                <h4 className="text-md font-semibold mb-3">{t('Notification Channels')}</h4>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="emailChannel">Email Notifications</Label>
+                    <Label htmlFor="emailChannel">{t('Email Notifications')}</Label>
                     <Switch
                       id="emailChannel"
                       checked={notificationSettings.channels.email}
@@ -461,7 +465,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="inAppChannel">In-App Notifications</Label>
+                    <Label htmlFor="inAppChannel">{t('In-App Notifications')}</Label>
                     <Switch
                       id="inAppChannel"
                       checked={notificationSettings.channels.inApp}
@@ -470,9 +474,9 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between opacity-50">
-                    <Label htmlFor="pushChannel">Push Notifications (Mobile)</Label>
+                    <Label htmlFor="pushChannel">{t('Push Notifications (Mobile)')}</Label>
                     <div className="flex items-center gap-2">
-                       <span className="text-xs text-muted-foreground italic mr-2">Coming Soon</span>
+                       <span className="text-xs text-muted-foreground italic mr-2">{t('Coming Soon')}</span>
                        <Switch id="pushChannel" checked={notificationSettings.channels.push} disabled />
                     </div>
                   </div>
@@ -480,10 +484,10 @@ export default function SettingsPage() {
               </div>
               <Separator />
               <div>
-                <h4 className="text-md font-semibold mb-3">Detailed Notification Preferences</h4>
-                <p className="text-sm text-muted-foreground mb-4">Choose which types of events trigger notifications for each channel. (Only active if master notifications are enabled.)</p>
+                <h4 className="text-md font-semibold mb-3">{t('Detailed Notification Preferences')}</h4>
+                <p className="text-sm text-muted-foreground mb-4">{t('Choose which types of events trigger notifications for each channel. (Only active if master notifications are enabled.)')}</p>
                 {(Object.keys(notificationSettings.preferences) as Array<keyof NotificationSettings['preferences']>).map((eventKey) => {
-                  const eventLabel = eventKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                  const eventLabel = t(eventKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()));
                   const Icon = 
                     eventKey === 'projectUpdates' ? Briefcase :
                     eventKey === 'clientCommunications' ? MessageSquare :
@@ -498,7 +502,7 @@ export default function SettingsPage() {
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 pl-7">
                         <div className="flex items-center justify-between">
-                          <Label htmlFor={`${eventKey}-email`} className="text-xs">Email</Label>
+                          <Label htmlFor={`${eventKey}-email`} className="text-xs">{t('Email')}</Label>
                           <Switch
                             id={`${eventKey}-email`}
                             checked={notificationSettings.preferences[eventKey].email}
@@ -507,7 +511,7 @@ export default function SettingsPage() {
                           />
                         </div>
                         <div className="flex items-center justify-between">
-                          <Label htmlFor={`${eventKey}-inApp`} className="text-xs">In-App</Label>
+                          <Label htmlFor={`${eventKey}-inApp`} className="text-xs">{t('In-App')}</Label>
                           <Switch
                             id={`${eventKey}-inApp`}
                             checked={notificationSettings.preferences[eventKey].inApp}
@@ -522,27 +526,27 @@ export default function SettingsPage() {
               </div>
               <Separator />
                <div>
-                  <h4 className="text-md font-semibold mb-2">Notification Delivery</h4>
-                   <Label htmlFor="digestFrequency" className="text-sm text-muted-foreground">Notification Digest Frequency (Planned)</Label>
+                  <h4 className="text-md font-semibold mb-2">{t('Notification Delivery')}</h4>
+                   <Label htmlFor="digestFrequency" className="text-sm text-muted-foreground">{t('Notification Digest Frequency (Planned)')}</Label>
                     <Select
                         value={notificationSettings.digestFrequency}
                         onValueChange={(value: NotificationSettings['digestFrequency']) => handleNotificationChange('digestFrequency', value) }
                         disabled // For future implementation
                     >
                         <SelectTrigger id="digestFrequency" className="mt-1 w-full sm:w-[250px]">
-                            <SelectValue placeholder="Select frequency" />
+                            <SelectValue placeholder={t('Select frequency')} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="instant">Instant</SelectItem>
-                            <SelectItem value="daily">Daily Digest</SelectItem>
-                            <SelectItem value="weekly">Weekly Digest</SelectItem>
+                            <SelectItem value="instant">{t('Instant')}</SelectItem>
+                            <SelectItem value="daily">{t('Daily Digest')}</SelectItem>
+                            <SelectItem value="weekly">{t('Weekly Digest')}</SelectItem>
                         </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground mt-1 italic">Consolidate non-critical notifications into a summary. (Feature coming soon)</p>
+                    <p className="text-xs text-muted-foreground mt-1 italic">{t('Consolidate non-critical notifications into a summary. (Feature coming soon)')}</p>
                </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleSaveNotificationSettings} disabled={!notificationSettings.masterEnable}>Save Notification Settings</Button>
+              <Button onClick={handleSaveNotificationSettings} disabled={!notificationSettings.masterEnable}>{t('Save Notification Settings')}</Button>
             </CardFooter>
           </Card>
         </div>
@@ -550,150 +554,123 @@ export default function SettingsPage() {
     }
 
     if (activeSection === 'security') {
+      // Content from previous implementation - needs labels translated
       return (
         <div className="space-y-6">
-          {/* Password Management Card */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
                 <KeyRound className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Password Management</CardTitle>
+                <CardTitle className="text-xl">{t('Password Management')}</CardTitle>
               </div>
-              <CardDescription>Manage your account password.</CardDescription>
+              <CardDescription>{t('Manage your account password.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
                 <DialogTrigger asChild>
-                  <Button variant="outline">Change Password</Button>
+                  <Button variant="outline">{t('Change Password')}</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Change Your Password</DialogTitle>
+                    <DialogTitle>{t('Change Your Password')}</DialogTitle>
                     <DialogDescription>
-                      Enter your current password and choose a new one. Ensure your new password meets the policy requirements.
+                      {t('Enter your current password and choose a new one. Ensure your new password meets the policy requirements.')}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-1">
-                      <Label htmlFor="currentPassword">Current Password</Label>
+                      <Label htmlFor="currentPassword">{t('Current Password')}</Label>
                       <Input id="currentPassword" type="password" />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="newPassword">New Password</Label>
+                      <Label htmlFor="newPassword">{t('New Password')}</Label>
                       <Input id="newPassword" type="password" />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+                      <Label htmlFor="confirmNewPassword">{t('Confirm New Password')}</Label>
                       <Input id="confirmNewPassword" type="password" />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>Cancel</Button>
-                    <Button onClick={handleChangePassword}>Save Changes</Button>
+                    <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>{t('Cancel')}</Button>
+                    <Button onClick={handleChangePassword}>{t('Save Changes')}</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-              <p className="text-xs text-muted-foreground">Last password change: {new Date(mockUserData.lastPasswordChange).toLocaleDateString()}</p>
+              <p className="text-xs text-muted-foreground">{t('Last password change')}: {new Date(mockUserData.lastPasswordChange).toLocaleDateString()}</p>
             </CardContent>
           </Card>
 
-          {/* Password Policy Configuration Card (Admin) */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
                 <FileLock2 className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Password Policy Configuration (Admin)</CardTitle>
+                <CardTitle className="text-xl">{t('Password Policy Configuration (Admin)')}</CardTitle>
               </div>
-              <CardDescription>Define and enforce password requirements across the organization.</CardDescription>
+              <CardDescription>{t('Define and enforce password requirements across the organization.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <Label>Minimum Length:</Label>
+                  <Label>{t('Minimum Length')}:</Label>
                   <Input type="number" defaultValue="12" disabled className="mt-1" />
                 </div>
                 <div>
-                  <Label>Password Expiry (days):</Label>
+                  <Label>{t('Password Expiry (days)')}:</Label>
                   <Input type="number" defaultValue="90" disabled className="mt-1" />
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                  <Label>Required Character Types:</Label>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="reqUppercase" defaultChecked disabled /><Label htmlFor="reqUppercase" className="font-normal">Uppercase</Label>
-                  </div>
-                   <div className="flex items-center space-x-2">
-                    <Switch id="reqLowercase" defaultChecked disabled /><Label htmlFor="reqLowercase" className="font-normal">Lowercase</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="reqNumber" defaultChecked disabled /><Label htmlFor="reqNumber" className="font-normal">Number</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="reqSpecial" defaultChecked disabled /><Label htmlFor="reqSpecial" className="font-normal">Special Character</Label>
-                  </div>
+                  <Label>{t('Required Character Types')}:</Label>
+                  <div className="flex items-center space-x-2"><Switch id="reqUppercaseSec" defaultChecked disabled /><Label htmlFor="reqUppercaseSec" className="font-normal">{t('Uppercase')}</Label></div>
+                  <div className="flex items-center space-x-2"><Switch id="reqLowercaseSec" defaultChecked disabled /><Label htmlFor="reqLowercaseSec" className="font-normal">{t('Lowercase')}</Label></div>
+                  <div className="flex items-center space-x-2"><Switch id="reqNumberSec" defaultChecked disabled /><Label htmlFor="reqNumberSec" className="font-normal">{t('Number')}</Label></div>
+                  <div className="flex items-center space-x-2"><Switch id="reqSpecialSec" defaultChecked disabled /><Label htmlFor="reqSpecialSec" className="font-normal">{t('Special Character')}</Label></div>
                 </div>
-                 <div>
-                  <Label>Account Lockout Threshold (attempts):</Label>
-                  <Input type="number" defaultValue="5" disabled className="mt-1" />
-                </div>
-                <div>
-                  <Label>Lockout Duration (minutes):</Label>
-                  <Input type="number" defaultValue="30" disabled className="mt-1" />
-                </div>
+                 <div><Label>{t('Account Lockout Threshold (attempts)')}:</Label><Input type="number" defaultValue="5" disabled className="mt-1" /></div>
+                <div><Label>{t('Lockout Duration (minutes)')}:</Label><Input type="number" defaultValue="30" disabled className="mt-1" /></div>
               </div>
-              <Button onClick={() => handlePlaceholderAction("Save Password Policy", "Password policy settings would be saved.")} className="mt-3">Save Password Policy</Button>
-               <p className="text-xs text-muted-foreground mt-2">These settings apply system-wide and affect all users.</p>
+              <Button onClick={() => handlePlaceholderAction("Save Password Policy", "Password policy settings would be saved.")} className="mt-3">{t('Save Password Policy')}</Button>
+               <p className="text-xs text-muted-foreground mt-2">{t('These settings apply system-wide and affect all users.')}</p>
             </CardContent>
           </Card>
 
-          {/* Two-Factor Authentication Card */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
                 <Fingerprint className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Two-Factor Authentication (2FA)</CardTitle>
+                <CardTitle className="text-xl">{t('Two-Factor Authentication (2FA)')}</CardTitle>
               </div>
-              <CardDescription>Enhance your account security with an additional verification step.</CardDescription>
+              <CardDescription>{t('Enhance your account security with an additional verification step.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
-                <p>Status: <span className={cn("font-semibold", is2FAEnabled ? "text-green-600" : "text-red-600")}>{is2FAEnabled ? "Enabled" : "Disabled"}</span></p>
+                <p>{t('Status')}: <span className={cn("font-semibold", is2FAEnabled ? "text-green-600" : "text-red-600")}>{is2FAEnabled ? t("Enabled") : t("Disabled")}</span></p>
                 <Button variant={is2FAEnabled ? "destructive" : "default"} onClick={handleToggle2FA}>
-                  {is2FAEnabled ? "Disable 2FA" : "Enable 2FA"}
+                  {is2FAEnabled ? t("Disable 2FA") : t("Enable 2FA")}
                 </Button>
               </div>
               {is2FAEnabled && (
                 <Button variant="outline" size="sm" onClick={() => handlePlaceholderAction("Manage 2FA Settings", "Options like viewing recovery codes or changing 2FA method would be here.")}>
-                  Manage 2FA Settings
+                  {t('Manage 2FA Settings')}
                 </Button>
               )}
               <p className="text-xs text-muted-foreground">
                 {is2FAEnabled 
-                  ? "2FA adds an extra layer of security to your account during login." 
-                  : "It is highly recommended to enable 2FA for enhanced security."}
+                  ? t("2FA adds an extra layer of security to your account during login.") 
+                  : t("It is highly recommended to enable 2FA for enhanced security.")}
               </p>
             </CardContent>
           </Card>
 
-          {/* Active Sessions Card */}
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-3">
-                <Network className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Active Sessions</CardTitle>
-              </div>
-              <CardDescription>View and manage devices currently logged into your account.</CardDescription>
+              <div className="flex items-center gap-3"><Network className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Active Sessions')}</CardTitle></div>
+              <CardDescription>{t('View and manage devices currently logged into your account.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="max-h-60 overflow-y-auto rounded-md border">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Device/Browser</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Last Active</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                  <TableHeader><TableRow><TableHead>{t('Device/Browser')}</TableHead><TableHead>{t('Location')}</TableHead><TableHead>{t('Last Active')}</TableHead><TableHead className="text-right">{t('Action')}</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {currentActiveSessions.map(session => (
                       <TableRow key={session.id}>
@@ -702,22 +679,10 @@ export default function SettingsPage() {
                         <TableCell>{session.lastActive}</TableCell>
                         <TableCell className="text-right">
                            <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                                <LogOut className="mr-1 h-3 w-3" /> Sign Out
-                              </Button>
-                            </AlertDialogTrigger>
+                            <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><LogOut className="mr-1 h-3 w-3" /> {t('Sign Out')}</Button></AlertDialogTrigger>
                             <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Sign out this session?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will sign out the session on {session.device} from {session.location}.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleSignOutSession(session.id)}>Sign Out</AlertDialogAction>
-                              </AlertDialogFooter>
+                              <AlertDialogHeader><AlertDialogTitle>{t('Sign out this session?')}</AlertDialogTitle><AlertDialogDescription>{t('This will sign out the session on {device} from {location}.', { device: session.device, location: session.location })}</AlertDialogDescription></AlertDialogHeader>
+                              <AlertDialogFooter><AlertDialogCancel>{t('Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => handleSignOutSession(session.id)}>{t('Sign Out')}</AlertDialogAction></AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                         </TableCell>
@@ -728,190 +693,77 @@ export default function SettingsPage() {
               </div>
               {currentActiveSessions.length > 1 && (
                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="outline" className="w-full sm:w-auto">Sign Out All Other Sessions</Button>
-                    </AlertDialogTrigger>
+                    <AlertDialogTrigger asChild><Button variant="outline" className="w-full sm:w-auto">{t('Sign Out All Other Sessions')}</Button></AlertDialogTrigger>
                     <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Sign out all other sessions?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This will sign you out of Consult Vista on all devices except this one. You will need to sign in again on other devices.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleSignOutAllOtherSessions}>Sign Out Others</AlertDialogAction>
-                        </AlertDialogFooter>
+                        <AlertDialogHeader><AlertDialogTitle>{t('Sign out all other sessions?')}</AlertDialogTitle><AlertDialogDescription>{t('This will sign you out of Consult Vista on all devices except this one. You will need to sign in again on other devices.')}</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>{t('Cancel')}</AlertDialogCancel><AlertDialogAction onClick={handleSignOutAllOtherSessions}>{t('Sign Out Others')}</AlertDialogAction></AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
               )}
-              <p className="text-xs text-muted-foreground">If you see any unrecognized sessions, sign them out immediately and consider changing your password.</p>
+              <p className="text-xs text-muted-foreground">{t('If you see any unrecognized sessions, sign them out immediately and consider changing your password.')}</p>
             </CardContent>
           </Card>
           
-          {/* Login History Card */}
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <UserCheck className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Recent Login History</CardTitle>
-              </div>
-              <CardDescription>Review recent login attempts to your account.</CardDescription>
-            </CardHeader>
+            <CardHeader><div className="flex items-center gap-3"><UserCheck className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Recent Login History')}</CardTitle></div><CardDescription>{t('Review recent login attempts to your account.')}</CardDescription></CardHeader>
             <CardContent className="space-y-3">
               <div className="max-h-60 overflow-y-auto rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date/Time</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>IP Address</TableHead>
-                      <TableHead>Device/Browser</TableHead>
-                      <TableHead>Location</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                <Table><TableHeader><TableRow><TableHead>{t('Date/Time')}</TableHead><TableHead>{t('Status')}</TableHead><TableHead>{t('IP Address')}</TableHead><TableHead>{t('Device/Browser')}</TableHead><TableHead>{t('Location')}</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {mockLoginHistory.slice(0, 5).map(log => (
                       <TableRow key={log.id}>
                         <TableCell className="text-xs">{log.timestamp}</TableCell>
-                        <TableCell>
-                          <Badge variant={log.status === 'Success' || log.status.includes('2FA') ? 'default' : 'destructive'}
-                                 className={cn(log.status === 'Success' || log.status.includes('2FA') ? 'bg-green-500/20 text-green-700' : 'bg-red-500/20 text-red-700')}>
-                            {log.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs">{log.ipAddress}</TableCell>
-                        <TableCell className="text-xs">{log.device}</TableCell>
-                        <TableCell className="text-xs">{log.location}</TableCell>
+                        <TableCell><Badge variant={log.status === 'Success' || log.status.includes('2FA') ? 'default' : 'destructive'} className={cn(log.status === 'Success' || log.status.includes('2FA') ? 'bg-green-500/20 text-green-700' : 'bg-red-500/20 text-red-700')}>{t(log.status)}</Badge></TableCell>
+                        <TableCell className="text-xs">{log.ipAddress}</TableCell><TableCell className="text-xs">{log.device}</TableCell><TableCell className="text-xs">{log.location}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
-              <Button variant="outline" onClick={() => handlePlaceholderAction("View Full Login History")} disabled>
-                View Full Login History (Coming Soon)
-              </Button>
+              <Button variant="outline" onClick={() => handlePlaceholderAction("View Full Login History")} disabled>{t('View Full Login History (Coming Soon)')}</Button>
             </CardContent>
           </Card>
 
-          {/* Account Activity Alerts Card */}
           <Card>
-            <CardHeader>
-                <div className="flex items-center gap-3">
-                    <Bell className="h-7 w-7 text-primary" />
-                    <CardTitle className="text-xl">Account Activity Alerts</CardTitle>
-                </div>
-                <CardDescription>Configure alerts for specific security-sensitive account activities. These are in addition to general notifications.</CardDescription>
-            </CardHeader>
+            <CardHeader><div className="flex items-center gap-3"><Bell className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Account Activity Alerts')}</CardTitle></div><CardDescription>{t('Configure alerts for specific security-sensitive account activities. These are in addition to general notifications.')}</CardDescription></CardHeader>
             <CardContent className="space-y-3">
-                <div className="flex items-center justify-between p-3 border rounded-md">
-                    <Label htmlFor="alertNewDevice" className="flex-1">Notify on login from new device/location</Label>
-                    <Switch
-                        id="alertNewDevice"
-                        checked={activityAlerts.newDeviceLogin}
-                        onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, newDeviceLogin: checked }))}
-                    />
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-md">
-                    <Label htmlFor="alertFailedLogins" className="flex-1">Notify on multiple failed login attempts</Label>
-                    <Switch
-                        id="alertFailedLogins"
-                        checked={activityAlerts.failedLogins}
-                        onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, failedLogins: checked }))}
-                    />
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-md">
-                    <Label htmlFor="alertPasswordChanged" className="flex-1">Notify when password is changed</Label>
-                    <Switch
-                        id="alertPasswordChanged"
-                        checked={activityAlerts.passwordChanged}
-                        onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, passwordChanged: checked }))}
-                    />
-                </div>
-                 <div className="flex items-center justify-between p-3 border rounded-md">
-                    <Label htmlFor="alert2FAChanged" className="flex-1">Notify when 2FA settings are changed</Label>
-                    <Switch
-                        id="alert2FAChanged"
-                        checked={activityAlerts.twoFactorChanged}
-                        onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, twoFactorChanged: checked }))}
-                    />
-                </div>
-                <Button onClick={handleSaveActivityAlerts} className="mt-2">Save Alert Preferences</Button>
+                <div className="flex items-center justify-between p-3 border rounded-md"><Label htmlFor="alertNewDevice" className="flex-1">{t('Notify on login from new device/location')}</Label><Switch id="alertNewDevice" checked={activityAlerts.newDeviceLogin} onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, newDeviceLogin: checked }))}/></div>
+                <div className="flex items-center justify-between p-3 border rounded-md"><Label htmlFor="alertFailedLogins" className="flex-1">{t('Notify on multiple failed login attempts')}</Label><Switch id="alertFailedLogins" checked={activityAlerts.failedLogins} onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, failedLogins: checked }))}/></div>
+                <div className="flex items-center justify-between p-3 border rounded-md"><Label htmlFor="alertPasswordChanged" className="flex-1">{t('Notify when password is changed')}</Label><Switch id="alertPasswordChanged" checked={activityAlerts.passwordChanged} onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, passwordChanged: checked }))}/></div>
+                <div className="flex items-center justify-between p-3 border rounded-md"><Label htmlFor="alert2FAChanged" className="flex-1">{t('Notify when 2FA settings are changed')}</Label><Switch id="alert2FAChanged" checked={activityAlerts.twoFactorChanged} onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, twoFactorChanged: checked }))}/></div>
+                <Button onClick={handleSaveActivityAlerts} className="mt-2">{t('Save Alert Preferences')}</Button>
             </CardContent>
           </Card>
           
-          {/* Security & Audit Logs Card */}
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <History className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">System Security & Audit Logs (Preview)</CardTitle>
-              </div>
-              <CardDescription>Review important security events and account activity across the system (Admin view).</CardDescription>
-            </CardHeader>
+            <CardHeader><div className="flex items-center gap-3"><History className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('System Security & Audit Logs (Preview)')}</CardTitle></div><CardDescription>{t('Review important security events and account activity across the system (Admin view).')}</CardDescription></CardHeader>
             <CardContent className="space-y-3">
                 <div className="max-h-60 overflow-y-auto rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Timestamp</TableHead>
-                                <TableHead>Event</TableHead>
-                                <TableHead>User</TableHead>
-                                <TableHead>IP Address</TableHead>
-                                <TableHead>Details</TableHead>
-                            </TableRow>
-                        </TableHeader>
+                    <Table><TableHeader><TableRow><TableHead>{t('Timestamp')}</TableHead><TableHead>{t('Event')}</TableHead><TableHead>{t('User')}</TableHead><TableHead>{t('IP Address')}</TableHead><TableHead>{t('Details')}</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {mockAuditLogPreview.map(log => (
-                                <TableRow key={log.id}>
-                                    <TableCell className="text-xs">{log.timestamp}</TableCell>
-                                    <TableCell className="text-xs font-medium">{log.event}</TableCell>
-                                    <TableCell className="text-xs">{log.user}</TableCell>
-                                    <TableCell className="text-xs">{log.ipAddress}</TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">{log.details}</TableCell>
-                                </TableRow>
-                            ))}
+                            {mockAuditLogPreview.map(log => (<TableRow key={log.id}><TableCell className="text-xs">{log.timestamp}</TableCell><TableCell className="text-xs font-medium">{t(log.event)}</TableCell><TableCell className="text-xs">{log.user}</TableCell><TableCell className="text-xs">{log.ipAddress}</TableCell><TableCell className="text-xs text-muted-foreground">{t(log.details)}</TableCell></TableRow>))}
                         </TableBody>
                     </Table>
                 </div>
-                <Button variant="outline" onClick={() => handlePlaceholderAction("View Full Audit Log", "A dedicated page with comprehensive, filterable audit logs would be shown here.")} disabled>
-                    View Full Audit Log (Coming Soon)
-                </Button>
+                <Button variant="outline" onClick={() => handlePlaceholderAction("View Full Audit Log", "A dedicated page with comprehensive, filterable audit logs would be shown here.")} disabled>{t('View Full Audit Log (Coming Soon)')}</Button>
             </CardContent>
           </Card>
 
-          {/* API Key Management Card */}
           <Card>
-            <CardHeader>
-                <div className="flex items-center gap-3">
-                    <ShieldCheck className="h-7 w-7 text-primary" />
-                    <CardTitle className="text-xl">API Key Management (Admin)</CardTitle>
-                </div>
-                <CardDescription>Manage API keys for integrations and external services.</CardDescription>
-            </CardHeader>
+            <CardHeader><div className="flex items-center gap-3"><ShieldCheck className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('API Key Management (Admin)')}</CardTitle></div><CardDescription>{t('Manage API keys for integrations and external services.')}</CardDescription></CardHeader>
             <CardContent>
-                <Button variant="outline" onClick={() => handlePlaceholderAction("Manage API Keys", "Redirecting to API Key Management section (Admin only).")}>
-                    Manage API Keys
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2">
-                    Create, revoke, and set permissions for API keys used by third-party applications or custom scripts.
-                </p>
+                <Button variant="outline" onClick={() => handlePlaceholderAction("Manage API Keys", "Redirecting to API Key Management section (Admin only).")}>{t('Manage API Keys')}</Button>
+                <p className="text-xs text-muted-foreground mt-2">{t('Create, revoke, and set permissions for API keys used by third-party applications or custom scripts.')}</p>
             </CardContent>
           </Card>
           
-          {/* Data Encryption & Advanced Posture Card */}
           <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Shield className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl text-primary">Data Encryption & Security Posture</CardTitle>
-              </div>
-            </CardHeader>
+            <CardHeader><div className="flex items-center gap-3"><Shield className="h-7 w-7 text-primary" /><CardTitle className="text-xl text-primary">{t('Data Encryption & Security Posture')}</CardTitle></div></CardHeader>
             <CardContent className="text-sm text-muted-foreground space-y-1">
-              <p>Consult Vista is committed to the highest standards of data security.</p>
-              <p>All sensitive data is encrypted in transit (using TLS/SSL) and at rest (using AES-256 or equivalent).</p>
-              <p>We conduct regular security audits and vulnerability assessments to ensure the integrity of our platform.</p>
-              <p>Your data privacy and security are our top priorities.</p>
+              <p>{t('Consult Vista is committed to the highest standards of data security.')}</p>
+              <p>{t('All sensitive data is encrypted in transit (using TLS/SSL) and at rest (using AES-256 or equivalent).')}</p>
+              <p>{t('We conduct regular security audits and vulnerability assessments to ensure the integrity of our platform.')}</p>
+              <p>{t('Your data privacy and security are our top priorities.')}</p>
             </CardContent>
           </Card>
         </div>
@@ -919,156 +771,111 @@ export default function SettingsPage() {
     }
 
     if (activeSection === 'appearance') {
+      // Content from previous implementation - needs labels translated
       return (
         <div className="space-y-6">
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Paintbrush className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Theme & Display Settings</CardTitle>
-              </div>
-              <CardDescription>Personalize the visual appearance of the application.</CardDescription>
-            </CardHeader>
+            <CardHeader><div className="flex items-center gap-3"><Paintbrush className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Theme & Display Settings')}</CardTitle></div><CardDescription>{t('Personalize the visual appearance of the application.')}</CardDescription></CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label className="text-base font-semibold">Application Theme</Label>
-                <p className="text-xs text-muted-foreground mb-2">Select your preferred interface theme.</p>
-                <RadioGroup
-                  value={theme} // Use theme from context
-                  onValueChange={(value: 'light' | 'dark' | 'system') => setTheme(value)} // Use setTheme from context
-                  className="flex flex-col sm:flex-row gap-2 sm:gap-4"
-                >
-                  <Label htmlFor="theme-light" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", theme === 'light' && "border-primary ring-2 ring-primary")}>
-                    <RadioGroupItem value="light" id="theme-light" />
-                    <Sun className="h-5 w-5" /> Light Mode
-                  </Label>
-                  <Label htmlFor="theme-dark" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", theme === 'dark' && "border-primary ring-2 ring-primary")}>
-                    <RadioGroupItem value="dark" id="theme-dark" />
-                    <Moon className="h-5 w-5" /> Dark Mode
-                  </Label>
-                  <Label htmlFor="theme-system" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", theme === 'system' && "border-primary ring-2 ring-primary")}>
-                    <RadioGroupItem value="system" id="theme-system" />
-                    <Laptop className="h-5 w-5" /> System Default
-                  </Label>
+                <Label className="text-base font-semibold">{t('Application Theme')}</Label>
+                <p className="text-xs text-muted-foreground mb-2">{t('Select your preferred interface theme.')}</p>
+                <RadioGroup value={theme} onValueChange={(value: 'light' | 'dark' | 'system') => setTheme(value)} className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                  <Label htmlFor="theme-light" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", theme === 'light' && "border-primary ring-2 ring-primary")}><RadioGroupItem value="light" id="theme-light" /> <Sun className="h-5 w-5" /> {t('Light Mode')}</Label>
+                  <Label htmlFor="theme-dark" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", theme === 'dark' && "border-primary ring-2 ring-primary")}><RadioGroupItem value="dark" id="theme-dark" /> <Moon className="h-5 w-5" /> {t('Dark Mode')}</Label>
+                  <Label htmlFor="theme-system" className={cn("flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:border-primary transition-colors", theme === 'system' && "border-primary ring-2 ring-primary")}><RadioGroupItem value="system" id="theme-system" /> <Laptop className="h-5 w-5" /> {t('System Default')}</Label>
                 </RadioGroup>
               </div>
               <Separator />
               <div>
-                <Label htmlFor="accent-color" className="text-base font-semibold">Accent Color Palette</Label>
-                <p className="text-xs text-muted-foreground mb-2">Choose an accent color for primary actions and highlights.</p>
+                <Label htmlFor="accent-color" className="text-base font-semibold">{t('Accent Color Palette')}</Label>
+                <p className="text-xs text-muted-foreground mb-2">{t('Choose an accent color for primary actions and highlights.')}</p>
                 <Select value={currentAccentColor} onValueChange={setCurrentAccentColor} disabled>
-                  <SelectTrigger id="accent-color" className="w-full sm:w-[280px]">
-                    <SelectValue placeholder="Select Accent Color" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="defaultBlue">Default Blue (Current)</SelectItem>
-                    <SelectItem value="consultantGreen">Consultant Green</SelectItem>
-                    <SelectItem value="modernOrange">Modern Orange</SelectItem>
-                    <SelectItem value="professionalPurple">Professional Purple</SelectItem>
-                  </SelectContent>
+                  <SelectTrigger id="accent-color" className="w-full sm:w-[280px]"><SelectValue placeholder={t('Select Accent Color')} /></SelectTrigger>
+                  <SelectContent><SelectItem value="defaultBlue">{t('Default Blue (Current)')}</SelectItem></SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-1">More color palettes coming soon.</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('More color palettes coming soon.')}</p>
               </div>
                <Separator />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <Label htmlFor="interface-scale" className="text-base font-semibold">Interface Scale</Label>
-                    <p className="text-xs text-muted-foreground mb-2">Adjust the overall size of UI elements.</p>
-                    <Select defaultValue="default" disabled>
-                        <SelectTrigger id="interface-scale"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="compact">Compact</SelectItem>
-                            <SelectItem value="default">Default</SelectItem>
-                            <SelectItem value="spacious">Spacious</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div>
-                    <Label htmlFor="data-density" className="text-base font-semibold">Data Density</Label>
-                    <p className="text-xs text-muted-foreground mb-2">Optimize tables and lists for more or less information.</p>
-                    <Select defaultValue="comfortable" disabled>
-                        <SelectTrigger id="data-density"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="compact">Compact (More Data)</SelectItem>
-                            <SelectItem value="comfortable">Comfortable (Balanced)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                <div><Label htmlFor="interface-scale" className="text-base font-semibold">{t('Interface Scale')}</Label><p className="text-xs text-muted-foreground mb-2">{t('Adjust the overall size of UI elements.')}</p><Select defaultValue="default" disabled><SelectTrigger id="interface-scale"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="compact">{t('Compact')}</SelectItem><SelectItem value="default">{t('Default')}</SelectItem><SelectItem value="spacious">{t('Spacious')}</SelectItem></SelectContent></Select></div>
+                <div><Label htmlFor="data-density" className="text-base font-semibold">{t('Data Density')}</Label><p className="text-xs text-muted-foreground mb-2">{t('Optimize tables and lists for more or less information.')}</p><Select defaultValue="comfortable" disabled><SelectTrigger id="data-density"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="compact">{t('Compact (More Data)')}</SelectItem><SelectItem value="comfortable">{t('Comfortable (Balanced)')}</SelectItem></SelectContent></Select></div>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button onClick={handleSaveAppearanceSettings}>Save Appearance Settings</Button>
-            </CardFooter>
+            <CardFooter><Button onClick={handleSaveAppearanceSettings}>{t('Save Appearance Settings')}</Button></CardFooter>
           </Card>
-
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <LayoutDashboard className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Dashboard & Widget Customization</CardTitle>
-              </div>
-              <CardDescription>Tailor your dashboard views by arranging widgets and choosing what information to display.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Personalize your dashboard views to prioritize the information most relevant to you. (Feature under development)
-              </p>
-              <div className="p-6 border-2 border-dashed rounded-lg text-center bg-muted/30">
-                <p className="text-muted-foreground mb-2">Visual representation of dashboard customization area.</p>
-                <div className="flex justify-around items-center h-32 opacity-50">
-                    <div className="p-2 border rounded bg-card w-1/3 h-20 text-xs flex items-center justify-center">Widget A</div>
-                    <div className="p-2 border rounded bg-card w-1/3 h-24 text-xs flex items-center justify-center">Widget B</div>
-                </div>
-                 <p className="text-xs text-muted-foreground mt-2">Drag-and-drop widget arrangement and content selection coming soon.</p>
-              </div>
-              <Button variant="outline" className="mt-4" onClick={() => handlePlaceholderAction("Launch Dashboard Layout Editor Clicked")} disabled>
-                Launch Dashboard Layout Editor
-              </Button>
-            </CardContent>
+            <CardHeader><div className="flex items-center gap-3"><LayoutDashboard className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Dashboard & Widget Customization')}</CardTitle></div><CardDescription>{t('Tailor your dashboard views by arranging widgets and choosing what information to display.')}</CardDescription></CardHeader>
+            <CardContent><p className="text-sm text-muted-foreground mb-4">{t('Personalize your dashboard views to prioritize the information most relevant to you. (Feature under development)')}</p><div className="p-6 border-2 border-dashed rounded-lg text-center bg-muted/30"><p className="text-muted-foreground mb-2">{t('Visual representation of dashboard customization area.')}</p><div className="flex justify-around items-center h-32 opacity-50"><div className="p-2 border rounded bg-card w-1/3 h-20 text-xs flex items-center justify-center">{t('Widget A')}</div><div className="p-2 border rounded bg-card w-1/3 h-24 text-xs flex items-center justify-center">{t('Widget B')}</div></div><p className="text-xs text-muted-foreground mt-2">{t('Drag-and-drop widget arrangement and content selection coming soon.')}</p></div><Button variant="outline" className="mt-4" onClick={() => handlePlaceholderAction("Launch Dashboard Layout Editor Clicked")} disabled>{t('Launch Dashboard Layout Editor')}</Button></CardContent>
           </Card>
-
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <ImageIcon className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">System Branding (Admin)</CardTitle>
-              </div>
-              <CardDescription>Customize the application with your organization's logo and branding elements.</CardDescription>
-            </CardHeader>
+            <CardHeader><div className="flex items-center gap-3"><ImageIcon className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('System Branding (Admin)')}</CardTitle></div><CardDescription>{t('Customize the application with your organization\'s logo and branding elements.')}</CardDescription></CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <Label className="text-base font-semibold">Company Logo</Label>
-                <div className="flex items-center gap-4 mt-2">
-                  <Avatar className="h-16 w-16 rounded-md border">
-                    <AvatarImage src="https://placehold.co/128x128/333333/FFFFFF.png?text=LOGO" alt="Current Company Logo" data-ai-hint="company logo"/>
-                    <AvatarFallback>LOGO</AvatarFallback>
-                  </Avatar>
-                  <Button variant="outline" onClick={() => handlePlaceholderAction("Upload New Logo Clicked")} disabled>
-                    Upload New Logo
-                  </Button>
-                </div>
-              </div>
+              <div><Label className="text-base font-semibold">{t('Company Logo')}</Label><div className="flex items-center gap-4 mt-2"><Avatar className="h-16 w-16 rounded-md border"><AvatarImage src="https://placehold.co/128x128/333333/FFFFFF.png?text=LOGO" alt="Current Company Logo" data-ai-hint="company logo"/><AvatarFallback>LOGO</AvatarFallback></Avatar><Button variant="outline" onClick={() => handlePlaceholderAction("Upload New Logo Clicked")} disabled>{t('Upload New Logo')}</Button></div></div>
               <Separator />
-              <div>
-                <Label className="text-base font-semibold">Login Screen Customization</Label>
-                 <p className="text-xs text-muted-foreground mb-2">Personalize the login page experience.</p>
-                <div className="space-y-3 mt-2">
-                    <div>
-                        <Label htmlFor="login-welcome-msg">Custom Welcome Message</Label>
-                        <Input id="login-welcome-msg" placeholder="Welcome to Consult Vista" disabled className="mt-1"/>
-                    </div>
-                    <Button variant="outline" onClick={() => handlePlaceholderAction("Upload Login Background Clicked")} disabled>
-                        Upload Login Background Image
-                    </Button>
-                </div>
-              </div>
-               <p className="text-xs text-muted-foreground">System branding features are typically available for System Administrators only.</p>
+              <div><Label className="text-base font-semibold">{t('Login Screen Customization')}</Label><p className="text-xs text-muted-foreground mb-2">{t('Personalize the login page experience.')}</p><div className="space-y-3 mt-2"><div><Label htmlFor="login-welcome-msg">{t('Custom Welcome Message')}</Label><Input id="login-welcome-msg" placeholder={t('Welcome to Consult Vista')} disabled className="mt-1"/></div><Button variant="outline" onClick={() => handlePlaceholderAction("Upload Login Background Clicked")} disabled>{t('Upload Login Background Image')}</Button></div></div>
+               <p className="text-xs text-muted-foreground">{t('System branding features are typically available for System Administrators only.')}</p>
             </CardContent>
-            <CardFooter>
-              <Button onClick={() => handlePlaceholderAction("Save Branding Settings Clicked")} disabled>Save Branding Settings</Button>
-            </CardFooter>
+            <CardFooter><Button onClick={() => handlePlaceholderAction("Save Branding Settings Clicked")} disabled>{t('Save Branding Settings')}</Button></CardFooter>
           </Card>
         </div>
+      );
+    }
+
+    if (activeSection === 'language') {
+      return (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Languages className="h-7 w-7 text-primary" />
+              <CardTitle className="text-xl">{t('Language & Region')}</CardTitle>
+            </div>
+            <CardDescription>{t('Set your preferred language and regional formats for the application.')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+              <Label htmlFor="language-select" className="text-base font-semibold">{t('Application Language')}</Label>
+              <Select value={language} onValueChange={(value) => setLanguage(value as SupportedLanguage)}>
+                <SelectTrigger id="language-select" className="w-full sm:w-[280px] mt-1">
+                  <SelectValue placeholder={t('Select Language')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {supportedLanguages.map((langCode) => (
+                    <SelectItem key={langCode} value={langCode}>
+                      {languagePacks[langCode].nativeName} ({languagePacks[langCode].name})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Separator />
+            <div>
+              <Label htmlFor="region-select" className="text-base font-semibold">{t('Region (for formatting)')}</Label>
+                <p className="text-xs text-muted-foreground mb-1">{t('This affects date, number, and currency formatting (future).')}</p>
+              <Select value={region} onValueChange={(value) => setRegion(value as SupportedRegion)}>
+                <SelectTrigger id="region-select" className="w-full sm:w-[280px] mt-1">
+                  <SelectValue placeholder={t('Select Region')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {supportedRegions.map((regCode) => (
+                    <SelectItem key={regCode} value={regCode}>{regCode}</SelectItem> // Could map to full names
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Separator />
+            <div>
+                <Label className="text-base font-semibold">{t('Example Date Format')}</Label>
+                <div className="mt-1 p-3 border rounded-md bg-muted/50 w-full sm:w-[280px] text-sm">
+                    <CalendarIcon className="inline h-4 w-4 mr-2 text-muted-foreground"/> {formatDate(new Date())}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{t('Current format based on selected language: {dateFormat}', {dateFormat: languagePacks[language].dateFormat })}</p>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={handleSaveLanguageSettings}>{t('Save Language & Region')}</Button>
+          </CardFooter>
+        </Card>
       );
     }
 
@@ -1077,33 +884,32 @@ export default function SettingsPage() {
       return (
           <Card>
             <CardHeader>
-                <CardTitle>Welcome to Settings</CardTitle>
-                <CardDescription>Select a category from the left to configure its settings.</CardDescription>
+                <CardTitle>{t('Welcome to Settings')}</CardTitle>
+                <CardDescription>{t('Select a category from the left to configure its settings.')}</CardDescription>
             </CardHeader>
             <CardContent>
-                <p>This area allows for comprehensive management of user roles, workflow customization, third-party integrations, and personalization of your experience.</p>
+                <p>{t('This area allows for comprehensive management of user roles, workflow customization, third-party integrations, and personalization of your experience.')}</p>
             </CardContent>
           </Card>
       );
     }
 
-    // Default placeholder for other sections
     return (
       <Card className="shadow-md">
         <CardHeader>
           <div className="flex items-center gap-3">
             <section.icon className="h-7 w-7 text-primary" />
-            <CardTitle className="text-2xl">{section.label}</CardTitle>
+            <CardTitle className="text-2xl">{t(section.labelKey)}</CardTitle>
           </div>
-          <CardDescription className="pt-1 text-base">{section.description}</CardDescription>
+          <CardDescription className="pt-1 text-base">{t(section.description)}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="min-h-[250px] flex flex-col items-center justify-center bg-muted/30 rounded-lg p-8 border border-dashed">
             <SettingsIcon className="h-16 w-16 text-muted-foreground/50 mb-4" />
             <p className="text-center text-muted-foreground text-lg">
-              Settings for <span className="font-semibold text-foreground">{section.label}</span> are currently under development.
+              {t('Settings for {sectionLabel} are currently under development.', { sectionLabel: t(section.labelKey) })}
             </p>
-            <p className="text-sm text-muted-foreground mt-2">Detailed configuration options will be available here soon.</p>
+            <p className="text-sm text-muted-foreground mt-2">{t('Detailed configuration options will be available here soon.')}</p>
           </div>
         </CardContent>
       </Card>
@@ -1113,9 +919,9 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8">
       <header className="pb-2 border-b">
-        <h1 className="text-4xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-4xl font-bold tracking-tight">{t('Settings')}</h1>
         <p className="text-lg text-muted-foreground mt-1">
-          Configure application preferences, integrations, and user management.
+          {t('Configure application preferences, integrations, and user management.')}
         </p>
       </header>
 
@@ -1135,7 +941,7 @@ export default function SettingsPage() {
                 onClick={() => setActiveSection(item.id)}
               >
                 <item.icon className={cn("h-5 w-5 shrink-0", activeSection === item.id ? "text-primary" : "")} />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate">{t(item.labelKey)}</span>
               </Button>
             ))}
           </ScrollArea>
@@ -1150,25 +956,27 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2">
             <SettingsIcon className="h-6 w-6 text-muted-foreground" />
-            Enhancements &amp; System Overview
+            {t('Enhancements & System Overview')}
           </CardTitle>
           <CardDescription>
-             The settings area is designed for comprehensive management. Key future options across categories include:
+             {t('The settings area is designed for comprehensive management. Key future options across categories include:')}
           </CardDescription>
         </CardHeader>
         <CardContent>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-1 md:columns-2">
-              <li>Granular User Preferences & Advanced Notification Controls</li>
-              <li>Detailed Role-Based Access Control (RBAC) Configuration</li>
-              <li>Visual Workflow Customization Tools & Versioning</li>
-              <li>Expanded Library of Third-Party Integrations with OAuth Support</li>
-              <li>Advanced System Auditing & Compliance Reporting Tools</li>
-              <li>Data Backup & Restoration Management</li>
-              <li>API Key Management for External Services</li>
-              <li>Theme Customization and White-Labeling Options</li>
+              <li>{t('Granular User Preferences & Advanced Notification Controls')}</li>
+              <li>{t('Detailed Role-Based Access Control (RBAC) Configuration')}</li>
+              <li>{t('Visual Workflow Customization Tools & Versioning')}</li>
+              <li>{t('Expanded Library of Third-Party Integrations with OAuth Support')}</li>
+              <li>{t('Advanced System Auditing & Compliance Reporting Tools')}</li>
+              <li>{t('Data Backup & Restoration Management')}</li>
+              <li>{t('API Key Management for External Services')}</li>
+              <li>{t('Theme Customization and White-Labeling Options')}</li>
             </ul>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
