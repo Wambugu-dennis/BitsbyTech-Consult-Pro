@@ -17,8 +17,8 @@ export type ProjectTask = {
   title: string;
   description?: string;
   status: ProjectStatusValue;
-  assigneeId?: string; 
-  assigneeNameCache?: string; 
+  assigneeId?: string;
+  assigneeNameCache?: string;
   dueDate?: string;
   priority?: 'High' | 'Medium' | 'Low';
 };
@@ -27,7 +27,7 @@ export type Milestone = {
   id: string;
   name: string;
   description?: string;
-  dueDate: string; 
+  dueDate: string;
   status: 'Pending' | 'In Progress' | 'Completed' | 'Delayed' | 'At Risk';
 };
 
@@ -35,41 +35,41 @@ export type ProjectAttachment = {
   id: string;
   fileName: string;
   fileType?: string;
-  fileSize?: string; 
-  url: string; 
-  uploadedAt: string; 
-  uploadedBy?: string; 
+  fileSize?: string;
+  url: string;
+  uploadedAt: string;
+  uploadedBy?: string;
 };
 
 export type ProjectFinancials = {
   budget: number;
-  spentBudget: number; // Re-adding for project-specific financials, distinct from Budget module totals
-  currency: string; 
+  spentBudget: number;
+  currency: string;
   billingType?: 'Fixed Price' | 'Time & Materials' | 'Retainer';
-  hourlyRate?: number; 
+  hourlyRate?: number;
 };
 
 export type Project = {
   id: string;
   name: string;
   description: string;
-  clientId: string; 
-  clientNameCache?: string; 
-  projectManagerId: string; 
-  projectManagerNameCache?: string; 
-  teamMemberIds?: string[]; 
+  clientId: string;
+  clientNameCache?: string;
+  projectManagerId: string;
+  projectManagerNameCache?: string;
+  teamMemberIds?: string[];
   status: ProjectStatusValue;
   priority: 'High' | 'Medium' | 'Low';
-  startDate: string; 
-  endDate: string; 
-  actualEndDate?: string; 
+  startDate: string;
+  endDate: string;
+  actualEndDate?: string;
   financials: ProjectFinancials;
   milestones?: Milestone[];
-  tasks?: ProjectTask[]; 
+  tasks?: ProjectTask[];
   tags?: string[];
   attachments?: ProjectAttachment[];
-  lastUpdated: string; 
-  completionPercent?: number; 
+  lastUpdated: string;
+  completionPercent?: number;
 };
 
 
@@ -92,7 +92,7 @@ export type KeyContact = {
 export type EngagementDetails = {
   startDate?: string;
   endDate?: string;
-  primaryConsultantId?: string; 
+  primaryConsultantId?: string;
 };
 
 export type ClientFinancialSummary = {
@@ -100,16 +100,16 @@ export type ClientFinancialSummary = {
   totalPaid?: number;
   outstandingAmount?: number;
   lastInvoiceDate?: string;
-  currency?: string; 
+  currency?: string;
 };
 
 export type CommunicationLog = {
   id: string;
-  date: string; 
+  date: string;
   type: 'Email' | 'Call' | 'Meeting' | 'Note';
   summary: string;
-  participants?: string[]; 
-  relatedProjectId?: string; 
+  participants?: string[];
+  relatedProjectId?: string;
 };
 
 export type ClientMeeting = {
@@ -125,10 +125,10 @@ export type ClientMeeting = {
 };
 
 
-export type CalendarEventType = 
-  | 'Project Milestone' 
-  | 'Project Deadline' 
-  | 'Client Meeting' 
+export type CalendarEventType =
+  | 'Project Milestone'
+  | 'Project Deadline'
+  | 'Client Meeting'
   | 'Consultant Assignment'
   | 'General Task'
   | 'Holiday'
@@ -148,23 +148,23 @@ export type CalendarEventSource = 'project' | 'client' | 'consultant' | 'general
 
 export interface EventTypeConfig {
   label: string;
-  color: string; 
-  borderColor?: string; 
-  textColor?: string; 
+  color: string;
+  borderColor?: string;
+  textColor?: string;
 }
 
 export type CalendarEvent = {
   id: string;
   title: string;
-  start: Date; 
-  end?: Date; 
+  start: Date;
+  end?: Date;
   allDay?: boolean;
   type: CalendarEventType;
   description?: string;
   source: CalendarEventSource;
-  sourceId?: string; 
-  relatedLink?: string; 
-  attendees?: string[]; 
+  sourceId?: string;
+  relatedLink?: string;
+  attendees?: string[];
   location?: string;
 };
 
@@ -181,17 +181,18 @@ export type Client = {
   engagementDetails?: EngagementDetails;
   keyContacts: KeyContact[];
   communicationLogs?: CommunicationLog[];
-  satisfactionScore?: number; 
+  satisfactionScore?: number;
   notes?: string;
-  linkedProjectIds?: string[]; 
+  linkedProjectIds?: string[];
   financialSummary?: ClientFinancialSummary;
   lastContact?: string;
-  meetings?: ClientMeeting[]; 
+  meetings?: ClientMeeting[];
 };
 
 
 export type RevenueData = {
   date: string; // YYYY-MM-DD format for easier date manipulation
+  month?: string; // For display purposes if needed
   actualRevenue?: number;
   actualExpenses?: number;
   forecastedRevenueValue?: number; // Distinct key for forecasted revenue
@@ -205,7 +206,7 @@ export type RevenueData = {
 export type ProjectStatusData = {
   status: string;
   count: number;
-  fill?: string; 
+  fill?: string;
 };
 
 export type ClientRelationshipData = {
@@ -224,8 +225,8 @@ export type DetailedSkill = {
 export type Certification = {
   name: string;
   issuingBody: string;
-  dateObtained: string; 
-  expiryDate?: string; 
+  dateObtained: string;
+  expiryDate?: string;
   credentialId?: string;
 };
 
@@ -233,8 +234,8 @@ export type ProjectHistoryEntry = {
   projectId: string;
   projectName: string;
   roleOnProject: string;
-  startDate: string; 
-  endDate?: string; 
+  startDate: string;
+  endDate?: string;
   projectStatus: string;
 };
 
@@ -246,8 +247,8 @@ export type Consultant = {
   skills: string[];
   utilization: number;
   status: ConsultantStatus;
-  currentProject?: string; 
-  currentProjectNameCache?: string; 
+  currentProject?: string;
+  currentProjectNameCache?: string;
   bio?: string;
   avatarUrl?: string;
   phone?: string;
@@ -261,41 +262,41 @@ export type InvoiceItem = {
   description: string;
   quantity: number;
   unitPrice: number;
-  totalPrice: number; 
+  totalPrice: number;
 };
 
 export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Void';
 
 export type Invoice = {
-  id: string; 
+  id: string;
   clientId: string;
-  clientNameCache: string; 
+  clientNameCache: string;
   projectId?: string;
-  projectNameCache?: string; 
-  issueDate: string; 
-  dueDate: string; 
+  projectNameCache?: string;
+  issueDate: string;
+  dueDate: string;
   items: InvoiceItem[];
-  subTotal: number; 
-  taxRate?: number; 
-  taxAmount?: number; 
-  totalAmount: number; 
+  subTotal: number;
+  taxRate?: number;
+  taxAmount?: number;
+  totalAmount: number;
   status: InvoiceStatus;
-  currency: string; 
+  currency: string;
   notes?: string;
-  paymentDetails?: string; 
-  paymentDate?: string; 
-  createdAt: string; 
-  updatedAt: string; 
+  paymentDetails?: string;
+  paymentDate?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type ExpenseStatus = 'Pending' | 'Approved' | 'Rejected';
 
-export type ExpenseCategory = 
-  | 'Travel' 
-  | 'Meals & Entertainment' 
-  | 'Software & Subscriptions' 
-  | 'Office Supplies' 
-  | 'Training & Development' 
+export type ExpenseCategory =
+  | 'Travel'
+  | 'Meals & Entertainment'
+  | 'Software & Subscriptions'
+  | 'Office Supplies'
+  | 'Training & Development'
   | 'Marketing & Advertising'
   | 'Hardware'
   | 'Consulting Fees (External)'
@@ -303,11 +304,11 @@ export type ExpenseCategory =
 
 
 export const expenseCategories: ExpenseCategory[] = [
-  'Travel', 
-  'Meals & Entertainment', 
-  'Software & Subscriptions', 
-  'Office Supplies', 
-  'Training & Development', 
+  'Travel',
+  'Meals & Entertainment',
+  'Software & Subscriptions',
+  'Office Supplies',
+  'Training & Development',
   'Marketing & Advertising',
   'Hardware',
   'Consulting Fees (External)',
@@ -317,25 +318,25 @@ export const expenseCategories: ExpenseCategory[] = [
 
 export type Expense = {
   id: string;
-  date: string; 
+  date: string;
   description: string;
   amount: number;
-  currency: string; 
-  category: ExpenseCategory | string; 
+  currency: string;
+  category: ExpenseCategory | string;
   status: ExpenseStatus;
-  submittedByConsultantId?: string; 
-  submittedByConsultantNameCache?: string; 
-  clientId?: string; 
-  clientNameCache?: string; 
-  projectId?: string; 
-  projectNameCache?: string; 
-  budgetId?: string; 
-  receiptUrl?: string; 
+  submittedByConsultantId?: string;
+  submittedByConsultantNameCache?: string;
+  clientId?: string;
+  clientNameCache?: string;
+  projectId?: string;
+  projectNameCache?: string;
+  budgetId?: string;
+  receiptUrl?: string;
   notes?: string;
-  approvedByUserId?: string; 
-  approvedDate?: string; 
-  createdAt: string; 
-  updatedAt: string; 
+  approvedByUserId?: string;
+  approvedDate?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type BudgetStatus = 'Planning' | 'Active' | 'Overspent' | 'Completed' | 'On Hold';
@@ -350,14 +351,34 @@ export type Budget = {
   name: string;
   type: BudgetType;
   linkedProjectId?: string;
-  linkedProjectNameCache?: string; 
-  departmentName?: string; 
+  linkedProjectNameCache?: string;
+  departmentName?: string;
   totalAmount: number;
   currency: string;
-  startDate: string; 
-  endDate: string; 
-  status: BudgetStatus; 
+  startDate: string;
+  endDate: string;
+  status: BudgetStatus;
   description?: string;
-  createdAt: string; 
-  updatedAt: string; 
+  createdAt: string;
+  updatedAt: string;
 };
+
+// Types for User Management in Settings
+export type SystemUserStatus = 'Active' | 'Inactive' | 'Invited' | 'Suspended';
+export const systemUserStatuses: SystemUserStatus[] = ['Active', 'Inactive', 'Invited', 'Suspended'];
+
+export type SystemRole = 'Administrator' | 'Project Manager' | 'Consultant' | 'Finance Manager' | 'Client User' | 'Viewer';
+export const systemRoles: SystemRole[] = ['Administrator', 'Project Manager', 'Consultant', 'Finance Manager', 'Client User', 'Viewer'];
+
+export interface SystemUser {
+  id: string;
+  name: string;
+  email: string;
+  role: SystemRole;
+  status: SystemUserStatus;
+  avatarUrl?: string;
+  lastLogin?: string; // ISO date string
+  dateJoined?: string; // ISO date string
+  reportsToUserId?: string;
+  reportsToUserNameCache?: string;
+}

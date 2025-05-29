@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react'; 
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,14 +33,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Settings as SettingsIcon, 
-  UserCircle, 
-  Bell, 
-  Lock, 
-  Palette, 
-  Globe, 
-  CreditCard, 
+import {
+  Settings as SettingsIcon,
+  UserCircle,
+  Bell,
+  Lock,
+  Palette,
+  Globe,
+  CreditCard,
   Users as UsersIcon,
   Shield,
   Link2,
@@ -65,6 +65,8 @@ import {
   FileLock2,
   UserCheck,
   UserX,
+  PlusCircle,
+  MoreHorizontal,
   Sun,
   Moon,
   Laptop,
@@ -84,15 +86,20 @@ import { useTheme } from '@/context/theme-provider';
 import { useLocalization } from '@/context/localization-provider';
 import { languagePacks, supportedLanguages, supportedRegions, type SupportedLanguage, type SupportedRegion } from '@/lib/i18n-config';
 import { Progress } from '@/components/ui/progress';
+import type { SystemUser, SystemUserStatus, SystemRole } from '@/lib/types';
+import { initialSystemUsers, initialConsultants } from '@/lib/mockData'; // consultants for "Reports To"
+import { systemRoles, systemUserStatuses } from '@/lib/types';
+import { format, parseISO } from 'date-fns';
 
-type SettingsSectionId = 
-  | 'account' 
-  | 'notifications' 
-  | 'security' 
-  | 'appearance' 
-  | 'language' 
-  | 'billing' 
-  | 'userManagement' 
+
+type SettingsSectionId =
+  | 'account'
+  | 'notifications'
+  | 'security'
+  | 'appearance'
+  | 'language'
+  | 'billing'
+  | 'userManagement'
   | 'accessControl'
   | 'integrations'
   | 'workflow'
@@ -102,7 +109,7 @@ interface SettingsMenuItem {
   id: SettingsSectionId;
   labelKey: keyof typeof languagePacks.en.translations;
   icon: React.ElementType;
-  description: string; 
+  description: string;
 }
 
 const settingsMenuItems: SettingsMenuItem[] = [
@@ -138,7 +145,7 @@ interface NotificationSettings {
   channels: {
     email: boolean;
     inApp: boolean;
-    push: boolean; 
+    push: boolean;
   };
   preferences: {
     projectUpdates: NotificationPreference;
@@ -208,6 +215,13 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { language, region, setLanguage, setRegion, t, formatDate } = useLocalization();
 
+  const [systemUsers, setSystemUsers] = useState<SystemUser[]>(initialSystemUsers);
+  const [showInviteUserDialog, setShowInviteUserDialog] = useState(false);
+  const [showEditUserDialog, setShowEditUserDialog] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<SystemUser | null>(null);
+  const [inviteUserFormData, setInviteUserFormData] = useState({ name: '', email: '', role: systemRoles[2] as SystemRole });
+  const [editUserFormData, setEditUserFormData] = useState<{ name: string; email: string; role: SystemRole; reportsToUserId?: string }>({ name: '', email: '', role: systemRoles[2] as SystemRole, reportsToUserId: '' });
+
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     masterEnable: true,
@@ -233,7 +247,7 @@ export default function SettingsPage() {
     passwordChanged: true,
     twoFactorChanged: false,
   });
-  
+
   const handleNotificationChange = <K extends keyof NotificationSettings>(
     key: K,
     value: NotificationSettings[K]
@@ -306,14 +320,14 @@ export default function SettingsPage() {
         handlePlaceholderAction("2FA Setup Process", "The 2FA setup process (QR code, app pairing) would begin here.");
     }
   };
-  
+
   const handleSignOutSession = (sessionId: string) => {
     setCurrentActiveSessions(prev => prev.filter(session => session.id !== sessionId));
     toast({ title: t("Session Signed Out"), description: t("Session {sessionId} has been remotely signed out (simulated).", {sessionId})});
   };
 
   const handleSignOutAllOtherSessions = () => {
-    if (currentActiveSessions.length > 1) { 
+    if (currentActiveSessions.length > 1) {
         setCurrentActiveSessions(prev => prev.slice(0, 1));
     }
     toast({ title: t("All Other Sessions Signed Out"), description: t("All other active sessions have been remotely signed out (simulated).")});
@@ -338,7 +352,7 @@ export default function SettingsPage() {
       duration: 3000,
     });
   };
-  
+
   const handleUpdatePaymentMethod = () => {
     setShowUpdatePaymentDialog(false);
     toast({
@@ -357,9 +371,72 @@ export default function SettingsPage() {
     });
   };
 
+  // User Management Functions
+  const handleInviteUser = () => {
+    const newUser: SystemUser = {
+      id: `user-${Date.now()}`,
+      name: inviteUserFormData.name,
+      email: inviteUserFormData.email,
+      role: inviteUserFormData.role,
+      status: 'Invited',
+      avatarUrl: `https://placehold.co/100x100/90A4AE/FFFFFF.png?text=${inviteUserFormData.name.substring(0,2).toUpperCase()}`,
+      dateJoined: formatISO(new Date()),
+    };
+    setSystemUsers(prev => [newUser, ...prev]);
+    setShowInviteUserDialog(false);
+    setInviteUserFormData({ name: '', email: '', role: systemRoles[2] as SystemRole }); // Reset form
+    toast({ title: t("User Invited"), description: t("{name} has been invited as a {role}.", { name: newUser.name, role: newUser.role }) });
+  };
+
+  const handleOpenEditUserDialog = (user: SystemUser) => {
+    setUserToEdit(user);
+    setEditUserFormData({ name: user.name, email: user.email, role: user.role, reportsToUserId: user.reportsToUserId || '' });
+    setShowEditUserDialog(true);
+  };
+
+  const handleEditUser = () => {
+    if (!userToEdit) return;
+    const reportsToUser = systemUsers.find(u => u.id === editUserFormData.reportsToUserId);
+    setSystemUsers(prev => prev.map(u =>
+      u.id === userToEdit.id
+        ? { ...u,
+            name: editUserFormData.name,
+            role: editUserFormData.role,
+            reportsToUserId: editUserFormData.reportsToUserId || undefined,
+            reportsToUserNameCache: reportsToUser?.name || undefined
+          }
+        : u
+    ));
+    setShowEditUserDialog(false);
+    setUserToEdit(null);
+    toast({ title: t("User Updated"), description: t("{name}'s details have been updated.", { name: editUserFormData.name }) });
+  };
+
+  const handleToggleUserStatus = (userId: string, currentStatus: SystemUserStatus) => {
+    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+    setSystemUsers(prev => prev.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+    toast({ title: t("User Status Updated"), description: t("User {userId} status changed to {newStatus}.", { userId, newStatus }) });
+  };
+
+   const handleDeleteUser = (userId: string) => {
+    setSystemUsers(prev => prev.filter(u => u.id !== userId));
+    toast({ title: t("User Deleted"), description: t("User {userId} has been deleted (simulated).", { userId }), variant: "destructive" });
+  };
+
+  const getStatusBadgeClass = (status: SystemUserStatus) => {
+    switch (status) {
+      case 'Active': return 'bg-green-500/20 text-green-700 border-green-500';
+      case 'Inactive': return 'bg-gray-500/20 text-gray-500 border-gray-500';
+      case 'Invited': return 'bg-blue-500/20 text-blue-700 border-blue-500';
+      case 'Suspended': return 'bg-red-500/20 text-red-500 border-red-500';
+      default: return 'border-border';
+    }
+  };
+
+
   const renderSectionContent = () => {
     const section = settingsMenuItems.find(item => item.id === activeSection);
-    
+
     if (activeSection === 'account') {
       return (
         <div className="space-y-6">
@@ -543,12 +620,12 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground mb-4">{t('Choose which types of events trigger notifications for each channel. (Only active if master notifications are enabled.)')}</p>
                 {(Object.keys(notificationSettings.preferences) as Array<keyof NotificationSettings['preferences']>).map((eventKey) => {
                   const eventLabel = t(eventKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()) as keyof typeof languagePacks.en.translations);
-                  const Icon = 
+                  const Icon =
                     eventKey === 'projectUpdates' ? Briefcase :
                     eventKey === 'clientCommunications' ? MessageSquare :
-                    eventKey === 'taskManagement' ? UsersIcon : 
+                    eventKey === 'taskManagement' ? UsersIcon :
                     eventKey === 'financialAlerts' ? FinancialIcon :
-                    Server; 
+                    Server;
                   return (
                     <div key={eventKey} className="mb-4 p-3 border rounded-md bg-card/50">
                       <div className="flex items-center gap-2 mb-2">
@@ -586,7 +663,7 @@ export default function SettingsPage() {
                     <Select
                         value={notificationSettings.digestFrequency}
                         onValueChange={(value: NotificationSettings['digestFrequency']) => handleNotificationChange('digestFrequency', value) }
-                        disabled 
+                        disabled
                     >
                         <SelectTrigger id="digestFrequency" className="mt-1 w-full sm:w-[250px]">
                             <SelectValue placeholder={t('Select frequency')} />
@@ -651,7 +728,7 @@ export default function SettingsPage() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-              <p className="text-xs text-muted-foreground">{t('Last password change')}: {formatDate(new Date(mockUserData.lastPasswordChange))}</p>
+              <p className="text-xs text-muted-foreground">{t('Last password change')}: {formatDate(parseISO(mockUserData.lastPasswordChange))}</p>
             </CardContent>
           </Card>
 
@@ -709,8 +786,8 @@ export default function SettingsPage() {
                 </Button>
               )}
               <p className="text-xs text-muted-foreground">
-                {is2FAEnabled 
-                  ? t("2FA adds an extra layer of security to your account during login.") 
+                {is2FAEnabled
+                  ? t("2FA adds an extra layer of security to your account during login.")
                   : t("It is highly recommended to enable 2FA for enhanced security.")}
               </p>
             </CardContent>
@@ -756,7 +833,7 @@ export default function SettingsPage() {
               <p className="text-xs text-muted-foreground">{t('If you see any unrecognized sessions, sign them out immediately and consider changing your password.')}</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader><div className="flex items-center gap-3"><UserCheck className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Recent Login History')}</CardTitle></div><CardDescription>{t('Review recent login attempts to your account.')}</CardDescription></CardHeader>
             <CardContent className="space-y-3">
@@ -792,7 +869,7 @@ export default function SettingsPage() {
                 <Button onClick={handleSaveActivityAlerts} className="mt-2">{t('Save Alert Preferences')}</Button>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader><div className="flex items-center gap-3"><History className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('System Security & Audit Logs (Preview)')}</CardTitle></div><CardDescription>{t('Review important security events and account activity across the system (Admin view).')}</CardDescription></CardHeader>
             <CardContent className="space-y-3">
@@ -814,7 +891,7 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted-foreground mt-2">{t('Create, revoke, and set permissions for API keys used by third-party applications or custom scripts.')}</p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-primary/5 border-primary/20">
             <CardHeader><div className="flex items-center gap-3"><Shield className="h-7 w-7 text-primary" /><CardTitle className="text-xl text-primary">{t('Data Encryption & Security Posture')}</CardTitle></div></CardHeader>
             <CardContent className="text-sm text-muted-foreground space-y-1">
@@ -915,7 +992,7 @@ export default function SettingsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {supportedRegions.map((regCode) => (
-                    <SelectItem key={regCode} value={regCode}>{regCode}</SelectItem> 
+                    <SelectItem key={regCode} value={regCode}>{regCode}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -935,7 +1012,7 @@ export default function SettingsPage() {
         </Card>
       );
     }
-    
+
     if (activeSection === 'billing') {
       return (
         <div className="space-y-6">
@@ -951,7 +1028,7 @@ export default function SettingsPage() {
               <div>
                 <h3 className="text-lg font-semibold">{mockBillingData.currentPlan.name}</h3>
                 <p className="text-muted-foreground">
-                  {t('${price}/month', { price: mockBillingData.currentPlan.price })} - {t('Next billing date')}: {mockBillingData.currentPlan.nextBillingDate}
+                  {t('${price}/month', { price: mockBillingData.currentPlan.price })} - {t('Next billing date')}: {formatDate(parseISO(mockBillingData.currentPlan.nextBillingDate))}
                 </p>
               </div>
               <div>
@@ -970,7 +1047,7 @@ export default function SettingsPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>{t('Are you sure you want to cancel?')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          {t('Your subscription will remain active until {nextBillingDate}. After this date, you will lose access to Pro features.', { nextBillingDate: mockBillingData.currentPlan.nextBillingDate})}
+                          {t('Your subscription will remain active until {nextBillingDate}. After this date, you will lose access to Pro features.', { nextBillingDate: formatDate(parseISO(mockBillingData.currentPlan.nextBillingDate))})}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -1036,7 +1113,7 @@ export default function SettingsPage() {
                     {mockBillingData.billingHistory.map(invoice => (
                       <TableRow key={invoice.id}>
                         <TableCell className="font-mono">{invoice.id}</TableCell>
-                        <TableCell>{invoice.date}</TableCell>
+                        <TableCell>{formatDate(parseISO(invoice.date))}</TableCell>
                         <TableCell className="text-right">{mockBillingData.currentPlan.currency} {invoice.amount.toFixed(2)}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant={invoice.status === 'Paid' ? 'default' : 'destructive'} className={cn(invoice.status === 'Paid' ? 'bg-green-500/20 text-green-700' : '')}>
@@ -1120,6 +1197,176 @@ export default function SettingsPage() {
       );
     }
 
+    if (activeSection === 'userManagement') {
+      return (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3">
+                    <UsersIcon className="h-7 w-7 text-primary" />
+                    <CardTitle className="text-xl">{t('Manage System Users')}</CardTitle>
+                </div>
+                <CardDescription>{t('Administer user accounts, assign roles, and manage access.')}</CardDescription>
+              </div>
+              <Dialog open={showInviteUserDialog} onOpenChange={setShowInviteUserDialog}>
+                <DialogTrigger asChild>
+                  <Button><PlusCircle className="mr-2 h-4 w-4" />{t('Invite New User')}</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{t('Invite New User')}</DialogTitle>
+                    <DialogDescription>{t('Enter user details and assign a role.')}</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div><Label htmlFor="inviteName">{t('Full Name')}</Label><Input id="inviteName" value={inviteUserFormData.name} onChange={(e) => setInviteUserFormData(prev => ({...prev, name: e.target.value}))} /></div>
+                    <div><Label htmlFor="inviteEmail">{t('Email Address')}</Label><Input id="inviteEmail" type="email" value={inviteUserFormData.email} onChange={(e) => setInviteUserFormData(prev => ({...prev, email: e.target.value}))} /></div>
+                    <div>
+                      <Label htmlFor="inviteRole">{t('Role')}</Label>
+                      <Select value={inviteUserFormData.role} onValueChange={(value: SystemRole) => setInviteUserFormData(prev => ({...prev, role: value}))}>
+                        <SelectTrigger id="inviteRole"><SelectValue /></SelectTrigger>
+                        <SelectContent>{systemRoles.map(role => <SelectItem key={role} value={role}>{t(role)}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowInviteUserDialog(false)}>{t('Cancel')}</Button>
+                    <Button onClick={handleInviteUser}>{t('Send Invitation')}</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="max-h-[60vh]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('User')}</TableHead>
+                    <TableHead>{t('Email')}</TableHead>
+                    <TableHead>{t('Role')}</TableHead>
+                    <TableHead>{t('Reports To')}</TableHead>
+                    <TableHead>{t('Status')}</TableHead>
+                    <TableHead>{t('Last Login')}</TableHead>
+                    <TableHead className="text-right">{t('Actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {systemUsers.map(user => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8"><AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="person avatar"/><AvatarFallback>{user.name.substring(0,1)}</AvatarFallback></Avatar>
+                          <span>{user.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell><Badge variant="outline">{t(user.role)}</Badge></TableCell>
+                      <TableCell>{user.reportsToUserNameCache || t('N/A')}</TableCell>
+                      <TableCell><Badge variant="outline" className={cn(getStatusBadgeClass(user.status))}>{t(user.status)}</Badge></TableCell>
+                      <TableCell className="text-xs">{user.lastLogin ? formatDate(parseISO(user.lastLogin)) : t('Never')}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleOpenEditUserDialog(user)}><Edit3 className="mr-2 h-4 w-4" />{t('Edit User')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePlaceholderAction("Reset Password", "A password reset link would be sent to the user's email.")}><KeyRound className="mr-2 h-4 w-4" />{t('Reset Password')}</DropdownMenuItem>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className={user.status === 'Active' ? "text-orange-600 focus:text-orange-600" : "text-green-600 focus:text-green-600"}>
+                                        {user.status === 'Active' ? <UserX className="mr-2 h-4 w-4" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                        {user.status === 'Active' ? t('Deactivate User') : t('Activate User')}
+                                    </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>{user.status === 'Active' ? t('Deactivate User?') : t('Activate User?')}</AlertDialogTitle>
+                                        <AlertDialogDescription>{t('Are you sure you want to {action} the user {userName}?', { action: user.status === 'Active' ? t('deactivate') : t('activate'), userName: user.name })}</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleToggleUserStatus(user.id, user.status)}>{user.status === 'Active' ? t('Deactivate') : t('Activate')}</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                             <DropdownMenuSeparator />
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive focus:bg-destructive/10"><Trash2 className="mr-2 h-4 w-4" />{t('Delete User')}</DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader><AlertDialogTitle>{t('Delete User?')}</AlertDialogTitle><AlertDialogDescription>{t('This action cannot be undone. Are you sure you want to permanently delete {userName}?', { userName: user.name })}</AlertDialogDescription></AlertDialogHeader>
+                                    <AlertDialogFooter><AlertDialogCancel>{t('Cancel')}</AlertDialogCancel><AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => handleDeleteUser(user.id)}>{t('Delete User')}</AlertDialogAction></AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              </ScrollArea>
+              {userToEdit && (
+                <Dialog open={showEditUserDialog} onOpenChange={(isOpen) => { if(!isOpen) setUserToEdit(null); setShowEditUserDialog(isOpen); }}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{t('Edit User')}: {userToEdit.name}</DialogTitle>
+                      <DialogDescription>{t('Modify user details and role assignments.')}</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div><Label htmlFor="editName">{t('Full Name')}</Label><Input id="editName" value={editUserFormData.name} onChange={(e) => setEditUserFormData(prev => ({...prev, name: e.target.value}))} /></div>
+                      <div><Label htmlFor="editEmail">{t('Email Address')}</Label><Input id="editEmail" type="email" value={editUserFormData.email} disabled /></div>
+                      <div>
+                        <Label htmlFor="editRole">{t('Role')}</Label>
+                        <Select value={editUserFormData.role} onValueChange={(value: SystemRole) => setEditUserFormData(prev => ({...prev, role: value}))}>
+                          <SelectTrigger id="editRole"><SelectValue /></SelectTrigger>
+                          <SelectContent>{systemRoles.map(role => <SelectItem key={role} value={role}>{t(role)}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                       <div>
+                        <Label htmlFor="editReportsTo">{t('Reports To (Optional)')}</Label>
+                        <Select value={editUserFormData.reportsToUserId || ''} onValueChange={(value) => setEditUserFormData(prev => ({...prev, reportsToUserId: value === '' ? undefined : value}))}>
+                          <SelectTrigger id="editReportsTo"><SelectValue placeholder={t("Select manager")} /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">{t('-- None --')}</SelectItem>
+                            {systemUsers.filter(u => u.id !== userToEdit.id).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => { setShowEditUserDialog(false); setUserToEdit(null); }}>{t('Cancel')}</Button>
+                      <Button onClick={handleEditUser}>{t('Save Changes')}</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3"><ShieldCheck className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Role & Permission Management')}</CardTitle></div>
+              <CardDescription>{t('Define user roles and their granular permissions across different system modules.')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={() => setActiveSection('accessControl') }>{t('Configure Roles & Permissions')}</Button>
+              <p className="text-xs text-muted-foreground mt-2">{t('Access control ensures users only see and interact with appropriate data and features.')}</p>
+            </CardContent>
+          </Card>
+           <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3"><UsersIcon className="h-7 w-7 text-primary" /><CardTitle className="text-xl">{t('Team Structure & Hierarchy')}</CardTitle></div>
+              <CardDescription>{t('Visualize and manage organizational structure and reporting lines.')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">{t('Tools for defining teams, departments, and reporting hierarchies are planned for future development. This will enhance resource allocation and workflow approvals.')}</p>
+              <Button variant="outline" className="mt-3" disabled>{t('Manage Teams (Coming Soon)')}</Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
 
     if (!section) {
       return (
@@ -1176,8 +1423,8 @@ export default function SettingsPage() {
                 variant="ghost"
                 className={cn(
                   "w-full justify-start px-3 py-2.5 text-left h-auto text-base rounded-md flex items-center gap-3 mb-1",
-                  activeSection === item.id 
-                    ? "bg-primary/10 text-primary font-semibold border border-primary/30 shadow-sm" 
+                  activeSection === item.id
+                    ? "bg-primary/10 text-primary font-semibold border border-primary/30 shadow-sm"
                     : "hover:bg-muted/80 text-muted-foreground hover:text-foreground"
                 )}
                 onClick={() => setActiveSection(item.id)}
@@ -1220,5 +1467,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
