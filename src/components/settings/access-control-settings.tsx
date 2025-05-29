@@ -76,18 +76,15 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
 
   const handleOpenEditPermissionsDialog = (role: SystemRole) => {
     setEditingRole(role);
-    // Deep copy permissions for editing to avoid mutating mockRolePermissions
     const permissionsToEdit = JSON.parse(JSON.stringify(mockRolePermissions[role] || {}));
     setEditablePermissions(permissionsToEdit);
     setShowEditPermissionsDialog(true);
   };
 
   const handlePermissionToggle = (module: AppModule, action: PermissionAction) => {
-    setEditablePermissions(currentEditablePermissions => {
-      if (!currentEditablePermissions) return null;
-
-      const newPermissionsState = JSON.parse(JSON.stringify(currentEditablePermissions));
-
+    setEditablePermissions(currentPermissions => {
+      if (!currentPermissions) return null;
+      const newPermissionsState = JSON.parse(JSON.stringify(currentPermissions)); // Deep copy
       if (!newPermissionsState[module]) {
         newPermissionsState[module] = {};
       }
@@ -95,11 +92,9 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
       return newPermissionsState;
     });
   };
-
+  
   const handleSavePermissions = () => {
     if (!editingRole) return;
-    // In a real app, this would send 'editablePermissions' to the backend.
-    // For now, we just simulate it and don't update the main mockRolePermissions.
     toast({
       title: t("Permissions Updated (Simulated)"),
       description: t("Permissions for role '{role}' have been updated in this session. In a real system, this would save to the backend.", { role: t(editingRole as keyof LanguagePack['translations']) }),
@@ -115,7 +110,6 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
       toast({ title: t("Error"), description: t("Role name cannot be empty."), variant: "destructive" });
       return;
     }
-    // In a real app, this would save the new role to the backend.
     toast({
       title: t("Custom Role Added (Simulated)"),
       description: t("The custom role '{roleName}' has been created. You would now typically define its permissions.", { roleName: newCustomRoleName }),
@@ -179,7 +173,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
             <h3 className="text-lg font-semibold mb-3">{t('Permissions for {role}', {role: t(selectedRole as keyof LanguagePack['translations'])})}</h3>
             <div className="rounded-md border overflow-x-auto max-h-[500px]">
               <Table>
-                <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
                   <TableRow>
                     <TableHead className="w-[200px]">{t('Module / Feature')}</TableHead>
                     {PERMISSION_ACTIONS.map(action => (
@@ -190,7 +184,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
                 <TableBody>
                   {APP_MODULES.map(module => {
                     const modulePermissions = currentRolePermissionsToDisplay[module] || {};
-                    if (Object.keys(modulePermissions).length > 0 || selectedRole === 'Administrator') { // Admins see all modules for potential granting
+                    if (Object.keys(modulePermissions).length > 0 || selectedRole === 'Administrator') { 
                         return (
                             <TableRow key={module}>
                             <TableCell className="font-medium text-sm">{t(module.replace(/_/g, ' ') as keyof LanguagePack['translations'])}</TableCell>
@@ -249,15 +243,15 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
 
       {/* Edit Permissions Dialog */}
       <Dialog open={showEditPermissionsDialog} onOpenChange={setShowEditPermissionsDialog}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh]">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{t('Edit Permissions for Role: {roleName}', { roleName: editingRole ? t(editingRole as keyof LanguagePack['translations']) : '' })}</DialogTitle>
             <DialogDescription>{t('Toggle permissions for each module and action. Changes are simulated for this demo.')}</DialogDescription>
           </DialogHeader>
-          <div className="py-4 overflow-y-auto">
+          <div className="py-4 flex-grow overflow-y-auto">
             {editablePermissions && editingRole ? (
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
                   <TableRow>
                     <TableHead className="w-[250px]">{t('Module / Feature')}</TableHead>
                     {PERMISSION_ACTIONS.map(action => (
