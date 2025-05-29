@@ -2,7 +2,7 @@
 // src/components/settings/user-management-settings.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -46,12 +46,14 @@ import type { SystemUser, SystemUserStatus, SystemRole, Consultant } from '@/lib
 import { systemRoles } from '@/lib/types';
 import type { LanguagePack } from '@/lib/i18n-config';
 
+const NONE_VALUE_PLACEHOLDER = "--none--"; // Define placeholder for "None" select option
+
 interface UserManagementSettingsProps {
   t: (key: string, replacements?: Record<string, string | number>) => string;
   formatDate: (date: Date) => string;
   systemUsers: SystemUser[];
   setSystemUsers: React.Dispatch<React.SetStateAction<SystemUser[]>>;
-  initialConsultants: Consultant[];
+  initialConsultants: Consultant[]; // Can be removed if not directly used for user creation
   setActiveSection: (sectionId: string) => void;
 }
 
@@ -68,10 +70,14 @@ export default function UserManagementSettingsSection({
   const [showEditUserDialog, setShowEditUserDialog] = useState(false);
   const [userToEdit, setUserToEdit] = useState<SystemUser | null>(null);
 
-  const [inviteUserFormData, setInviteUserFormData] = useState({ name: '', email: '', role: systemRoles[2] as SystemRole });
-  const [editUserFormData, setEditUserFormData] = useState<{ name: string; email: string; role: SystemRole; reportsToUserId?: string }>({ name: '', email: '', role: systemRoles[2] as SystemRole, reportsToUserId: '' });
+  const [inviteUserFormData, setInviteUserFormData] = useState<{ name: string; email: string; role: SystemRole }>({ name: '', email: '', role: systemRoles.find(r => r === 'Consultant') || systemRoles[0] });
+  const [editUserFormData, setEditUserFormData] = useState<{ name: string; email: string; role: SystemRole; reportsToUserId?: string }>({ name: '', email: '', role: systemRoles.find(r => r === 'Consultant') || systemRoles[0], reportsToUserId: undefined });
 
   const handleInviteUser = () => {
+    if (!inviteUserFormData.name.trim() || !inviteUserFormData.email.trim()) {
+        toast({ title: t("Validation Error"), description: t("Name and Email are required."), variant: "destructive" });
+        return;
+    }
     const newUser: SystemUser = {
       id: `user-${Date.now()}`,
       name: inviteUserFormData.name,
@@ -83,26 +89,35 @@ export default function UserManagementSettingsSection({
     };
     setSystemUsers(prev => [newUser, ...prev]);
     setShowInviteUserDialog(false);
-    setInviteUserFormData({ name: '', email: '', role: systemRoles[2] as SystemRole });
+    setInviteUserFormData({ name: '', email: '', role: systemRoles.find(r => r === 'Consultant') || systemRoles[0] });
     toast({ title: t("User Invited"), description: t("{name} has been invited as a {role}.", { name: newUser.name, role: t(newUser.role as keyof LanguagePack['translations']) }) });
   };
 
   const handleOpenEditUserDialog = (user: SystemUser) => {
     setUserToEdit(user);
-    setEditUserFormData({ name: user.name, email: user.email, role: user.role, reportsToUserId: user.reportsToUserId || '' });
+    setEditUserFormData({ 
+        name: user.name, 
+        email: user.email, 
+        role: user.role, 
+        reportsToUserId: user.reportsToUserId // Keep as undefined if it is
+    });
     setShowEditUserDialog(true);
   };
 
   const handleEditUser = () => {
     if (!userToEdit) return;
+    if (!editUserFormData.name.trim()) {
+        toast({ title: t("Validation Error"), description: t("Name cannot be empty."), variant: "destructive" });
+        return;
+    }
     const reportsToUser = systemUsers.find(u => u.id === editUserFormData.reportsToUserId);
     setSystemUsers(prev => prev.map(u =>
       u.id === userToEdit.id
         ? { ...u,
             name: editUserFormData.name,
             role: editUserFormData.role,
-            reportsToUserId: editUserFormData.reportsToUserId || undefined,
-            reportsToUserNameCache: reportsToUser?.name || undefined
+            reportsToUserId: editUserFormData.reportsToUserId, // Can be undefined
+            reportsToUserNameCache: reportsToUser?.name
           }
         : u
     ));
@@ -124,51 +139,43 @@ export default function UserManagementSettingsSection({
 
   const getStatusBadgeClass = (status: SystemUserStatus) => {
     switch (status) {
-      case 'Active': return 'bg-green-500/20 text-green-700 border-green-500';
-      case 'Inactive': return 'bg-gray-500/20 text-gray-500 border-gray-500';
-      case 'Invited': return 'bg-blue-500/20 text-blue-700 border-blue-500';
-      case 'Suspended': return 'bg-red-500/20 text-red-500 border-red-500';
+      case 'Active': return 'bg-green-500/20 text-green-700 border-green-500 dark:text-green-300 dark:border-green-400';
+      case 'Inactive': return 'bg-gray-500/20 text-gray-700 border-gray-500 dark:text-gray-300 dark:border-gray-400';
+      case 'Invited': return 'bg-blue-500/20 text-blue-700 border-blue-500 dark:text-blue-300 dark:border-blue-400';
+      case 'Suspended': return 'bg-red-500/20 text-red-700 border-red-500 dark:text-red-300 dark:border-red-400';
       default: return 'border-border';
     }
   };
 
-  const managersAndReports = React.useMemo(() => {
+  const managersAndReports = useMemo(() => {
     const managersMap = new Map<string, { manager: SystemUser; reports: SystemUser[] }>();
-    
     systemUsers.forEach(user => {
       if (user.reportsToUserId) {
-        if (!managersMap.has(user.reportsToUserId)) {
-          const manager = systemUsers.find(m => m.id === user.reportsToUserId);
-          if (manager) {
-            managersMap.set(user.reportsToUserId, { manager, reports: [] });
+        const manager = systemUsers.find(m => m.id === user.reportsToUserId);
+        if (manager) {
+          if (!managersMap.has(manager.id)) {
+            managersMap.set(manager.id, { manager, reports: [] });
           }
+          managersMap.get(manager.id)?.reports.push(user);
         }
-        managersMap.get(user.reportsToUserId)?.reports.push(user);
       }
     });
 
-    // Also add managers who might not have direct reports listed but are defined
+    // Add managers who might not have direct reports from the first pass, but are listed as managers
     systemUsers.forEach(user => {
-        if (!managersMap.has(user.id) && systemUsers.some(u => u.reportsToUserId === user.id)) {
-             managersMap.set(user.id, { manager: user, reports: systemUsers.filter(u => u.reportsToUserId === user.id) });
-        } else if (managersMap.has(user.id) && managersMap.get(user.id)?.reports.length === 0) {
-             // If a manager is already in the map but has no reports yet from the first pass
-             managersMap.get(user.id)!.reports = systemUsers.filter(u => u.reportsToUserId === user.id);
-        }
+      const isDesignatedManager = systemUsers.some(u => u.reportsToUserId === user.id);
+      if (isDesignatedManager && !managersMap.has(user.id)) {
+        managersMap.set(user.id, { manager: user, reports: systemUsers.filter(u => u.reportsToUserId === user.id) });
+      }
     });
     
-    // Filter out managers who don't actually have anyone reporting to them, unless they themselves are in the reportsToUserId field of someone else
-    // This logic can be complex depending on desired view (e.g. show all potential managers or only those with reports)
-    // For simplicity, let's just show managers who have reports or are designated as a manager by someone else.
-    const finalManagers = Array.from(managersMap.values());
+    const finalManagers = Array.from(managersMap.values()).sort((a,b) => a.manager.name.localeCompare(b.manager.name));
     
-    // Add users who are not managers and do not report to anyone (top-level individual contributors)
     const topLevelIndividuals = systemUsers.filter(user => 
-        !user.reportsToUserId && !finalManagers.some(m => m.manager.id === user.id) && !systemUsers.some(u => u.reportsToUserId === user.id)
-    );
+        !user.reportsToUserId && !finalManagers.some(m => m.manager.id === user.id)
+    ).sort((a,b) => a.name.localeCompare(b.name));
 
     return { managers: finalManagers, topLevelIndividuals };
-
   }, [systemUsers]);
 
 
@@ -234,9 +241,9 @@ export default function UserManagementSettingsSection({
                       </div>
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell><Badge variant="outline">{t(user.role as keyof LanguagePack['translations'])}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className="font-normal">{t(user.role as keyof LanguagePack['translations'])}</Badge></TableCell>
                     <TableCell>{user.reportsToUserNameCache || t('N/A')}</TableCell>
-                    <TableCell><Badge variant="outline" className={cn(getStatusBadgeClass(user.status))}>{t(user.status as keyof LanguagePack['translations'])}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className={cn("font-normal capitalize", getStatusBadgeClass(user.status))}>{t(user.status as keyof LanguagePack['translations'])}</Badge></TableCell>
                     <TableCell className="text-xs">{user.lastLogin ? formatDate(parseISO(user.lastLogin)) : t('Never')}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -246,7 +253,7 @@ export default function UserManagementSettingsSection({
                           <DropdownMenuItem onClick={() => toast({ title: t("Reset Password"), description: t("Password reset link would be sent to the user's email.") })}><KeyRound className="mr-2 h-4 w-4" />{t('Reset Password')}</DropdownMenuItem>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className={user.status === 'Active' ? "text-orange-600 focus:text-orange-600" : "text-green-600 focus:text-green-600"}>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className={cn("focus:text-white", user.status === 'Active' ? "text-orange-600 focus:bg-orange-500" : "text-green-600 focus:bg-green-500")}>
                                         {user.status === 'Active' ? <UserX className="mr-2 h-4 w-4" /> : <UserCheck className="mr-2 h-4 w-4" />}
                                         {user.status === 'Active' ? t('Deactivate User') : t('Activate User')}
                                     </DropdownMenuItem>
@@ -299,10 +306,13 @@ export default function UserManagementSettingsSection({
                   </div>
                   <div>
                     <Label htmlFor="editReportsTo">{t('Reports To (Optional)')}</Label>
-                    <Select value={editUserFormData.reportsToUserId || ''} onValueChange={(value) => setEditUserFormData(prev => ({...prev, reportsToUserId: value === '' ? undefined : value}))}>
+                    <Select 
+                      value={editUserFormData.reportsToUserId || NONE_VALUE_PLACEHOLDER} 
+                      onValueChange={(value) => setEditUserFormData(prev => ({...prev, reportsToUserId: value === NONE_VALUE_PLACEHOLDER ? undefined : value}))
+                    }>
                       <SelectTrigger id="editReportsTo"><SelectValue placeholder={t("Select manager")} /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">{t('-- None --')}</SelectItem>
+                        <SelectItem value={NONE_VALUE_PLACEHOLDER}>{t('-- None --')}</SelectItem>
                         {systemUsers.filter(u => u.id !== userToEdit.id).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -336,7 +346,7 @@ export default function UserManagementSettingsSection({
                     <div>
                       <p className="font-semibold">{manager.name} <span className="text-xs text-muted-foreground">({t(manager.role as keyof LanguagePack['translations'])})</span></p>
                       {reports.length > 0 && <p className="text-xs text-muted-foreground">{t('Manages {count} direct report(s)', { count: reports.length })}</p>}
-                      {reports.length === 0 && <p className="text-xs text-muted-foreground">{t('Manages 0 direct reports (but is designated manager)')}</p>}
+                      {reports.length === 0 && manager.role !== 'Consultant' && <p className="text-xs text-muted-foreground">{t('Designated Manager (0 direct reports)')}</p>}
                     </div>
                   </div>
                   {reports.length > 0 && (
