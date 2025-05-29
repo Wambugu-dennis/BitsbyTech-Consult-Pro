@@ -30,6 +30,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge"; // Added Badge import
 import { useToast } from "@/hooks/use-toast";
 import { 
   Settings as SettingsIcon, 
@@ -177,7 +178,7 @@ export default function SettingsPage() {
   // State for Security section
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-  const [activeSessions, setActiveSessions] = useState(mockActiveSessions);
+  const [currentActiveSessions, setCurrentActiveSessions] = useState(mockActiveSessions); // Renamed to avoid conflict
   const [activityAlerts, setActivityAlerts] = useState({
     newDeviceLogin: true,
     failedLogins: true,
@@ -260,13 +261,13 @@ export default function SettingsPage() {
   };
   
   const handleSignOutSession = (sessionId: string) => {
-    setActiveSessions(prev => prev.filter(session => session.id !== sessionId));
+    setCurrentActiveSessions(prev => prev.filter(session => session.id !== sessionId)); // Use renamed state variable
     toast({ title: "Session Signed Out", description: `Session ${sessionId} has been remotely signed out (simulated).`});
   };
 
   const handleSignOutAllOtherSessions = () => {
-    if (activeSessions.length > 1) {
-        setActiveSessions([activeSessions[0]]); 
+    if (currentActiveSessions.length > 1) { // Use renamed state variable
+        setCurrentActiveSessions([currentActiveSessions[0]]); 
     }
     toast({ title: "All Other Sessions Signed Out", description: "All other active sessions have been remotely signed out (simulated)."});
   };
@@ -323,6 +324,23 @@ export default function SettingsPage() {
                     <Edit3 className="mr-2 h-4 w-4"/> Edit Profile
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+           <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Lock className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Security Settings (Basic)</CardTitle>
+              </div>
+              <CardDescription>Manage your password and basic security options.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+               <Button variant="outline" onClick={() => { setActiveSection('security'); handlePlaceholderAction("Redirecting to Full Security Settings...");}}>
+                    Go to Full Security Settings
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">
+                    Advanced options like Two-Factor Authentication, Active Sessions, and Audit Logs are available in the main "Security" section.
+                </p>
             </CardContent>
           </Card>
           <Card>
@@ -657,7 +675,7 @@ export default function SettingsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {activeSessions.map(session => (
+                    {currentActiveSessions.map(session => (
                       <TableRow key={session.id}>
                         <TableCell className="font-medium">{session.device}</TableCell>
                         <TableCell>{session.location} ({session.ipAddress})</TableCell>
@@ -688,7 +706,7 @@ export default function SettingsPage() {
                   </TableBody>
                 </Table>
               </div>
-              {activeSessions.length > 1 && (
+              {currentActiveSessions.length > 1 && (
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button variant="outline" className="w-full sm:w-auto">Sign Out All Other Sessions</Button>
