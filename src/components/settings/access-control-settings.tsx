@@ -10,13 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck, CheckCircle2, XCircle, PlusCircle, Edit3, Settings as SettingsIcon, UserCog, FileClock, Info } from "lucide-react";
-import type { SystemRole } from '@/lib/types';
+import { ShieldCheck, CheckCircle2, XCircle, PlusCircle, Edit3, Settings as SettingsIcon, UserCog, FileClock, Info, FilterX } from "lucide-react";
+import type { SystemRole, SystemUser } from '@/lib/types';
 import { systemRoles } from '@/lib/types';
-import { initialSystemUsers } from '@/lib/mockData'; // Corrected import path for initialSystemUsers
+import { initialSystemUsers } from '@/lib/mockData';
 import { cn } from "@/lib/utils";
 import type { LanguagePack } from '@/lib/i18n-config';
 
@@ -63,6 +63,14 @@ const initialMockRolePermissions: Record<SystemRole, RolePermissions> = {
   },
 };
 
+const mockAuditLogsData = [
+    { timestamp: "2024-07-28 10:15:00 UTC", event: "Permissions updated for 'Project Manager' role by Alex Mercer.", user: "Alex Mercer (Admin)", details: "Enabled 'delete' on 'Projects' module." },
+    { timestamp: "2024-07-27 14:30:00 UTC", event: "'Consultant' role assigned to user 'Charles Davis'.", user: "Alex Mercer (Admin)", details: "User was previously 'Viewer'." },
+    { timestamp: "2024-07-26 09:00:00 UTC", event: "Login attempt failed for 'Finance Manager' role (incorrect password).", user: "System", details: "IP: 192.0.2.100" },
+    { timestamp: "2024-07-25 11:00:00 UTC", event: "User override applied for 'Brenda Smith'.", user: "Alex Mercer (Admin)", details: "Granted 'create' on 'Clients' module." },
+    { timestamp: "2024-07-24 16:20:00 UTC", event: "Custom role 'Intern' created.", user: "Alex Mercer (Admin)", details: "Initial permissions set to none." },
+];
+
 
 interface AccessControlSettingsProps {
   t: (key: string, replacements?: Record<string, string | number>) => string;
@@ -72,7 +80,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
   const { toast } = useToast();
   const [selectedRole, setSelectedRole] = useState<SystemRole | null>(null);
   const [activeRolePermissions, setActiveRolePermissions] = useState<Record<SystemRole, RolePermissions>>(
-    JSON.parse(JSON.stringify(initialMockRolePermissions)) // Deep copy for initial state
+    () => JSON.parse(JSON.stringify(initialMockRolePermissions)) // Deep copy for initial state
   );
 
   const [showEditPermissionsDialog, setShowEditPermissionsDialog] = useState(false);
@@ -81,6 +89,13 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
 
   const [showAddCustomRoleDialog, setShowAddCustomRoleDialog] = useState(false);
   const [newCustomRoleName, setNewCustomRoleName] = useState('');
+
+  // State for User Permission Overrides
+  const [selectedUserForOverride, setSelectedUserForOverride] = useState<SystemUser | null>(null);
+  const [showUserOverrideDialog, setShowUserOverrideDialog] = useState(false);
+  const [editingUserOverrides, setEditingUserOverrides] = useState<RolePermissions | null>(null);
+  const [userOverrides, setUserOverrides] = useState<Record<string, RolePermissions>>({}); // Key: userId
+
 
   const handleOpenEditPermissionsDialog = (role: SystemRole) => {
     setEditingRole(role);
@@ -92,7 +107,7 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
   const handlePermissionToggle = (module: AppModule, action: PermissionAction) => {
     setEditablePermissions(currentPermissions => {
       if (!currentPermissions) return null;
-      const newPermissionsState = JSON.parse(JSON.stringify(currentPermissions)); // Deep copy
+      const newPermissionsState = JSON.parse(JSON.stringify(currentPermissions));
       if (!newPermissionsState[module]) {
         newPermissionsState[module] = {};
       }
@@ -131,14 +146,100 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
     setShowAddCustomRoleDialog(false);
     setNewCustomRoleName('');
   };
+  
+  // --- User Permission Overrides Functions ---
+  const handleOpenUserOverrideDialog = () => {
+    if (!selectedUserForOverride) return;
+    const userBasePermissions = activeRolePermissions[selectedUserForOverride.role] || {};
+    const specificUserOverrides = userOverrides[selectedUserForOverride.id] || {};
+    
+    // Merge base role permissions with user-specific overrides
+    const effectivePermissionsForDialog: RolePermissions = JSON.parse(JSON.stringify(userBasePermissions));
+    for (const module in specificUserOverrides) {
+      if (!effectivePermissionsForDialog[module as AppModule]) {
+        effectivePermissionsForDialog[module as AppModule] = {};
+      }
+      for (const action in specificUserOverrides[module as AppModule]) {
+        effectivePermissionsForDialog[module as AppModule]![action as PermissionAction] = specificUserOverrides[module as AppModule]![action as PermissionAction];
+      }
+    }
+    setEditingUserOverrides(effectivePermissionsForDialog);
+    setShowUserOverrideDialog(true);
+  };
+
+  const handleUserOverridePermissionToggle = (module: AppModule, action: PermissionAction) => {
+    setEditingUserOverrides(currentOverrides => {
+      if (!currentOverrides || !selectedUserForOverride) return null;
+      
+      const newOverrides = JSON.parse(JSON.stringify(currentOverrides));
+      if (!newOverrides[module]) newOverrides[module] = {};
+      
+      const currentEffectiveValue = newOverrides[module][action];
+      
+      // Toggle the value
+      newOverrides[module][action] = !currentEffectiveValue;
+      
+      return newOverrides;
+    });
+  };
+
+  const handleSaveUserOverrides = () => {
+    if (!selectedUserForOverride || !editingUserOverrides) return;
+    
+    const baseRolePermissions = activeRolePermissions[selectedUserForOverride.role] || {};
+    const finalOverridesToSave: RolePermissions = {};
+
+    // Only save overrides that differ from the base role
+    for (const module of APP_MODULES) {
+        const moduleOverrides: ModulePermissionSet = {};
+        let moduleHasOverrides = false;
+        for (const action of PERMISSION_ACTIONS) {
+            const userPermission = editingUserOverrides[module]?.[action];
+            const rolePermission = baseRolePermissions[module]?.[action] || false; // Default to false if not defined in role
+            
+            if (userPermission !== undefined && userPermission !== rolePermission) {
+                moduleOverrides[action] = userPermission;
+                moduleHasOverrides = true;
+            }
+        }
+        if (moduleHasOverrides) {
+            finalOverridesToSave[module] = moduleOverrides;
+        }
+    }
+
+    setUserOverrides(prev => ({
+      ...prev,
+      [selectedUserForOverride.id]: finalOverridesToSave,
+    }));
+
+    toast({
+      title: t("User Overrides Updated (Simulated)"),
+      description: t("Permission overrides for {userName} have been updated for this session.", { userName: selectedUserForOverride.name }),
+      duration: 4000,
+    });
+    setShowUserOverrideDialog(false);
+  };
+  
+  const handleClearUserOverrides = () => {
+    if (!selectedUserForOverride) return;
+    setUserOverrides(prev => {
+      const newOverrides = { ...prev };
+      delete newOverrides[selectedUserForOverride.id];
+      return newOverrides;
+    });
+    // Re-initialize dialog state based on role permissions
+    const userBasePermissions = activeRolePermissions[selectedUserForOverride.role] || {};
+    setEditingUserOverrides(JSON.parse(JSON.stringify(userBasePermissions)));
+    toast({
+      title: t("User Overrides Cleared (Simulated)"),
+      description: t("All specific permission overrides for {userName} have been cleared for this session. Permissions now revert to their role defaults.", {userName: selectedUserForOverride.name}),
+      duration: 4000,
+    });
+  };
+
 
   const currentRolePermissionsToDisplay = selectedRole ? activeRolePermissions[selectedRole] : null;
 
-  const mockAuditLogs = [
-    { timestamp: "2024-07-28 10:15:00 UTC", event: "Permissions updated for 'Project Manager' role.", user: "Alex Mercer (Admin)"},
-    { timestamp: "2024-07-27 14:30:00 UTC", event: "'Consultant' role assigned to user 'Charles Davis'.", user: "Alex Mercer (Admin)"},
-    { timestamp: "2024-07-26 09:00:00 UTC", event: "Login attempt failed for 'Finance Manager' role (incorrect password).", user: "System"},
-  ];
 
   return (
     <div className="space-y-6">
@@ -262,27 +363,43 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
             </div>
             <CardDescription>
                 {t('Grant or revoke specific permissions for individual users, overriding their assigned role\'s default permissions for exceptional cases. This provides flexibility while maintaining a clear role-based foundation.')}
+                 <br />
+                <span className="text-xs text-muted-foreground">{t('Note: Role permissions (above) show defaults. User overrides provide exceptions.')}</span>
             </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div>
                 <Label htmlFor="override-user-select">{t('Select User to Manage Overrides')}</Label>
-                <Select disabled>
+                <Select
+                    value={selectedUserForOverride?.id || ""}
+                    onValueChange={(userId) => {
+                        const user = initialSystemUsers.find(u => u.id === userId);
+                        setSelectedUserForOverride(user || null);
+                    }}
+                >
                     <SelectTrigger id="override-user-select" className="w-full sm:w-[280px] mt-1">
                         <SelectValue placeholder={t('Select a user...')} />
                     </SelectTrigger>
                     <SelectContent>
-                        {/* Placeholder: map over actual users in a real system */}
+                        <SelectItem value="">{t('-- Select User --')}</SelectItem>
                         {initialSystemUsers.map(user => (
-                           <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                           <SelectItem key={user.id} value={user.id}>{user.name} ({user.role})</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
             </div>
-            <Button variant="outline" disabled onClick={() => toast({title: t("Manage Overrides Clicked (Placeholder)"), description: t("This feature is planned for future development.")})}>
-                {t('View/Edit Overrides')}
+            <Button 
+                variant="outline" 
+                disabled={!selectedUserForOverride} 
+                onClick={handleOpenUserOverrideDialog}
+            >
+                {t('View/Edit Overrides for {userName}', { userName: selectedUserForOverride?.name || 'selected user'})}
             </Button>
-            <p className="text-xs text-muted-foreground">{t('Note: Managing individual permission overrides is an advanced feature planned for future development.')}</p>
+             {selectedUserForOverride && Object.keys(userOverrides[selectedUserForOverride.id] || {}).length > 0 && (
+                <div className="mt-2 text-xs p-2 border border-amber-500/50 bg-amber-500/10 rounded-md">
+                    <p className="font-medium text-amber-700 dark:text-amber-300">{t('{userName} has {count} specific permission override(s) in place.', { userName: selectedUserForOverride.name, count: Object.keys(userOverrides[selectedUserForOverride.id]).length })}</p>
+                </div>
+            )}
         </CardContent>
       </Card>
 
@@ -303,15 +420,17 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
                         <TableRow>
                             <TableHead>{t('Timestamp')}</TableHead>
                             <TableHead>{t('Event')}</TableHead>
-                            <TableHead>{t('User')}</TableHead>
+                            <TableHead>{t('Actor')}</TableHead>
+                            <TableHead>{t('Details')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {mockAuditLogs.map((log, index) => (
+                        {mockAuditLogsData.map((log, index) => (
                             <TableRow key={index}>
                                 <TableCell className="text-xs">{log.timestamp}</TableCell>
                                 <TableCell className="text-xs">{t(log.event as keyof LanguagePack['translations'], {role: "'Project Manager'", user:"'Charles Davis'"})}</TableCell>
                                 <TableCell className="text-xs">{log.user}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{log.details}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -336,13 +455,13 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
         <p className="mt-2">{t('This ensures that Consult Vista adheres to the principle of least privilege and provides flexible access control tailored to your organization\'s needs.')}</p>
       </CardFooter>
 
-      {/* Edit Permissions Dialog */}
+      {/* Edit Role Permissions Dialog */}
       <Dialog open={showEditPermissionsDialog} onOpenChange={setShowEditPermissionsDialog}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{t('Edit Permissions for Role: {roleName}', { roleName: editingRole ? t(editingRole as keyof LanguagePack['translations']) : '' })}</DialogTitle>
             <DialogDescription>
-                {t('Toggle permissions for each module and action. Changes are simulated for this demo and applied for the current session.')}
+                {t('Toggle permissions for each module and action. Changes are applied for the current session only.')}
                 <br/>
                 <span className="text-xs text-muted-foreground">{t('(Future: More granular controls, like field-level permissions, will be available.)')}</span>
             </DialogDescription>
@@ -408,7 +527,71 @@ export default function AccessControlSettingsSection({ t }: AccessControlSetting
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* User Permission Overrides Dialog */}
+      <Dialog open={showUserOverrideDialog} onOpenChange={setShowUserOverrideDialog}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('Edit Permission Overrides for: {userName}', { userName: selectedUserForOverride?.name || ''})}</DialogTitle>
+            <DialogDescription>
+                {t('User Role')}: <Badge variant="outline" className="font-normal">{selectedUserForOverride ? t(selectedUserForOverride.role as keyof LanguagePack['translations']) : ''}</Badge>
+                <br/>
+                {t("Toggle specific permissions for this user. These will override their role's default permissions. Changes are applied for the current session.")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 flex-grow overflow-y-auto">
+             {editingUserOverrides && selectedUserForOverride ? (
+              <Table>
+                <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
+                  <TableRow>
+                    <TableHead className="w-[250px]">{t('Module / Feature')}</TableHead>
+                    {PERMISSION_ACTIONS.map(action => (
+                      <TableHead key={action} className="text-center capitalize w-[100px]">{t(action)}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {APP_MODULES.map(module => (
+                    <TableRow key={module}>
+                      <TableCell className="font-medium text-sm">{t(module.replace(/_/g, ' ') as keyof LanguagePack['translations'])}</TableCell>
+                      {PERMISSION_ACTIONS.map(action => {
+                        const hasOverride = userOverrides[selectedUserForOverride.id]?.[module]?.[action] !== undefined;
+                        const effectivePermission = editingUserOverrides[module]?.[action] ?? (activeRolePermissions[selectedUserForOverride.role]?.[module]?.[action] || false);
+                        
+                        return (
+                        <TableCell key={action} className="text-center">
+                          <div className="flex flex-col items-center">
+                            <Switch
+                                checked={effectivePermission}
+                                onCheckedChange={() => handleUserOverridePermissionToggle(module, action)}
+                                aria-label={`${t(module.replace(/_/g, ' ') as keyof LanguagePack['translations'])} - ${t(action)}`}
+                            />
+                            {hasOverride && (
+                                <span className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">({t('Override')})</span>
+                            )}
+                          </div>
+                        </TableCell>
+                      );
+                    })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p>{t('Loading user override permissions...')}</p>
+            )}
+          </div>
+          <DialogFooter className="justify-between">
+            <Button variant="destructive" onClick={handleClearUserOverrides} className="mr-auto">
+                 <FilterX className="mr-2 h-4 w-4" /> {t('Clear All Overrides for this User')}
+            </Button>
+            <div>
+                <Button variant="outline" onClick={() => setShowUserOverrideDialog(false)} className="mr-2">{t('Cancel')}</Button>
+                <Button onClick={handleSaveUserOverrides}>{t('Save Overrides (Current Session)')}</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
