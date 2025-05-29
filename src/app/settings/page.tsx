@@ -20,6 +20,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Settings as SettingsIcon, 
@@ -42,7 +52,12 @@ import {
   Paintbrush,
   Briefcase,
   MessageSquare,
-  DollarSign as FinancialIcon // Renamed to avoid conflict
+  DollarSign as FinancialIcon,
+  LogOut,
+  ShieldCheck,
+  History,
+  ScanText,
+  Fingerprint
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -88,7 +103,8 @@ const mockUserData = {
   email: 'alex.mercer@consult.com',
   role: 'Lead Strategist & System Administrator',
   avatarUrl: 'https://placehold.co/128x128/64B5F6/FFFFFF.png?text=AM',
-  phone: '(555) 123-4567'
+  phone: '(555) 123-4567',
+  lastPasswordChange: '2024-03-15'
 };
 
 interface NotificationPreference {
@@ -101,7 +117,7 @@ interface NotificationSettings {
   channels: {
     email: boolean;
     inApp: boolean;
-    push: boolean; // For UI only, marked as coming soon
+    push: boolean; 
   };
   preferences: {
     projectUpdates: NotificationPreference;
@@ -113,18 +129,27 @@ interface NotificationSettings {
   digestFrequency: 'instant' | 'daily' | 'weekly';
 }
 
+const mockActiveSessions = [
+    { id: 'session1', device: 'Chrome on Windows', location: 'New York, USA', ipAddress: '192.168.1.101', lastActive: '2 hours ago' },
+    { id: 'session2', device: 'Safari on macOS', location: 'London, UK', ipAddress: '10.0.0.5', lastActive: '1 day ago' },
+    { id: 'session3', device: 'Mobile App (iOS)', location: 'San Francisco, USA', ipAddress: '172.16.0.20', lastActive: '5 minutes ago' },
+];
+
+const mockAuditLogPreview = [
+    { id: 'log1', timestamp: '2024-07-25 10:00:00 UTC', event: 'Successful login', user: 'Alex Mercer', ipAddress: '192.168.1.101', details: 'Login via web browser' },
+    { id: 'log2', timestamp: '2024-07-25 09:30:00 UTC', event: 'Password change attempt (failed)', user: 'Alex Mercer', ipAddress: '203.0.113.45', details: 'Incorrect current password' },
+    { id: 'log3', timestamp: '2024-07-24 15:00:00 UTC', event: '2FA setup completed', user: 'Alex Mercer', ipAddress: '192.168.1.101', details: 'Authenticator app registered' },
+];
+
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('account');
   const { toast } = useToast();
 
+  // State for Notifications section
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     masterEnable: true,
-    channels: {
-      email: true,
-      inApp: true,
-      push: false,
-    },
+    channels: { email: true, inApp: true, push: false },
     preferences: {
       projectUpdates: { email: true, inApp: true },
       clientCommunications: { email: true, inApp: false },
@@ -134,6 +159,12 @@ export default function SettingsPage() {
     },
     digestFrequency: 'daily',
   });
+
+  // State for Security section
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [activeSessions, setActiveSessions] = useState(mockActiveSessions);
+
 
   const handleNotificationChange = <K extends keyof NotificationSettings>(
     key: K,
@@ -164,10 +195,10 @@ export default function SettingsPage() {
   };
 
 
-  const handlePlaceholderAction = (actionMessage: string) => {
+  const handlePlaceholderAction = (actionMessage: string, description?: string) => {
     toast({
-      title: "Feature Under Development",
-      description: `${actionMessage} functionality is not yet implemented.`,
+      title: actionMessage,
+      description: description || "This functionality is for demonstration and not fully implemented.",
       duration: 3000,
     });
   };
@@ -175,7 +206,7 @@ export default function SettingsPage() {
   const handleAccountDeletion = () => {
     toast({
       title: "Account Deletion Process",
-      description: "Account deletion initiated (simulated). In a real system, this would be a permanent action.",
+      description: "Account deletion initiated (simulated). In a real system, this would be a permanent action with further confirmations.",
       variant: "destructive",
       duration: 5000,
     });
@@ -187,7 +218,43 @@ export default function SettingsPage() {
       description: "Your notification preferences have been updated (simulated).",
       duration: 3000,
     });
-  }
+  };
+
+  const handleChangePassword = () => {
+    // In a real app, this would involve form validation and API calls
+    setShowPasswordDialog(false);
+    toast({
+      title: "Password Changed Successfully",
+      description: "Your password has been updated (simulated).",
+      duration: 3000,
+    });
+  };
+
+  const handleToggle2FA = () => {
+    if (is2FAEnabled) {
+        // Simulate disabling 2FA
+        setIs2FAEnabled(false);
+        toast({ title: "Two-Factor Authentication Disabled (Simulated)" });
+    } else {
+        // Simulate enabling 2FA
+        setIs2FAEnabled(true);
+        handlePlaceholderAction("2FA Setup Process", "The 2FA setup process (e.g., QR code, app pairing) would begin here.");
+    }
+  };
+  
+  const handleSignOutSession = (sessionId: string) => {
+    setActiveSessions(prev => prev.filter(session => session.id !== sessionId));
+    toast({ title: "Session Signed Out", description: `Session ${sessionId} has been remotely signed out (simulated).`});
+  };
+
+  const handleSignOutAllOtherSessions = () => {
+    // Keep only the "current" session - for simulation, let's assume the first one is current
+    if (activeSessions.length > 1) {
+        setActiveSessions([activeSessions[0]]); 
+    }
+    toast({ title: "All Other Sessions Signed Out", description: "All other active sessions have been remotely signed out (simulated)."});
+  };
+
 
   const renderSectionContent = () => {
     const section = settingsMenuItems.find(item => item.id === activeSection);
@@ -213,7 +280,7 @@ export default function SettingsPage() {
                   <h3 className="text-lg font-semibold">{mockUserData.name}</h3>
                   <p className="text-sm text-muted-foreground">{mockUserData.email}</p>
                   <p className="text-xs text-muted-foreground">{mockUserData.role}</p>
-                   <Button variant="outline" size="sm" className="mt-2" onClick={() => handlePlaceholderAction("Change Profile Picture")}>
+                   <Button variant="outline" size="sm" className="mt-2" onClick={() => handlePlaceholderAction("Change Profile Picture Triggered")}>
                     Change Picture
                   </Button>
                 </div>
@@ -232,35 +299,12 @@ export default function SettingsPage() {
                   <Label htmlFor="profilePhone">Phone Number</Label>
                   <Input id="profilePhone" type="tel" defaultValue={mockUserData.phone} disabled className="mt-1" />
                 </div>
-                 <Button onClick={() => handlePlaceholderAction("Edit Profile Details")}>
+                 <Button onClick={() => handlePlaceholderAction("Edit Profile Details Triggered")}>
                     <Edit3 className="mr-2 h-4 w-4"/> Edit Profile
                 </Button>
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Lock className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Security Settings</CardTitle>
-              </div>
-              <CardDescription>Manage your password and account security preferences.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="outline" className="w-full sm:w-auto" onClick={() => handlePlaceholderAction("Change Password")}>
-                <KeyRound className="mr-2 h-4 w-4" /> Change Password
-              </Button>
-              <div>
-                <h4 className="font-medium">Two-Factor Authentication (2FA)</h4>
-                <p className="text-sm text-muted-foreground">Enhance your account security by enabling 2FA.</p>
-                <Button variant="outline" size="sm" className="mt-2" onClick={() => handlePlaceholderAction("Setup Two-Factor Authentication")} disabled>
-                  Setup 2FA (Coming Soon)
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -284,7 +328,6 @@ export default function SettingsPage() {
                 </div>
             </CardContent>
           </Card>
-
           <Card className="border-destructive/50">
             <CardHeader>
                <div className="flex items-center gap-3">
@@ -346,9 +389,7 @@ export default function SettingsPage() {
                   onCheckedChange={(checked) => handleNotificationChange('masterEnable', checked)}
                 />
               </div>
-
               <Separator />
-
               <div>
                 <h4 className="text-md font-semibold mb-3">Notification Channels</h4>
                 <div className="space-y-3">
@@ -383,16 +424,14 @@ export default function SettingsPage() {
               <div>
                 <h4 className="text-md font-semibold mb-3">Detailed Notification Preferences</h4>
                 <p className="text-sm text-muted-foreground mb-4">Choose which types of events trigger notifications for each channel. (Only active if master notifications are enabled.)</p>
-                
                 {(Object.keys(notificationSettings.preferences) as Array<keyof NotificationSettings['preferences']>).map((eventKey) => {
                   const eventLabel = eventKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
                   const Icon = 
                     eventKey === 'projectUpdates' ? Briefcase :
                     eventKey === 'clientCommunications' ? MessageSquare :
-                    eventKey === 'taskManagement' ? UsersIcon : // Or ListChecks
+                    eventKey === 'taskManagement' ? UsersIcon : 
                     eventKey === 'financialAlerts' ? FinancialIcon :
-                    Server; // Default for SystemAnnouncements
-
+                    Server; 
                   return (
                     <div key={eventKey} className="mb-4 p-3 border rounded-md bg-card/50">
                       <div className="flex items-center gap-2 mb-2">
@@ -407,7 +446,6 @@ export default function SettingsPage() {
                             checked={notificationSettings.preferences[eventKey].email}
                             onCheckedChange={(checked) => handlePreferenceChange(eventKey, 'email', checked)}
                             disabled={!notificationSettings.masterEnable || !notificationSettings.channels.email}
-                            size="sm"
                           />
                         </div>
                         <div className="flex items-center justify-between">
@@ -417,7 +455,6 @@ export default function SettingsPage() {
                             checked={notificationSettings.preferences[eventKey].inApp}
                             onCheckedChange={(checked) => handlePreferenceChange(eventKey, 'inApp', checked)}
                             disabled={!notificationSettings.masterEnable || !notificationSettings.channels.inApp}
-                            size="sm"
                           />
                         </div>
                       </div>
@@ -445,13 +482,205 @@ export default function SettingsPage() {
                     </Select>
                     <p className="text-xs text-muted-foreground mt-1 italic">Consolidate non-critical notifications into a summary. (Feature coming soon)</p>
                </div>
-
-
             </CardContent>
             <CardFooter>
               <Button onClick={handleSaveNotificationSettings} disabled={!notificationSettings.masterEnable}>Save Notification Settings</Button>
             </CardFooter>
           </Card>
+        </div>
+      );
+    }
+
+    if (activeSection === 'security') {
+      return (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <KeyRound className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Password Management</CardTitle>
+              </div>
+              <CardDescription>Manage your account password.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">Change Password</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Change Your Password</DialogTitle>
+                    <DialogDescription>
+                      Enter your current password and choose a new one.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="currentPassword">Current Password</Label>
+                      <Input id="currentPassword" type="password" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <Input id="newPassword" type="password" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+                      <Input id="confirmNewPassword" type="password" />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>Cancel</Button>
+                    <Button onClick={handleChangePassword}>Save Changes</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <p className="text-xs text-muted-foreground">Last password change: {new Date(mockUserData.lastPasswordChange).toLocaleDateString()}</p>
+              <p className="text-xs text-muted-foreground">Password Policy: Minimum 8 characters, include uppercase, lowercase, number, and special character (simulated).</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Fingerprint className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Two-Factor Authentication (2FA)</CardTitle>
+              </div>
+              <CardDescription>Enhance your account security with an additional verification step.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p>Status: <span className={cn("font-semibold", is2FAEnabled ? "text-green-600" : "text-red-600")}>{is2FAEnabled ? "Enabled" : "Disabled"}</span></p>
+                <Button variant={is2FAEnabled ? "destructive" : "default"} onClick={handleToggle2FA}>
+                  {is2FAEnabled ? "Disable 2FA" : "Enable 2FA"}
+                </Button>
+              </div>
+              {is2FAEnabled && (
+                <Button variant="outline" size="sm" onClick={() => handlePlaceholderAction("Manage 2FA Settings", "Options like viewing recovery codes or changing 2FA method would be here.")}>
+                  Manage 2FA Settings
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {is2FAEnabled 
+                  ? "2FA adds an extra layer of security to your account during login." 
+                  : "It is highly recommended to enable 2FA for enhanced security."}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <ScanText className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Active Sessions</CardTitle>
+              </div>
+              <CardDescription>View and manage devices currently logged into your account.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="max-h-60 overflow-y-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Device/Browser</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Last Active</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activeSessions.map(session => (
+                      <TableRow key={session.id}>
+                        <TableCell className="font-medium">{session.device}</TableCell>
+                        <TableCell>{session.location} ({session.ipAddress})</TableCell>
+                        <TableCell>{session.lastActive}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => handleSignOutSession(session.id)}>
+                            <LogOut className="mr-1 h-3 w-3" /> Sign Out
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {activeSessions.length > 1 && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline" className="w-full sm:w-auto">Sign Out All Other Sessions</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Sign out all other sessions?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will sign you out of Consult Vista on all devices except this one. You will need to sign in again on other devices.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleSignOutAllOtherSessions}>Sign Out Others</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+              )}
+              <p className="text-xs text-muted-foreground">If you see any unrecognized sessions, sign them out immediately and consider changing your password.</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <History className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Security & Audit Logs</CardTitle>
+              </div>
+              <CardDescription>Review important security events and account activity.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                <div className="space-y-2 text-sm max-h-40 overflow-y-auto border p-3 rounded-md bg-muted/30">
+                    {mockAuditLogPreview.map(log => (
+                        <div key={log.id} className="text-xs">
+                            <span className="font-medium text-foreground">{log.event}</span> - {log.timestamp} by {log.user} from {log.ipAddress}
+                            {log.details && <span className="text-muted-foreground"> ({log.details})</span>}
+                        </div>
+                    ))}
+                </div>
+                <Button variant="outline" onClick={() => handlePlaceholderAction("View Full Audit Log", "A dedicated page with comprehensive, filterable audit logs would be shown here.")} disabled>
+                    View Full Audit Log (Coming Soon)
+                </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    <ShieldCheck className="h-7 w-7 text-primary" />
+                    <CardTitle className="text-xl">API Key Management</CardTitle>
+                </div>
+                <CardDescription>Manage API keys for integrations and external services (Super Admin).</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button variant="outline" onClick={() => handlePlaceholderAction("Manage API Keys", "Redirecting to API Key Management section (Super Admin only).")}>
+                    Manage API Keys
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                    Create, revoke, and set permissions for API keys used by third-party applications or custom scripts.
+                </p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-primary/5 border-primary/20">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Shield className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl text-primary">Data Encryption & Security Posture</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-1">
+              <p>Consult Vista is committed to the highest standards of data security.</p>
+              <p>All sensitive data is encrypted in transit (using TLS/SSL) and at rest (using AES-256 or equivalent).</p>
+              <p>We conduct regular security audits and vulnerability assessments to ensure the integrity of our platform.</p>
+              <p>Your data privacy and security are our top priorities.</p>
+            </CardContent>
+          </Card>
+
         </div>
       );
     }
@@ -542,12 +771,12 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-1 md:columns-2">
-              <li>Granular User Preferences &amp; Advanced Notification Controls</li>
+              <li>Granular User Preferences & Advanced Notification Controls</li>
               <li>Detailed Role-Based Access Control (RBAC) Configuration</li>
-              <li>Visual Workflow Customization Tools &amp; Versioning</li>
+              <li>Visual Workflow Customization Tools & Versioning</li>
               <li>Expanded Library of Third-Party Integrations with OAuth Support</li>
-              <li>Advanced System Auditing &amp; Compliance Reporting Tools</li>
-              <li>Data Backup &amp; Restoration Management</li>
+              <li>Advanced System Auditing & Compliance Reporting Tools</li>
+              <li>Data Backup & Restoration Management</li>
               <li>API Key Management for External Services</li>
               <li>Theme Customization and White-Labeling Options</li>
             </ul>
@@ -556,6 +785,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-
-    
