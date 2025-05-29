@@ -57,7 +57,12 @@ import {
   ShieldCheck,
   History,
   ScanText,
-  Fingerprint
+  Fingerprint,
+  ClipboardList,
+  Network,
+  FileLock2,
+  UserCheck,
+  UserX
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -92,7 +97,7 @@ const settingsMenuItems: SettingsMenuItem[] = [
   { id: 'language', label: 'Language & Region', icon: Languages, description: 'Set your preferred language and region for the application interface.' },
   { id: 'billing', label: 'Billing', icon: CreditCard, description: 'View your subscription details, payment history, and manage billing information.' },
   { id: 'userManagement', label: 'User Management', icon: UsersIcon, description: 'Administer user accounts, roles, and permissions. (Admins)' },
-  { id: 'accessControl', label: 'Access Control', icon: Shield, description: 'Define and manage role-based access control (RBAC) policies. (Admins)' },
+  { id: 'accessControl', label: 'Access Control', icon: ShieldCheck, description: 'Define and manage role-based access control (RBAC) policies. (Admins)' },
   { id: 'integrations', label: 'Integrations', icon: Link2, description: 'Connect and manage third-party application integrations.' },
   { id: 'workflow', label: 'Workflow Customization', icon: Workflow, description: 'Customize business workflows and approval processes.' },
   { id: 'system', label: 'System & Compliance', icon: Server, description: 'Configure system-wide settings, view audit logs, and manage compliance.' },
@@ -139,6 +144,15 @@ const mockAuditLogPreview = [
     { id: 'log1', timestamp: '2024-07-25 10:00:00 UTC', event: 'Successful login', user: 'Alex Mercer', ipAddress: '192.168.1.101', details: 'Login via web browser' },
     { id: 'log2', timestamp: '2024-07-25 09:30:00 UTC', event: 'Password change attempt (failed)', user: 'Alex Mercer', ipAddress: '203.0.113.45', details: 'Incorrect current password' },
     { id: 'log3', timestamp: '2024-07-24 15:00:00 UTC', event: '2FA setup completed', user: 'Alex Mercer', ipAddress: '192.168.1.101', details: 'Authenticator app registered' },
+    { id: 'log4', timestamp: '2024-07-23 11:00:00 UTC', event: 'API Key "ProjectRead" created', user: 'Alex Mercer', ipAddress: '192.168.1.101', details: 'Permissions: read-only project data' },
+    { id: 'log5', timestamp: '2024-07-22 18:00:00 UTC', event: 'User Role "Project Manager" updated', user: 'Alex Mercer', ipAddress: '192.168.1.101', details: 'Added permission "approve_expenses_low_value"' },
+];
+
+const mockLoginHistory = [
+    { id: 'lh1', timestamp: '2024-07-26 10:00:00 UTC', status: 'Success', ipAddress: '192.168.1.101', device: 'Chrome on Windows', location: 'New York, USA' },
+    { id: 'lh2', timestamp: '2024-07-26 09:55:00 UTC', status: 'Failed', ipAddress: '203.0.113.45', device: 'Unknown Browser', location: 'Unknown (Suspicious)' },
+    { id: 'lh3', timestamp: '2024-07-25 14:30:00 UTC', status: 'Success', ipAddress: '10.0.0.5', device: 'Safari on macOS', location: 'London, UK (Trusted)' },
+    { id: 'lh4', timestamp: '2024-07-25 08:15:00 UTC', status: 'Success (2FA)', ipAddress: '172.16.0.20', device: 'Mobile App (iOS)', location: 'San Francisco, USA' },
 ];
 
 
@@ -164,6 +178,12 @@ export default function SettingsPage() {
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [activeSessions, setActiveSessions] = useState(mockActiveSessions);
+  const [activityAlerts, setActivityAlerts] = useState({
+    newDeviceLogin: true,
+    failedLogins: true,
+    passwordChanged: true,
+    twoFactorChanged: false,
+  });
 
 
   const handleNotificationChange = <K extends keyof NotificationSettings>(
@@ -221,7 +241,6 @@ export default function SettingsPage() {
   };
 
   const handleChangePassword = () => {
-    // In a real app, this would involve form validation and API calls
     setShowPasswordDialog(false);
     toast({
       title: "Password Changed Successfully",
@@ -232,11 +251,9 @@ export default function SettingsPage() {
 
   const handleToggle2FA = () => {
     if (is2FAEnabled) {
-        // Simulate disabling 2FA
         setIs2FAEnabled(false);
         toast({ title: "Two-Factor Authentication Disabled (Simulated)" });
     } else {
-        // Simulate enabling 2FA
         setIs2FAEnabled(true);
         handlePlaceholderAction("2FA Setup Process", "The 2FA setup process (e.g., QR code, app pairing) would begin here.");
     }
@@ -248,11 +265,14 @@ export default function SettingsPage() {
   };
 
   const handleSignOutAllOtherSessions = () => {
-    // Keep only the "current" session - for simulation, let's assume the first one is current
     if (activeSessions.length > 1) {
         setActiveSessions([activeSessions[0]]); 
     }
     toast({ title: "All Other Sessions Signed Out", description: "All other active sessions have been remotely signed out (simulated)."});
+  };
+
+  const handleSaveActivityAlerts = () => {
+    toast({ title: "Activity Alert Preferences Saved", description: "Your preferences for account activity alerts have been updated (simulated)." });
   };
 
 
@@ -494,6 +514,7 @@ export default function SettingsPage() {
     if (activeSection === 'security') {
       return (
         <div className="space-y-6">
+          {/* Password Management Card */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -511,7 +532,7 @@ export default function SettingsPage() {
                   <DialogHeader>
                     <DialogTitle>Change Your Password</DialogTitle>
                     <DialogDescription>
-                      Enter your current password and choose a new one.
+                      Enter your current password and choose a new one. Ensure your new password meets the policy requirements.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
@@ -535,10 +556,58 @@ export default function SettingsPage() {
                 </DialogContent>
               </Dialog>
               <p className="text-xs text-muted-foreground">Last password change: {new Date(mockUserData.lastPasswordChange).toLocaleDateString()}</p>
-              <p className="text-xs text-muted-foreground">Password Policy: Minimum 8 characters, include uppercase, lowercase, number, and special character (simulated).</p>
             </CardContent>
           </Card>
 
+          {/* Password Policy Configuration Card (Admin) */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <FileLock2 className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Password Policy Configuration (Admin)</CardTitle>
+              </div>
+              <CardDescription>Define and enforce password requirements across the organization.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <Label>Minimum Length:</Label>
+                  <Input type="number" defaultValue="12" disabled className="mt-1" />
+                </div>
+                <div>
+                  <Label>Password Expiry (days):</Label>
+                  <Input type="number" defaultValue="90" disabled className="mt-1" />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label>Required Character Types:</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch id="reqUppercase" defaultChecked disabled /><Label htmlFor="reqUppercase" className="font-normal">Uppercase</Label>
+                  </div>
+                   <div className="flex items-center space-x-2">
+                    <Switch id="reqLowercase" defaultChecked disabled /><Label htmlFor="reqLowercase" className="font-normal">Lowercase</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch id="reqNumber" defaultChecked disabled /><Label htmlFor="reqNumber" className="font-normal">Number</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch id="reqSpecial" defaultChecked disabled /><Label htmlFor="reqSpecial" className="font-normal">Special Character</Label>
+                  </div>
+                </div>
+                 <div>
+                  <Label>Account Lockout Threshold (attempts):</Label>
+                  <Input type="number" defaultValue="5" disabled className="mt-1" />
+                </div>
+                <div>
+                  <Label>Lockout Duration (minutes):</Label>
+                  <Input type="number" defaultValue="30" disabled className="mt-1" />
+                </div>
+              </div>
+              <Button onClick={() => handlePlaceholderAction("Save Password Policy", "Password policy settings would be saved.")} className="mt-3">Save Password Policy</Button>
+               <p className="text-xs text-muted-foreground mt-2">These settings apply system-wide and affect all users.</p>
+            </CardContent>
+          </Card>
+
+          {/* Two-Factor Authentication Card */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -567,10 +636,11 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          {/* Active Sessions Card */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
-                <ScanText className="h-7 w-7 text-primary" />
+                <Network className="h-7 w-7 text-primary" />
                 <CardTitle className="text-xl">Active Sessions</CardTitle>
               </div>
               <CardDescription>View and manage devices currently logged into your account.</CardDescription>
@@ -593,9 +663,25 @@ export default function SettingsPage() {
                         <TableCell>{session.location} ({session.ipAddress})</TableCell>
                         <TableCell>{session.lastActive}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => handleSignOutSession(session.id)}>
-                            <LogOut className="mr-1 h-3 w-3" /> Sign Out
-                          </Button>
+                           <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                                <LogOut className="mr-1 h-3 w-3" /> Sign Out
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Sign out this session?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will sign out the session on {session.device} from {session.location}.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleSignOutSession(session.id)}>Sign Out</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -625,22 +711,130 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
           
+          {/* Login History Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <UserCheck className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Recent Login History</CardTitle>
+              </div>
+              <CardDescription>Review recent login attempts to your account.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="max-h-60 overflow-y-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date/Time</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>IP Address</TableHead>
+                      <TableHead>Device/Browser</TableHead>
+                      <TableHead>Location</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockLoginHistory.slice(0, 5).map(log => (
+                      <TableRow key={log.id}>
+                        <TableCell className="text-xs">{log.timestamp}</TableCell>
+                        <TableCell>
+                          <Badge variant={log.status === 'Success' || log.status.includes('2FA') ? 'default' : 'destructive'}
+                                 className={cn(log.status === 'Success' || log.status.includes('2FA') ? 'bg-green-500/20 text-green-700' : 'bg-red-500/20 text-red-700')}>
+                            {log.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs">{log.ipAddress}</TableCell>
+                        <TableCell className="text-xs">{log.device}</TableCell>
+                        <TableCell className="text-xs">{log.location}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <Button variant="outline" onClick={() => handlePlaceholderAction("View Full Login History")} disabled>
+                View Full Login History (Coming Soon)
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Account Activity Alerts Card */}
+          <Card>
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    <Bell className="h-7 w-7 text-primary" />
+                    <CardTitle className="text-xl">Account Activity Alerts</CardTitle>
+                </div>
+                <CardDescription>Configure alerts for specific security-sensitive account activities. These are in addition to general notifications.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-3 border rounded-md">
+                    <Label htmlFor="alertNewDevice" className="flex-1">Notify on login from new device/location</Label>
+                    <Switch
+                        id="alertNewDevice"
+                        checked={activityAlerts.newDeviceLogin}
+                        onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, newDeviceLogin: checked }))}
+                    />
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-md">
+                    <Label htmlFor="alertFailedLogins" className="flex-1">Notify on multiple failed login attempts</Label>
+                    <Switch
+                        id="alertFailedLogins"
+                        checked={activityAlerts.failedLogins}
+                        onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, failedLogins: checked }))}
+                    />
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-md">
+                    <Label htmlFor="alertPasswordChanged" className="flex-1">Notify when password is changed</Label>
+                    <Switch
+                        id="alertPasswordChanged"
+                        checked={activityAlerts.passwordChanged}
+                        onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, passwordChanged: checked }))}
+                    />
+                </div>
+                 <div className="flex items-center justify-between p-3 border rounded-md">
+                    <Label htmlFor="alert2FAChanged" className="flex-1">Notify when 2FA settings are changed</Label>
+                    <Switch
+                        id="alert2FAChanged"
+                        checked={activityAlerts.twoFactorChanged}
+                        onCheckedChange={(checked) => setActivityAlerts(prev => ({ ...prev, twoFactorChanged: checked }))}
+                    />
+                </div>
+                <Button onClick={handleSaveActivityAlerts} className="mt-2">Save Alert Preferences</Button>
+            </CardContent>
+          </Card>
+          
+          {/* Security & Audit Logs Card */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
                 <History className="h-7 w-7 text-primary" />
-                <CardTitle className="text-xl">Security & Audit Logs</CardTitle>
+                <CardTitle className="text-xl">System Security & Audit Logs (Preview)</CardTitle>
               </div>
-              <CardDescription>Review important security events and account activity.</CardDescription>
+              <CardDescription>Review important security events and account activity across the system (Admin view).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-                <div className="space-y-2 text-sm max-h-40 overflow-y-auto border p-3 rounded-md bg-muted/30">
-                    {mockAuditLogPreview.map(log => (
-                        <div key={log.id} className="text-xs">
-                            <span className="font-medium text-foreground">{log.event}</span> - {log.timestamp} by {log.user} from {log.ipAddress}
-                            {log.details && <span className="text-muted-foreground"> ({log.details})</span>}
-                        </div>
-                    ))}
+                <div className="max-h-60 overflow-y-auto rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Timestamp</TableHead>
+                                <TableHead>Event</TableHead>
+                                <TableHead>User</TableHead>
+                                <TableHead>IP Address</TableHead>
+                                <TableHead>Details</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {mockAuditLogPreview.map(log => (
+                                <TableRow key={log.id}>
+                                    <TableCell className="text-xs">{log.timestamp}</TableCell>
+                                    <TableCell className="text-xs font-medium">{log.event}</TableCell>
+                                    <TableCell className="text-xs">{log.user}</TableCell>
+                                    <TableCell className="text-xs">{log.ipAddress}</TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{log.details}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
                 <Button variant="outline" onClick={() => handlePlaceholderAction("View Full Audit Log", "A dedicated page with comprehensive, filterable audit logs would be shown here.")} disabled>
                     View Full Audit Log (Coming Soon)
@@ -648,16 +842,17 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          {/* API Key Management Card */}
           <Card>
             <CardHeader>
                 <div className="flex items-center gap-3">
                     <ShieldCheck className="h-7 w-7 text-primary" />
-                    <CardTitle className="text-xl">API Key Management</CardTitle>
+                    <CardTitle className="text-xl">API Key Management (Admin)</CardTitle>
                 </div>
-                <CardDescription>Manage API keys for integrations and external services (Super Admin).</CardDescription>
+                <CardDescription>Manage API keys for integrations and external services.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Button variant="outline" onClick={() => handlePlaceholderAction("Manage API Keys", "Redirecting to API Key Management section (Super Admin only).")}>
+                <Button variant="outline" onClick={() => handlePlaceholderAction("Manage API Keys", "Redirecting to API Key Management section (Admin only).")}>
                     Manage API Keys
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -666,6 +861,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
           
+          {/* Data Encryption & Advanced Posture Card */}
           <Card className="bg-primary/5 border-primary/20">
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -680,7 +876,6 @@ export default function SettingsPage() {
               <p>Your data privacy and security are our top priorities.</p>
             </CardContent>
           </Card>
-
         </div>
       );
     }
@@ -785,3 +980,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
