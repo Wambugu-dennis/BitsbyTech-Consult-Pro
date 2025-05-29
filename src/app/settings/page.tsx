@@ -1,13 +1,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,10 +39,14 @@ import {
   KeyRound,
   BellRing,
   Languages,
-  Paintbrush
+  Paintbrush,
+  Briefcase,
+  MessageSquare,
+  DollarSign as FinancialIcon // Renamed to avoid conflict
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 type SettingsSectionId = 
@@ -86,10 +91,78 @@ const mockUserData = {
   phone: '(555) 123-4567'
 };
 
+interface NotificationPreference {
+  email: boolean;
+  inApp: boolean;
+}
+
+interface NotificationSettings {
+  masterEnable: boolean;
+  channels: {
+    email: boolean;
+    inApp: boolean;
+    push: boolean; // For UI only, marked as coming soon
+  };
+  preferences: {
+    projectUpdates: NotificationPreference;
+    clientCommunications: NotificationPreference;
+    taskManagement: NotificationPreference;
+    financialAlerts: NotificationPreference;
+    systemAnnouncements: NotificationPreference;
+  };
+  digestFrequency: 'instant' | 'daily' | 'weekly';
+}
+
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('account');
   const { toast } = useToast();
+
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
+    masterEnable: true,
+    channels: {
+      email: true,
+      inApp: true,
+      push: false,
+    },
+    preferences: {
+      projectUpdates: { email: true, inApp: true },
+      clientCommunications: { email: true, inApp: false },
+      taskManagement: { email: false, inApp: true },
+      financialAlerts: { email: true, inApp: true },
+      systemAnnouncements: { email: true, inApp: true },
+    },
+    digestFrequency: 'daily',
+  });
+
+  const handleNotificationChange = <K extends keyof NotificationSettings>(
+    key: K,
+    value: NotificationSettings[K]
+  ) => {
+    setNotificationSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleChannelChange = (channel: keyof NotificationSettings['channels'], value: boolean) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      channels: { ...prev.channels, [channel]: value },
+    }));
+  };
+
+  const handlePreferenceChange = (
+    event: keyof NotificationSettings['preferences'],
+    type: keyof NotificationPreference,
+    value: boolean
+  ) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      preferences: {
+        ...prev.preferences,
+        [event]: { ...prev.preferences[event], [type]: value },
+      },
+    }));
+  };
+
 
   const handlePlaceholderAction = (actionMessage: string) => {
     toast({
@@ -108,22 +181,17 @@ export default function SettingsPage() {
     });
   }
 
+  const handleSaveNotificationSettings = () => {
+    toast({
+      title: "Settings Saved",
+      description: "Your notification preferences have been updated (simulated).",
+      duration: 3000,
+    });
+  }
+
   const renderSectionContent = () => {
     const section = settingsMenuItems.find(item => item.id === activeSection);
-    if (!section) {
-      return (
-          <Card>
-            <CardHeader>
-                <CardTitle>Welcome to Settings</CardTitle>
-                <CardDescription>Select a category from the left to configure its settings.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p>This area allows for comprehensive management of user roles, workflow customization, third-party integrations, and personalization of your experience.</p>
-            </CardContent>
-          </Card>
-      );
-    }
-
+    
     if (activeSection === 'account') {
       return (
         <div className="space-y-6">
@@ -255,6 +323,154 @@ export default function SettingsPage() {
       );
     }
 
+    if (activeSection === 'notifications') {
+      return (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <BellRing className="h-7 w-7 text-primary" />
+                <CardTitle className="text-xl">Notification Settings</CardTitle>
+              </div>
+              <CardDescription>Manage how and when you receive alerts from Consult Vista.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                <div>
+                  <Label htmlFor="masterEnable" className="text-base font-semibold">Enable All Notifications</Label>
+                  <p className="text-xs text-muted-foreground">Master control for all application alerts.</p>
+                </div>
+                <Switch
+                  id="masterEnable"
+                  checked={notificationSettings.masterEnable}
+                  onCheckedChange={(checked) => handleNotificationChange('masterEnable', checked)}
+                />
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="text-md font-semibold mb-3">Notification Channels</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="emailChannel">Email Notifications</Label>
+                    <Switch
+                      id="emailChannel"
+                      checked={notificationSettings.channels.email}
+                      onCheckedChange={(checked) => handleChannelChange('email', checked)}
+                      disabled={!notificationSettings.masterEnable}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="inAppChannel">In-App Notifications</Label>
+                    <Switch
+                      id="inAppChannel"
+                      checked={notificationSettings.channels.inApp}
+                      onCheckedChange={(checked) => handleChannelChange('inApp', checked)}
+                      disabled={!notificationSettings.masterEnable}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between opacity-50">
+                    <Label htmlFor="pushChannel">Push Notifications (Mobile)</Label>
+                    <div className="flex items-center gap-2">
+                       <span className="text-xs text-muted-foreground italic mr-2">Coming Soon</span>
+                       <Switch id="pushChannel" checked={notificationSettings.channels.push} disabled />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <h4 className="text-md font-semibold mb-3">Detailed Notification Preferences</h4>
+                <p className="text-sm text-muted-foreground mb-4">Choose which types of events trigger notifications for each channel. (Only active if master notifications are enabled.)</p>
+                
+                {(Object.keys(notificationSettings.preferences) as Array<keyof NotificationSettings['preferences']>).map((eventKey) => {
+                  const eventLabel = eventKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                  const Icon = 
+                    eventKey === 'projectUpdates' ? Briefcase :
+                    eventKey === 'clientCommunications' ? MessageSquare :
+                    eventKey === 'taskManagement' ? UsersIcon : // Or ListChecks
+                    eventKey === 'financialAlerts' ? FinancialIcon :
+                    Server; // Default for SystemAnnouncements
+
+                  return (
+                    <div key={eventKey} className="mb-4 p-3 border rounded-md bg-card/50">
+                      <div className="flex items-center gap-2 mb-2">
+                         <Icon className="h-5 w-5 text-muted-foreground"/>
+                         <h5 className="font-medium text-sm">{eventLabel}</h5>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 pl-7">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor={`${eventKey}-email`} className="text-xs">Email</Label>
+                          <Switch
+                            id={`${eventKey}-email`}
+                            checked={notificationSettings.preferences[eventKey].email}
+                            onCheckedChange={(checked) => handlePreferenceChange(eventKey, 'email', checked)}
+                            disabled={!notificationSettings.masterEnable || !notificationSettings.channels.email}
+                            size="sm"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor={`${eventKey}-inApp`} className="text-xs">In-App</Label>
+                          <Switch
+                            id={`${eventKey}-inApp`}
+                            checked={notificationSettings.preferences[eventKey].inApp}
+                            onCheckedChange={(checked) => handlePreferenceChange(eventKey, 'inApp', checked)}
+                            disabled={!notificationSettings.masterEnable || !notificationSettings.channels.inApp}
+                            size="sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <Separator />
+               <div>
+                  <h4 className="text-md font-semibold mb-2">Notification Delivery</h4>
+                   <Label htmlFor="digestFrequency" className="text-sm text-muted-foreground">Notification Digest Frequency (Planned)</Label>
+                    <Select
+                        value={notificationSettings.digestFrequency}
+                        onValueChange={(value: NotificationSettings['digestFrequency']) => handleNotificationChange('digestFrequency', value) }
+                        disabled // For future implementation
+                    >
+                        <SelectTrigger id="digestFrequency" className="mt-1 w-full sm:w-[250px]">
+                            <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="instant">Instant</SelectItem>
+                            <SelectItem value="daily">Daily Digest</SelectItem>
+                            <SelectItem value="weekly">Weekly Digest</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1 italic">Consolidate non-critical notifications into a summary. (Feature coming soon)</p>
+               </div>
+
+
+            </CardContent>
+            <CardFooter>
+              <Button onClick={handleSaveNotificationSettings} disabled={!notificationSettings.masterEnable}>Save Notification Settings</Button>
+            </CardFooter>
+          </Card>
+        </div>
+      );
+    }
+
+
+    if (!section) {
+      return (
+          <Card>
+            <CardHeader>
+                <CardTitle>Welcome to Settings</CardTitle>
+                <CardDescription>Select a category from the left to configure its settings.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p>This area allows for comprehensive management of user roles, workflow customization, third-party integrations, and personalization of your experience.</p>
+            </CardContent>
+          </Card>
+      );
+    }
+
     // Default placeholder for other sections
     return (
       <Card className="shadow-md">
@@ -340,3 +556,6 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+
+    
