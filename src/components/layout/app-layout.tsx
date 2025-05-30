@@ -46,12 +46,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
     );
   }
   
-  // If on login page, or if not logged in and not yet redirected, don't render full layout
+  // If on login page, or if not logged in and not yet redirected, render children directly
+  // This allows the login page to take over the full screen.
   if (pathname === '/login' || (!currentUser && !isLoading)) {
-      return <>{children}</>; // Login page renders its own full-page UI
+      return <>{children}</>; 
   }
 
-
+  // If authenticated and not on login page, render the full app layout
   return (
     <SidebarProvider defaultOpen>
       <Sidebar variant="sidebar" collapsible="icon" className="border-r">
