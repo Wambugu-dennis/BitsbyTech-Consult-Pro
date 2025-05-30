@@ -6,6 +6,7 @@ import AppLayout from '@/components/layout/app-layout';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/context/theme-provider';
 import { LocalizationProvider } from '@/context/localization-provider';
+import { AuthProvider } from '@/context/auth-provider'; // Added AuthProvider
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -61,9 +62,9 @@ export default function RootLayout({
           storageKey="vite-ui-theme"
         >
           <LocalizationProvider>
-            {/* AppLayout is now rendered directly here, 
-                it will handle its own visibility for login page vs main app */}
-            <AppLayout>{children}</AppLayout>
+            <AuthProvider> {/* AuthProvider wraps AppLayout */}
+              <AppLayout>{children}</AppLayout>
+            </AuthProvider>
             <Toaster />
           </LocalizationProvider>
         </ThemeProvider>
