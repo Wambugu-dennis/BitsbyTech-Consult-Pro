@@ -1,21 +1,28 @@
 
+// src/components/layout/user-profile.tsx
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings, UserCircle } from "lucide-react";
-import { useAuth } from "@/context/auth-provider"; // Import useAuth
 import Link from "next/link";
 
-export default function UserProfile() {
-  const { currentUser, logout } = useAuth();
+// Mock user data for display when not using AuthContext
+const mockUser = {
+  name: 'Alex Mercer (Admin)',
+  email: 'alex.mercer@consult.com',
+  avatarUrl: 'https://placehold.co/100x100/78909C/FFFFFF.png?text=AM',
+};
 
-  if (!currentUser) {
-    // This shouldn't ideally be reached if AppLayout correctly gatekeeps,
-    // but as a fallback or for scenarios where UserProfile might be rendered conditionally elsewhere.
-    return null; 
-  }
+export default function UserProfile() {
+  const handleLogout = () => {
+    // In a real app, this would clear session, cookies, etc.
+    // For this pre-auth version, it could redirect to a conceptual login or do nothing.
+    alert("Logout functionality would be implemented here.");
+    // Simulate redirect to a non-existent login page for demo of action
+    // window.location.href = '/login-placeholder'; 
+  };
 
   return (
     <DropdownMenu>
@@ -23,15 +30,15 @@ export default function UserProfile() {
         <Button variant="ghost" className="flex h-auto w-full items-center justify-start gap-2 p-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
           <Avatar className="h-8 w-8">
             <AvatarImage 
-              src={currentUser.avatarUrl || `https://placehold.co/100x100.png?text=${currentUser.name.substring(0,2).toUpperCase()}`} 
-              alt={currentUser.name} 
+              src={mockUser.avatarUrl} 
+              alt={mockUser.name} 
               data-ai-hint="user avatar"
             />
-            <AvatarFallback>{currentUser.name.substring(0,2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{mockUser.name.substring(0,2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="text-left group-data-[collapsible=icon]:hidden">
-            <p className="text-sm font-medium truncate" title={currentUser.name}>{currentUser.name}</p>
-            <p className="text-xs text-muted-foreground truncate" title={currentUser.email}>{currentUser.email}</p>
+            <p className="text-sm font-medium truncate" title={mockUser.name}>{mockUser.name}</p>
+            <p className="text-xs text-muted-foreground truncate" title={mockUser.email}>{mockUser.email}</p>
           </div>
         </Button>
       </DropdownMenuTrigger>
@@ -39,9 +46,9 @@ export default function UserProfile() {
         <DropdownMenuLabel>My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/settings"> {/* Assuming settings page is at /settings and account is default tab or handled there */}
+          <Link href="/settings">
             <UserCircle className="mr-2 h-4 w-4" />
-            <span>Profile</span> {/* Link to Profile/Account settings */}
+            <span>Profile</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
@@ -51,7 +58,7 @@ export default function UserProfile() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout}>
+        <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>

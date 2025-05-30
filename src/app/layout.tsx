@@ -6,7 +6,6 @@ import AppLayout from '@/components/layout/app-layout';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/context/theme-provider';
 import { LocalizationProvider } from '@/context/localization-provider';
-import { AuthProvider } from '@/context/auth-provider'; // Import AuthProvider
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -23,6 +22,7 @@ export const metadata: Metadata = {
   description: 'Strategic insights and project management for consultants.',
 };
 
+// Client-side component to apply theme early
 const InitializeTheme = () => {
   if (typeof window !== 'undefined') {
     const storedTheme = localStorage.getItem('vite-ui-theme') as ('light' | 'dark' | 'system') | null;
@@ -61,9 +61,9 @@ export default function RootLayout({
           storageKey="vite-ui-theme"
         >
           <LocalizationProvider>
-            <AuthProvider> {/* Wrap with AuthProvider */}
-              {children}
-            </AuthProvider>
+            {/* AppLayout is now rendered directly here, 
+                it will handle its own visibility for login page vs main app */}
+            <AppLayout>{children}</AppLayout>
             <Toaster />
           </LocalizationProvider>
         </ThemeProvider>
