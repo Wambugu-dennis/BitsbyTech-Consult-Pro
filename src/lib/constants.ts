@@ -11,20 +11,14 @@ import {
   BarChart3,
   Settings as SettingsIcon,
   HelpCircle,
-  FileText, // For Invoices
-  Receipt,    // For Expenses
-  Target,     // For Budgets
-  Landmark,   // For Revenue Recognition
-  PieChart as PieChartLucide, // For Profitability Analysis
-  Brain,      // For AI Insights
   type LucideIcon
 } from 'lucide-react';
 
 export interface NavLink {
   href: string;
-  label: string;
+  label: string; // This will be used as the translation key
   icon: LucideIcon;
-  subItems?: NavLink[]; // Added for sub-navigation
+  // subItems?: NavLink[]; // Removed for simplification
 }
 
 export const navLinks: NavLink[] = [
@@ -32,48 +26,16 @@ export const navLinks: NavLink[] = [
   { href: '/clients', label: 'Clients', icon: Users },
   { href: '/projects', label: 'Projects', icon: Briefcase },
   { href: '/consultants', label: 'Consultants', icon: UserCog },
-  {
-    href: '/finances', label: 'Finances', icon: DollarSign,
-    subItems: [
-      { href: '/finances/invoices', label: 'Invoices', icon: FileText },
-      { href: '/finances/expenses', label: 'Expenses', icon: Receipt },
-      { href: '/finances/budgets', label: 'Budgets', icon: Target },
-      { href: '/finances/revenue-recognition', label: 'Revenue Recognition', icon: Landmark },
-      { href: '/finances/profitability', label: 'Profitability Analysis', icon: PieChartLucide },
-    ]
-  },
+  { href: '/finances', label: 'Finances', icon: DollarSign },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-  {
-    href: '/analytics', label: 'Analytics', icon: TrendingUp,
-    subItems: [
-      { href: '/analytics/ai-insights', label: 'AI Insights', icon: Brain },
-      { href: '/analytics/project-success-report', label: 'Project Success Report', icon: Briefcase },
-      { href: '/analytics/client-relationship-report', label: 'Client Relationship Report', icon: Users },
-      { href: '/analytics/consultant-performance-report', label: 'Consultant Performance Report', icon: UserCog },
-      { href: '/analytics/financial-health-report', label: 'Financial Health Report', icon: DollarSign },
-    ]
-  },
+  { href: '/analytics', label: 'Analytics', icon: TrendingUp },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/risk-analyzer', label: 'AI Risk Analyzer', icon: ShieldAlert },
-  {
-    href: '/settings', label: 'Settings', icon: SettingsIcon,
-    subItems: [
-      { href: '/settings#account', label: 'Account', icon: UserCog }, // Assuming sub-navigation within settings page itself for now
-      { href: '/settings#notifications', label: 'Notifications', icon: HelpCircle }, // Placeholder icon
-      { href: '/settings#security', label: 'Security', icon: ShieldAlert },
-      { href: '/settings#appearance', label: 'Appearance', icon: LayoutDashboard },
-      { href: '/settings#language', label: 'Language & Region', icon: HelpCircle }, // Placeholder icon
-      { href: '/settings#billing', label: 'Billing', icon: DollarSign },
-      { href: '/settings#userManagement', label: 'User Management', icon: Users },
-      { href: '/settings#accessControl', label: 'Access Control', icon: ShieldAlert },
-      { href: '/settings#integrations', label: 'Integrations', icon: HelpCircle }, // Placeholder icon
-      { href: '/settings#workflow', label: 'Workflow Customization', icon: HelpCircle }, // Placeholder icon
-      { href: '/settings#system', label: 'System & Compliance', icon: SettingsIcon },
-    ]
-  },
+  { href: '/settings', label: 'Settings', icon: SettingsIcon },
   { href: '/help', label: 'Help', icon: HelpCircle },
 ];
 
+// Other constants remain unchanged
 export const PROJECT_STATUS = {
   TODO: 'To Do',
   IN_PROGRESS: 'In Progress',
@@ -107,3 +69,22 @@ export const EVENT_TYPE_CONFIG: Record<CalendarEventType, EventTypeConfig> = {
   'Holiday': { label: 'Holiday', color: 'bg-teal-500', textColor: 'text-white', borderColor: 'border-teal-700' },
   'Other': { label: 'Other', color: 'bg-pink-500', textColor: 'text-white', borderColor: 'border-pink-700' },
 };
+
+// Forward type declarations for CalendarEventType and EventTypeConfig if they are defined in types.ts
+// These might be duplicated or you might want to import them from types.ts
+// For now, assuming they are simple enough to be re-declared or were local to constants.ts
+export type CalendarEventType =
+  | 'Project Milestone'
+  | 'Project Deadline'
+  | 'Client Meeting'
+  | 'Consultant Assignment'
+  | 'General Task'
+  | 'Holiday'
+  | 'Other';
+
+export interface EventTypeConfig {
+  label: string;
+  color: string;
+  borderColor?: string;
+  textColor?: string;
+}
