@@ -5,7 +5,8 @@ import './globals.css';
 import AppLayout from '@/components/layout/app-layout';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/context/theme-provider';
-import { LocalizationProvider } from '@/context/localization-provider'; // Import LocalizationProvider
+import { LocalizationProvider } from '@/context/localization-provider';
+import { AuthProvider } from '@/context/auth-provider'; // Import AuthProvider
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -59,8 +60,10 @@ export default function RootLayout({
           defaultTheme="system"
           storageKey="vite-ui-theme"
         >
-          <LocalizationProvider> {/* Wrap with LocalizationProvider */}
-            <AppLayout>{children}</AppLayout>
+          <LocalizationProvider>
+            <AuthProvider> {/* Wrap with AuthProvider */}
+              {children}
+            </AuthProvider>
             <Toaster />
           </LocalizationProvider>
         </ThemeProvider>
@@ -68,5 +71,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
