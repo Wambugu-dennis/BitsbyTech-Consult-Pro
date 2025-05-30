@@ -7,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input"; // Added Input import
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Link2, Zap, PlusCircle, Settings as SettingsIcon, HelpCircle, Building, Briefcase, MessageSquare, DollarSign } from "lucide-react";
+import { Link2, Zap, PlusCircle, Settings as SettingsIcon, HelpCircle, Building, Briefcase, MessageSquare, DollarSign, BarChart2, Database, GitBranch, FileArchive, BrainCircuit } from "lucide-react";
 import type { LanguagePack } from '@/lib/i18n-config';
 
 interface Integration {
@@ -77,6 +77,96 @@ const mockIntegrations: Integration[] = [
     logoUrl: 'https://placehold.co/64x64/0052CC/FFFFFF.png?text=JIRA',
     status: 'Coming Soon',
   },
+  {
+    id: 'tableau',
+    name: 'Tableau',
+    category: 'Business Intelligence',
+    description: 'Connect Consult Vista data to Tableau for advanced visualizations and business intelligence dashboards.',
+    logoFallback: 'TB',
+    logoUrl: 'https://placehold.co/64x64/E97627/FFFFFF.png?text=TB',
+    status: 'Not Connected',
+  },
+  {
+    id: 'powerbi',
+    name: 'Microsoft Power BI',
+    category: 'Business Intelligence',
+    description: 'Leverage Power BI to create custom reports and dashboards using your Consult Vista data.',
+    logoFallback: 'PBI',
+    logoUrl: 'https://placehold.co/64x64/F2C811/000000.png?text=PBI',
+    status: 'Not Connected',
+  },
+  {
+    id: 'xero',
+    name: 'Xero',
+    category: 'Accounting',
+    description: 'Streamline your accounting with Xero by syncing invoices, expenses, and financial data.',
+    logoFallback: 'XO',
+    logoUrl: 'https://placehold.co/64x64/13B5EA/FFFFFF.png?text=Xero',
+    status: 'Not Connected',
+  },
+  {
+    id: 'netsuite',
+    name: 'Oracle NetSuite',
+    category: 'ERP / Accounting',
+    description: 'Integrate with NetSuite for comprehensive financial management and ERP capabilities.',
+    logoFallback: 'NS',
+    logoUrl: 'https://placehold.co/64x64/FF5F3D/FFFFFF.png?text=NS',
+    status: 'Coming Soon',
+  },
+  {
+    id: 'stripe',
+    name: 'Stripe',
+    category: 'Payment Gateway',
+    description: 'Enable online payments for invoices directly through Consult Vista via Stripe.',
+    logoFallback: 'ST',
+    logoUrl: 'https://placehold.co/64x64/6772E5/FFFFFF.png?text=Stripe',
+    status: 'Not Connected',
+  },
+  {
+    id: 'gusto',
+    name: 'Gusto',
+    category: 'Payroll & HR',
+    description: 'Connect consultant timesheets and project billing data to Gusto for streamlined payroll.',
+    logoFallback: 'GU',
+    logoUrl: 'https://placehold.co/64x64/F36949/FFFFFF.png?text=Gusto',
+    status: 'Coming Soon',
+  },
+  {
+    id: 'asana',
+    name: 'Asana',
+    category: 'Project Management',
+    description: 'Two-way sync of projects, tasks, and deadlines between Consult Vista and Asana.',
+    logoFallback: 'AS',
+    logoUrl: 'https://placehold.co/64x64/F06A6A/FFFFFF.png?text=Asana',
+    status: 'Not Connected',
+  },
+  {
+    id: 'github',
+    name: 'GitHub',
+    category: 'Version Control',
+    description: 'Link project tasks and milestones to GitHub repositories, commits, and issues for tech consultancies.',
+    logoFallback: 'GH',
+    logoUrl: 'https://placehold.co/64x64/181717/FFFFFF.png?text=GH',
+    status: 'Not Connected',
+  },
+  {
+    id: 'sharepoint',
+    name: 'Microsoft SharePoint',
+    category: 'Document Management',
+    description: 'Enhanced integration for document storage, versioning, and collaboration using SharePoint.',
+    logoFallback: 'SP',
+    logoUrl: 'https://placehold.co/64x64/0078D4/FFFFFF.png?text=SP',
+    status: 'Not Connected',
+  },
+  {
+    id: 'knowledgenet_ai',
+    name: 'KnowledgeNet AI',
+    category: 'Knowledge Management',
+    description: 'AI-powered indexing and search across all project documents and internal knowledge bases.',
+    logoFallback: 'KN',
+    logoUrl: 'https://placehold.co/64x64/7E57C2/FFFFFF.png?text=KN',
+    status: 'Coming Soon',
+  },
 ];
 
 
@@ -131,7 +221,7 @@ export default function IntegrationsSettingsSection({ t }: IntegrationsSettingsP
               <Card key={int.id} className="flex flex-col">
                 <CardHeader className="flex-row items-start gap-4 space-y-0 pb-3">
                     <Avatar className="h-12 w-12 rounded-md border">
-                        <AvatarImage src={int.logoUrl} alt={int.name} data-ai-hint={`${int.category} logo`} />
+                        <AvatarImage src={int.logoUrl} alt={int.name} data-ai-hint={`${int.category} logo application`} />
                         <AvatarFallback className="rounded-md bg-muted text-muted-foreground">{int.logoFallback}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -197,4 +287,3 @@ export default function IntegrationsSettingsSection({ t }: IntegrationsSettingsP
     </div>
   );
 }
-
