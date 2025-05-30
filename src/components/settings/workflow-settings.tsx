@@ -29,7 +29,26 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from "@/hooks/use-toast";
-import { Workflow as WorkflowIcon, Settings as SettingsIcon, PlusCircle, Edit3, Trash2, PlayCircle, PauseCircle, History, GitMerge, AlertTriangle, ListChecks, ExternalLink } from "lucide-react";
+import {
+  Workflow as WorkflowIcon,
+  Settings as SettingsIcon,
+  PlusCircle,
+  Edit3,
+  Trash2,
+  PlayCircle,
+  PauseCircle,
+  History,
+  GitMerge,
+  AlertTriangle,
+  ListChecks,
+  ExternalLink,
+  Zap, // For Triggers & Actions
+  LayoutGrid, // For Visual Builder
+  Repeat, // For Versioning
+  DatabaseZap, // For External System Integration
+  Spline, // For Conditional Logic
+  FileText as ReportIcon // For Audit logs (though FileClock might be better if available)
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LanguagePack } from '@/lib/i18n-config';
 import { format } from 'date-fns';
@@ -150,9 +169,6 @@ export default function WorkflowSettingsSection({ t }: WorkflowSettingsProps) {
 
   const handleSaveWorkflowChanges = () => {
     if (!editingWorkflow) return;
-    // In a real app, you'd send editedWorkflowData (or a diff) to a backend
-    // For simulation, we could update the local 'workflows' state if desired,
-    // but for simplicity of this simulation, we'll just show a toast
     toast({ title: t("Workflow Changes Saved"), description: t("Changes to workflow '{workflowName}' have been saved (simulated).", { workflowName: editingWorkflow.name }) });
     setShowEditDialog(false);
     setEditingWorkflow(null);
@@ -336,18 +352,95 @@ export default function WorkflowSettingsSection({ t }: WorkflowSettingsProps) {
         </Dialog>
       )}
 
-      <CardFooter className="flex flex-col items-start gap-2 text-sm text-muted-foreground border-t pt-6 mt-6">
-         <div className="flex items-center gap-2"><SettingsIcon className="h-5 w-5 text-primary"/> <h4 className="font-semibold text-foreground">{t('Advanced Workflow Capabilities (Roadmap)')}</h4></div>
-        <ul className="list-disc list-inside space-y-1 pl-2">
-            <li>{t('Visual Workflow Builder: A drag-and-drop interface to design and modify complex workflows.')}</li>
-            <li>{t('Configurable Approval Steps: Define multi-level approvals, parallel reviews, and dynamic approver assignments based on data (e.g., project manager, department head).')}</li>
-            <li>{t('Automated Triggers & Actions: Initiate workflows based on system events (e.g., new client created, project status changed) and automate actions (e.g., send notifications, update records).')}</li>
-            <li>{t('Workflow Versioning & History: Track changes to workflows, revert to previous versions, and audit execution history.')}</li>
-            <li>{t('Conditional Logic & Branching: Implement if/then/else logic within workflows based on data attributes.')}</li>
-            <li>{t('Integration with External Systems: Trigger actions in third-party applications as part of a workflow.')}</li>
-        </ul>
-        <p className="mt-2">{t('This module aims to provide powerful automation capabilities to streamline your consultancy\'s operations.')}</p>
-      </CardFooter>
+      <Card className="mt-6 bg-secondary/30 border-secondary/50">
+        <CardHeader>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <SettingsIcon className="h-6 w-6 text-primary" /> {t('Advanced Workflow Capabilities (Roadmap)')}
+          </CardTitle>
+          <CardDescription>
+            {t('Future enhancements to provide powerful automation and customization for your consultancy\'s operations.')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="p-3 border rounded-md bg-card shadow-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <LayoutGrid className="h-5 w-5 text-primary" />
+              <h4 className="font-semibold text-md">{t('Visual Workflow Builder')}</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('A drag-and-drop interface to design and modify complex workflows, visually connecting steps, conditions, and actions.')}
+            </p>
+            <Button variant="outline" size="sm" className="mt-2" disabled>{t('Launch Visual Builder (Coming Soon)')}</Button>
+          </div>
+
+          <div className="p-3 border rounded-md bg-card shadow-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <ListChecks className="h-5 w-5 text-primary" />
+              <h4 className="font-semibold text-md">{t('Configurable Approval Steps')}</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('Define multi-level approvals, parallel reviews, and dynamic approver assignments based on data (e.g., project manager, department head).')}
+            </p>
+             <p className="text-xs text-muted-foreground mt-1">{t("Example: 'IF Expense > $1000 AND ProjectType == 'Strategic' THEN Require Director Approval'")}</p>
+          </div>
+
+          <div className="p-3 border rounded-md bg-card shadow-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <Zap className="h-5 w-5 text-primary" />
+              <h4 className="font-semibold text-md">{t('Automated Triggers & Actions')}</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('Initiate workflows based on system events (e.g., new client created, project status changed) and automate actions (e.g., send notifications, update records).')}
+            </p>
+             <Button variant="outline" size="sm" className="mt-2" disabled>{t('Configure Triggers & Actions (Coming Soon)')}</Button>
+          </div>
+          
+          <div className="p-3 border rounded-md bg-card shadow-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <Repeat className="h-5 w-5 text-primary" />
+              <h4 className="font-semibold text-md">{t('Workflow Versioning & History')}</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('Track changes to workflows, revert to previous versions, and audit execution history for compliance and troubleshooting.')}
+            </p>
+             <Button variant="outline" size="sm" className="mt-2" disabled>{t('View Version History (Coming Soon)')}</Button>
+          </div>
+
+          <div className="p-3 border rounded-md bg-card shadow-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <Spline className="h-5 w-5 text-primary" />
+              <h4 className="font-semibold text-md">{t('Conditional Logic & Branching')}</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('Implement if/then/else logic within workflows based on data attributes to handle diverse scenarios and decision points.')}
+            </p>
+          </div>
+          
+          <div className="p-3 border rounded-md bg-card shadow-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <DatabaseZap className="h-5 w-5 text-primary" />
+              <h4 className="font-semibold text-md">{t('Integration with External Systems')}</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('Trigger actions in third-party applications as part of a workflow, creating seamless end-to-end process automation.')}
+            </p>
+            <Button variant="link" size="sm" className="mt-1 px-0 h-auto" onClick={() => toast({title: t("Navigate to Integrations")})} disabled>{t('Connect External Systems (via Integrations Module)')}</Button>
+          </div>
+           <div className="p-3 border rounded-md bg-card shadow-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <ReportIcon className="h-5 w-5 text-primary" />
+              <h4 className="font-semibold text-md">{t('Workflow Audit Logs')}</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('Detailed logs of every workflow execution, including steps taken, decisions made, and any errors encountered. Essential for troubleshooting and compliance.')}
+            </p>
+             <Button variant="outline" size="sm" className="mt-2" disabled>{t('View Workflow Execution Logs (Coming Soon)')}</Button>
+          </div>
+        </CardContent>
+        <CardFooter>
+            <p className="text-xs text-muted-foreground">{t('This module aims to provide powerful automation capabilities to streamline your consultancy\'s operations.')}</p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
