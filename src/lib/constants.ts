@@ -1,9 +1,9 @@
 
-import { 
-  LayoutDashboard, 
-  ShieldAlert, 
-  Users, 
-  UserCog, 
+import {
+  LayoutDashboard,
+  ShieldAlert,
+  Users,
+  UserCog,
   Briefcase,
   DollarSign,
   CalendarDays,
@@ -11,14 +11,20 @@ import {
   BarChart3,
   Settings as SettingsIcon,
   HelpCircle,
-  type LucideIcon 
+  FileText, // For Invoices
+  Receipt,    // For Expenses
+  Target,     // For Budgets
+  Landmark,   // For Revenue Recognition
+  PieChart as PieChartLucide, // For Profitability Analysis
+  Brain,      // For AI Insights
+  type LucideIcon
 } from 'lucide-react';
-import type { CalendarEventType, EventTypeConfig } from './types';
 
 export interface NavLink {
   href: string;
   label: string;
   icon: LucideIcon;
+  subItems?: NavLink[]; // Added for sub-navigation
 }
 
 export const navLinks: NavLink[] = [
@@ -26,12 +32,45 @@ export const navLinks: NavLink[] = [
   { href: '/clients', label: 'Clients', icon: Users },
   { href: '/projects', label: 'Projects', icon: Briefcase },
   { href: '/consultants', label: 'Consultants', icon: UserCog },
-  { href: '/finances', label: 'Finances', icon: DollarSign },
+  {
+    href: '/finances', label: 'Finances', icon: DollarSign,
+    subItems: [
+      { href: '/finances/invoices', label: 'Invoices', icon: FileText },
+      { href: '/finances/expenses', label: 'Expenses', icon: Receipt },
+      { href: '/finances/budgets', label: 'Budgets', icon: Target },
+      { href: '/finances/revenue-recognition', label: 'Revenue Recognition', icon: Landmark },
+      { href: '/finances/profitability', label: 'Profitability Analysis', icon: PieChartLucide },
+    ]
+  },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-  { href: '/analytics', label: 'Analytics', icon: TrendingUp },
+  {
+    href: '/analytics', label: 'Analytics', icon: TrendingUp,
+    subItems: [
+      { href: '/analytics/ai-insights', label: 'AI Insights', icon: Brain },
+      { href: '/analytics/project-success-report', label: 'Project Success Report', icon: Briefcase },
+      { href: '/analytics/client-relationship-report', label: 'Client Relationship Report', icon: Users },
+      { href: '/analytics/consultant-performance-report', label: 'Consultant Performance Report', icon: UserCog },
+      { href: '/analytics/financial-health-report', label: 'Financial Health Report', icon: DollarSign },
+    ]
+  },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/risk-analyzer', label: 'AI Risk Analyzer', icon: ShieldAlert },
-  { href: '/settings', label: 'Settings', icon: SettingsIcon },
+  {
+    href: '/settings', label: 'Settings', icon: SettingsIcon,
+    subItems: [
+      { href: '/settings#account', label: 'Account', icon: UserCog }, // Assuming sub-navigation within settings page itself for now
+      { href: '/settings#notifications', label: 'Notifications', icon: HelpCircle }, // Placeholder icon
+      { href: '/settings#security', label: 'Security', icon: ShieldAlert },
+      { href: '/settings#appearance', label: 'Appearance', icon: LayoutDashboard },
+      { href: '/settings#language', label: 'Language & Region', icon: HelpCircle }, // Placeholder icon
+      { href: '/settings#billing', label: 'Billing', icon: DollarSign },
+      { href: '/settings#userManagement', label: 'User Management', icon: Users },
+      { href: '/settings#accessControl', label: 'Access Control', icon: ShieldAlert },
+      { href: '/settings#integrations', label: 'Integrations', icon: HelpCircle }, // Placeholder icon
+      { href: '/settings#workflow', label: 'Workflow Customization', icon: HelpCircle }, // Placeholder icon
+      { href: '/settings#system', label: 'System & Compliance', icon: SettingsIcon },
+    ]
+  },
   { href: '/help', label: 'Help', icon: HelpCircle },
 ];
 
