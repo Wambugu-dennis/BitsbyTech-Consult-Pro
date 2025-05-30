@@ -1,26 +1,27 @@
 
 // src/app/page.tsx
-'use client'; // page.tsx under app router can be client or server. For redirects, useEffect is client-side.
+'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-provider';
+import { Button } from '@/components/ui/button'; // Import Button
+import Link from 'next/link'; // Import Link
 
 export default function HomePage() {
   const router = useRouter();
   const { currentUser, isLoading } = useAuth();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (currentUser) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/login');
-      }
+    // This effect handles redirection AFTER auth state is known
+    // It doesn't prevent the initial render of this page's content
+    if (!isLoading && currentUser) {
+      router.replace('/dashboard');
     }
+    // No explicit redirect to /login here; AppLayout will handle it for protected routes
+    // and this page will show a "Go to Login" button if not authenticated.
   }, [currentUser, isLoading, router]);
 
-  // Optional: Show a loading state while auth check is in progress
   if (isLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
@@ -31,7 +32,25 @@ export default function HomePage() {
       </div>
     );
   }
+
+  // If not loading and not authenticated, show the login button
+  if (!currentUser) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-24">
+        <h1 className="text-4xl font-bold mb-8">Welcome to Consult Vista</h1>
+        <p className="text-lg text-muted-foreground mb-8">Please log in to access your dashboard.</p>
+        <Button asChild size="lg">
+          <Link href="/login">Go to Login</Link>
+        </Button>
+      </div>
+    );
+  }
   
-  // This part will likely not be seen due to redirects, but good for clarity
-  return null; 
+  // If authenticated, this part will likely not be seen for long due to the redirect in useEffect,
+  // but it's good practice to handle this state.
+  return (
+     <div className="flex h-screen w-screen items-center justify-center">
+        <p>Redirecting to dashboard...</p>
+      </div>
+  );
 }

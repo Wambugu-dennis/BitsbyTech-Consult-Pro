@@ -9,16 +9,24 @@ import {
   CalendarDays,
   TrendingUp,
   BarChart3,
-  Settings as SettingsIcon,
+  Settings as SettingsIcon, // Alias to avoid conflict if 'Settings' is used elsewhere
   HelpCircle,
-  type LucideIcon
+  FileText, // For Invoices
+  Receipt, // For Expenses
+  Target, // For Budgets
+  Landmark, // For Revenue Recognition
+  PieChart as PieChartIconLucide, // For Profitability Analysis & AI Insights
+  Brain, // For AI Insights
+  Users2, // For Client Relationship Report
+  User // For Consultant Performance Report
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 export interface NavLink {
   href: string;
   label: string; // This will be used as the translation key
   icon: LucideIcon;
-  // subItems?: NavLink[]; // Removed for simplification
+  subItems?: NavLink[];
 }
 
 export const navLinks: NavLink[] = [
@@ -26,14 +34,57 @@ export const navLinks: NavLink[] = [
   { href: '/clients', label: 'Clients', icon: Users },
   { href: '/projects', label: 'Projects', icon: Briefcase },
   { href: '/consultants', label: 'Consultants', icon: UserCog },
-  { href: '/finances', label: 'Finances', icon: DollarSign },
+  {
+    href: '/finances',
+    label: 'Finances',
+    icon: DollarSign,
+    subItems: [
+      { href: '/finances/invoices', label: 'Invoices', icon: FileText },
+      { href: '/finances/expenses', label: 'Expenses', icon: Receipt },
+      { href: '/finances/budgets', label: 'Budgets', icon: Target },
+      { href: '/finances/revenue-recognition', label: 'Revenue Recognition', icon: Landmark },
+      { href: '/finances/profitability', label: 'Profitability Analysis', icon: PieChartIconLucide },
+    ],
+  },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-  { href: '/analytics', label: 'Analytics', icon: TrendingUp },
+  {
+    href: '/analytics',
+    label: 'Analytics',
+    icon: TrendingUp,
+    subItems: [
+        { href: '/analytics/project-success-report', label: 'Project Success', icon: Briefcase },
+        { href: '/analytics/client-relationship-report', label: 'Client Relationships', icon: Users2 },
+        { href: '/analytics/consultant-performance-report', label: 'Consultant Performance', icon: User },
+        { href: '/analytics/financial-health-report', label: 'Financial Health', icon: DollarSign },
+        { href: '/analytics/ai-insights', label: 'AI Insights', icon: Brain },
+    ]
+  },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/risk-analyzer', label: 'AI Risk Analyzer', icon: ShieldAlert },
-  { href: '/settings', label: 'Settings', icon: SettingsIcon },
+  {
+    href: '/settings',
+    label: 'Settings',
+    icon: SettingsIcon,
+    subItems: [
+      { href: '/settings#account', label: 'Account', icon: UserCog },
+      { href: '/settings#notifications', label: 'Notifications', icon: BellRing },
+      { href: '/settings#security', label: 'Security', icon: ShieldAlert },
+      { href: '/settings#appearance', label: 'Appearance', icon: Paintbrush },
+      { href: '/settings#language', label: 'Language & Region', icon: Languages },
+      { href: '/settings#billing', label: 'Billing', icon: CreditCard },
+      { href: '/settings#userManagement', label: 'User Management', icon: Users },
+      { href: '/settings#accessControl', label: 'Access Control', icon: ShieldCheck },
+      { href: '/settings#integrations', label: 'Integrations', icon: Link2 },
+      { href: '/settings#workflow', label: 'Workflow Customization', icon: Workflow },
+      { href: '/settings#system', label: 'System & Compliance', icon: Server },
+    ].map(item => ({...item, href: `/settings#${item.label.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`})) // Generate hrefs for settings sub-items
+  },
   { href: '/help', label: 'Help', icon: HelpCircle },
 ];
+
+// Constants for Settings page sub-navigation (used by SidebarNav and SettingsPage)
+export const settingsSubLinks = navLinks.find(link => link.label === 'Settings')?.subItems || [];
+
 
 // Other constants remain unchanged
 export const PROJECT_STATUS = {
@@ -88,3 +139,18 @@ export interface EventTypeConfig {
   borderColor?: string;
   textColor?: string;
 }
+
+// Icons used in settings sub-navigation
+import {
+  BellRing,
+  Paintbrush,
+  Languages,
+  CreditCard,
+  ShieldCheck,
+  Link2,
+  Workflow,
+  Server
+} from 'lucide-react';
+
+// Add any other icons if needed for other sub-items
+// ...
