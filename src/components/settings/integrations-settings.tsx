@@ -6,6 +6,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input"; // Added Input import
 import { useToast } from "@/hooks/use-toast";
 import { Link2, Zap, PlusCircle, Settings as SettingsIcon, HelpCircle, Building, Briefcase, MessageSquare, DollarSign } from "lucide-react";
 import type { LanguagePack } from '@/lib/i18n-config';
