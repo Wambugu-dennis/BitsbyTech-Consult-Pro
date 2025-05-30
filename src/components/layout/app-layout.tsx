@@ -1,5 +1,5 @@
-
-'use client'; // AppLayout needs to be a client component to use hooks
+// src/components/layout/app-layout.tsx
+'use client';
 
 import type { ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -23,7 +23,8 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
-const shellLessPaths = ['/login'];
+// Paths that are explicitly public and should ALWAYS render without the app shell.
+const publicShellLessPaths = ['/login'];
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const { currentUser, isLoading } = useAuth();
@@ -31,8 +32,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!isLoading && !currentUser && !shellLessPaths.includes(pathname)) {
+    if (isLoading) return; // Don't do anything until auth status is resolved
+
+    if (!currentUser && !publicShellLessPaths.includes(pathname) && pathname !== '/') {
+      // Not logged in, trying to access a protected page (that is not login or root)
       router.push('/login');
+    } else if (currentUser && (pathname === '/login' || pathname === '/')) {
+      // Logged in, but trying to access login or the root page. Redirect to dashboard.
+      router.push('/dashboard');
     }
   }, [currentUser, isLoading, pathname, router]);
 
@@ -48,51 +55,57 @@ export default function AppLayout({ children }: AppLayoutProps) {
     );
   }
 
-  if (shellLessPaths.includes(pathname)) {
-    if (pathname === '/login' && currentUser) {
-      router.push('/dashboard');
-      return null;
-    }
+  // For explicitly public shell-less paths (e.g., /login), or if on the root page and not authenticated, render children directly.
+  if (publicShellLessPaths.includes(pathname) || (pathname === '/' && !currentUser)) {
     return <>{children}</>;
   }
 
-  if (!currentUser) {
-    return (
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-            <p>Redirecting to login...</p>
-        </div>
+  // If user is not logged in but trying to access a protected page,
+  // the useEffect above will handle redirection. We render a loader here to prevent FOUC.
+  if (!currentUser && !publicShellLessPaths.includes(pathname)) {
+     return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+         <p>Redirecting to login...</p>
+      </div>
     );
   }
 
-  return (
-    <SidebarProvider defaultOpen>
-      <Sidebar variant="sidebar" collapsible="icon" className="border-r">
-        <SidebarHeader className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Logo />
-            <h1 className="text-xl font-semibold text-primary group-data-[collapsible=icon]:hidden">Consult Vista</h1>
-          </div>
-          {/* The Sheet for mobile view will have its own close button inside SheetContent (X icon) */}
-        </SidebarHeader>
-        <SidebarContent className="p-0">
-          <ScrollArea className="h-full">
-            <SidebarNav />
-          </ScrollArea>
-        </SidebarContent>
-        <SidebarFooter className="p-4 border-t">
-          <UserProfile />
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset className="flex flex-col">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-start gap-4 border-b bg-background/80 px-6 backdrop-blur-sm">
-          {/* This SidebarTrigger is for mobile to open the sheet AND for desktop to toggle expand/collapse from icon view */}
-          <SidebarTrigger />
-          {/* Future: Add global search or notifications here */}
-        </header>
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
-  );
+  // If we reach here, user is authenticated and on a protected page that requires the shell.
+  // Or user is authenticated and trying to access the root path (useEffect will redirect to dashboard, but we render shell in meantime).
+  if (currentUser) {
+    return (
+      <SidebarProvider defaultOpen={true}> {/* Ensures sidebar is open by default on desktop */}
+        <Sidebar variant="sidebar" collapsible="icon" className="border-r">
+          <SidebarHeader className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Logo />
+              <h1 className="text-xl font-semibold text-primary group-data-[collapsible=icon]:hidden">Consult Vista</h1>
+            </div>
+            {/* The Sheet for mobile view will have its own close button inside SheetContent (X icon) */}
+          </SidebarHeader>
+          <SidebarContent className="p-0">
+            <ScrollArea className="h-full">
+              <SidebarNav />
+            </ScrollArea>
+          </SidebarContent>
+          <SidebarFooter className="p-4 border-t">
+            <UserProfile />
+          </SidebarFooter>
+        </Sidebar>
+        <SidebarInset className="flex flex-col">
+          <header className="sticky top-0 z-10 flex h-14 items-center justify-start gap-4 border-b bg-background/80 px-6 backdrop-blur-sm">
+            {/* This SidebarTrigger is for mobile to open the sheet AND for desktop to toggle expand/collapse from icon view */}
+            <SidebarTrigger />
+            {/* Future: Add global search or notifications here */}
+          </header>
+          <main className="flex-1 overflow-auto p-6">
+            {children}
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
+
+  // Fallback for any edge cases, though ideally shouldn't be reached if logic above is sound.
+  return null;
 }
