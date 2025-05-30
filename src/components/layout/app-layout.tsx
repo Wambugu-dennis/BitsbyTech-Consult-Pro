@@ -33,13 +33,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading) return; // Don't do anything while auth state is resolving
 
-    // If not authenticated and trying to access a protected page
+    // If not authenticated and trying to access a protected page (not /login and not /)
     if (!currentUser && !publicShellLessPaths.includes(pathname) && pathname !== '/') {
       router.push('/login');
     }
-    // If authenticated and trying to access login page or the root page (which might be a landing/login prompt)
+    // If authenticated and trying to access login page or the root page (which is a pre-login landing)
     else if (currentUser && (pathname === '/login' || pathname === '/')) {
       router.push('/dashboard');
     }
@@ -63,6 +63,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }
   
   // If user is not logged in but on a protected path (useEffect should catch this, but as a fallback)
+  // Or if the path is / but they are not logged in yet (let page.tsx handle it)
   if (!currentUser) {
      return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -80,7 +81,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <Logo />
             <h1 className="text-xl font-semibold text-primary group-data-[collapsible=icon]:hidden">Consult Vista</h1>
           </div>
-          {/* The Sheet for mobile view will have its own close button inside SheetContent (X icon) */}
         </SidebarHeader>
         <SidebarContent className="p-0">
           <ScrollArea className="h-full">
@@ -93,9 +93,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </Sidebar>
       <SidebarInset className="flex flex-col">
         <header className="sticky top-0 z-10 flex h-14 items-center justify-start gap-4 border-b bg-background/80 px-6 backdrop-blur-sm">
-          {/* This SidebarTrigger is for mobile to open the sheet AND for desktop to toggle expand/collapse from icon view */}
           <SidebarTrigger />
-          {/* Future: Add global search or notifications here */}
         </header>
         <main className="flex-1 overflow-auto p-6">
           {children}

@@ -9,16 +9,25 @@ import {
   CalendarDays,
   TrendingUp,
   BarChart3,
-  Settings as SettingsIcon, // Alias to avoid conflict if 'Settings' is used elsewhere
+  Settings as SettingsIcon,
   HelpCircle,
-  FileText, // For Invoices
-  Receipt, // For Expenses
-  Target, // For Budgets
-  Landmark, // For Revenue Recognition
-  PieChart as PieChartIconLucide, // For Profitability Analysis & AI Insights
-  Brain, // For AI Insights
-  Users2, // For Client Relationship Report
-  User // For Consultant Performance Report
+  FileText,
+  Receipt,
+  Target,
+  Landmark,
+  PieChart as PieChartIconLucide,
+  Brain,
+  Users2,
+  User,
+  BellRing,
+  Paintbrush,
+  Languages,
+  CreditCard,
+  ShieldCheck,
+  Link2,
+  Workflow,
+  Server,
+  ListChecks, // Added for Project Success sub-item if needed
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -52,10 +61,10 @@ export const navLinks: NavLink[] = [
     label: 'Analytics',
     icon: TrendingUp,
     subItems: [
-        { href: '/analytics/project-success-report', label: 'Project Success', icon: Briefcase },
+        { href: '/analytics/project-success-report', label: 'Project Success', icon: Briefcase }, // Re-using Briefcase
         { href: '/analytics/client-relationship-report', label: 'Client Relationships', icon: Users2 },
         { href: '/analytics/consultant-performance-report', label: 'Consultant Performance', icon: User },
-        { href: '/analytics/financial-health-report', label: 'Financial Health', icon: DollarSign },
+        { href: '/analytics/financial-health-report', label: 'Financial Health', icon: DollarSign }, // Re-using DollarSign
         { href: '/analytics/ai-insights', label: 'AI Insights', icon: Brain },
     ]
   },
@@ -68,21 +77,20 @@ export const navLinks: NavLink[] = [
     subItems: [
       { href: '/settings#account', label: 'Account', icon: UserCog },
       { href: '/settings#notifications', label: 'Notifications', icon: BellRing },
-      { href: '/settings#security', label: 'Security', icon: ShieldAlert },
+      { href: '/settings#security', label: 'Security', icon: ShieldCheck }, // Changed from ShieldAlert for variety
       { href: '/settings#appearance', label: 'Appearance', icon: Paintbrush },
       { href: '/settings#language', label: 'Language & Region', icon: Languages },
       { href: '/settings#billing', label: 'Billing', icon: CreditCard },
-      { href: '/settings#userManagement', label: 'User Management', icon: Users },
+      { href: '/settings#userManagement', label: 'User Management', icon: Users }, // Re-using Users
       { href: '/settings#accessControl', label: 'Access Control', icon: ShieldCheck },
       { href: '/settings#integrations', label: 'Integrations', icon: Link2 },
       { href: '/settings#workflow', label: 'Workflow Customization', icon: Workflow },
       { href: '/settings#system', label: 'System & Compliance', icon: Server },
-    ].map(item => ({...item, href: `/settings#${item.label.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`})) // Generate hrefs for settings sub-items
+    ].map(item => ({...item, href: `/settings#${item.label.toLowerCase().replace(/ & /g, '-').replace(/\s+/g, '-')}`}))
   },
   { href: '/help', label: 'Help', icon: HelpCircle },
 ];
 
-// Constants for Settings page sub-navigation (used by SidebarNav and SettingsPage)
 export const settingsSubLinks = navLinks.find(link => link.label === 'Settings')?.subItems || [];
 
 
@@ -111,19 +119,6 @@ export const CONSULTANT_STATUS_VARIANTS: Record<string, "default" | "secondary" 
   Unavailable: 'secondary',
 };
 
-export const EVENT_TYPE_CONFIG: Record<CalendarEventType, EventTypeConfig> = {
-  'Project Milestone': { label: 'Milestone', color: 'bg-purple-500', textColor: 'text-white', borderColor: 'border-purple-700' },
-  'Project Deadline': { label: 'Deadline', color: 'bg-red-600', textColor: 'text-white', borderColor: 'border-red-800' },
-  'Client Meeting': { label: 'Meeting', color: 'bg-sky-500', textColor: 'text-white', borderColor: 'border-sky-700' },
-  'Consultant Assignment': { label: 'Assignment', color: 'bg-orange-500', textColor: 'text-white', borderColor: 'border-orange-700' },
-  'General Task': { label: 'Task', color: 'bg-gray-500', textColor: 'text-white', borderColor: 'border-gray-700' },
-  'Holiday': { label: 'Holiday', color: 'bg-teal-500', textColor: 'text-white', borderColor: 'border-teal-700' },
-  'Other': { label: 'Other', color: 'bg-pink-500', textColor: 'text-white', borderColor: 'border-pink-700' },
-};
-
-// Forward type declarations for CalendarEventType and EventTypeConfig if they are defined in types.ts
-// These might be duplicated or you might want to import them from types.ts
-// For now, assuming they are simple enough to be re-declared or were local to constants.ts
 export type CalendarEventType =
   | 'Project Milestone'
   | 'Project Deadline'
@@ -140,17 +135,12 @@ export interface EventTypeConfig {
   textColor?: string;
 }
 
-// Icons used in settings sub-navigation
-import {
-  BellRing,
-  Paintbrush,
-  Languages,
-  CreditCard,
-  ShieldCheck,
-  Link2,
-  Workflow,
-  Server
-} from 'lucide-react';
-
-// Add any other icons if needed for other sub-items
-// ...
+export const EVENT_TYPE_CONFIG: Record<CalendarEventType, EventTypeConfig> = {
+  'Project Milestone': { label: 'Milestone', color: 'bg-purple-500', textColor: 'text-white', borderColor: 'border-purple-700' },
+  'Project Deadline': { label: 'Deadline', color: 'bg-red-600', textColor: 'text-white', borderColor: 'border-red-800' },
+  'Client Meeting': { label: 'Meeting', color: 'bg-sky-500', textColor: 'text-white', borderColor: 'border-sky-700' },
+  'Consultant Assignment': { label: 'Assignment', color: 'bg-orange-500', textColor: 'text-white', borderColor: 'border-orange-700' },
+  'General Task': { label: 'Task', color: 'bg-gray-500', textColor: 'text-white', borderColor: 'border-gray-700' },
+  'Holiday': { label: 'Holiday', color: 'bg-teal-500', textColor: 'text-white', borderColor: 'border-teal-700' },
+  'Other': { label: 'Other', color: 'bg-pink-500', textColor: 'text-white', borderColor: 'border-pink-700' },
+};
