@@ -1,8 +1,9 @@
 
 import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, Expense, Budget, BudgetStatus, BudgetType, CalendarEvent, ClientMeeting, RevenueData, SystemUser, SystemUserStatus, SystemRole } from "@/lib/types";
-import { PROJECT_STATUS } from "@/lib/constants";
+// Removed PROJECT_STATUS import as it's not directly used here anymore for expense creation status, but it is used in ProjectTask, so re-added
+import { PROJECT_STATUS } from "@/lib/constants"; // Corrected import for PROJECT_STATUS
 import { expenseCategories, budgetTypes, budgetStatuses, calendarEventTypes, systemUserStatuses, systemRoles } from "./types";
-import { formatISO, addDays, subDays, addMonths, parseISO } from 'date-fns';
+import { formatISO, addDays, subDays, addMonths, parseISO, getMonth, format } from 'date-fns';
 
 const today = new Date();
 const currentYear = today.getFullYear(); // Use current year for mock data for relevance
@@ -164,11 +165,20 @@ export const initialConsultants: Consultant[] = [
 ];
 
 export const initialProjectTasks: ProjectTask[] = [
-  { id: 'task-proj101-1', title: 'Discovery Phase for Innovatech', description: 'Initial client meetings and requirement gathering for AI Overhaul.', status: PROJECT_STATUS.TODO, assigneeId: 'c1', dueDate: formatISO(addDays(today,15), { representation: 'date' }), priority: 'High' },
-  { id: 'task-proj202-1', title: 'Develop UI Mockups for Alpha Solutions', description: 'Create wireframes and high-fidelity mockups for predictive model interface.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c5', dueDate: formatISO(addDays(today,20), { representation: 'date' }), priority: 'Medium'  },
-  { id: 'task-proj101-2', title: 'Backend API Integration for Innovatech', description: 'Connect frontend to new microservices for AI features.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c2', dueDate: formatISO(addDays(today,60), { representation: 'date' }), priority: 'High'  },
-  { id: 'task-proj301-1', title: 'Q&A Testing for Beta Corp App', description: 'Comprehensive testing of all features of process optimization app.', status: PROJECT_STATUS.TODO, assigneeId: 'c4', dueDate: formatISO(subDays(today, 50), { representation: 'date' }), priority: 'Medium'  },
-  { id: 'task-proj105-1', title: 'Deploy Innovatech Cloud Platform V1', description: 'Final deployment to production environment.', status: PROJECT_STATUS.DONE, assigneeId: 'c1', dueDate: formatISO(subDays(today, 30), { representation: 'date' }), priority: 'High'  },
+  { id: 'task-proj101-1', title: 'Discovery Phase for Innovatech', description: 'Initial client meetings and requirement gathering for AI Overhaul.', status: PROJECT_STATUS.TODO, assigneeId: 'c1', dueDate: formatISO(addDays(today,15), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,5)) },
+  { id: 'task-proj101-2', title: 'Backend API Integration for Innovatech', description: 'Connect frontend to new microservices for AI features.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c2', dueDate: formatISO(addDays(today,60), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,10)) },
+  { id: 'task-proj101-3', title: 'User Interface Design for Chatbot', status: PROJECT_STATUS.TODO, assigneeId: 'c5', dueDate: formatISO(addDays(today,30), { representation: 'date' }), priority: 'Medium', createdAt: formatISO(subDays(today,2)) },
+  
+  { id: 'task-proj202-1', title: 'Develop UI Mockups for Alpha Solutions', description: 'Create wireframes and high-fidelity mockups for predictive model interface.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c5', dueDate: formatISO(addDays(today,20), { representation: 'date' }), priority: 'Medium', createdAt: formatISO(subDays(today,7))  },
+  { id: 'task-proj202-2', title: 'Data Cleaning and Preprocessing', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c2', dueDate: formatISO(addDays(today,10), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,15)) },
+  { id: 'task-proj202-3', title: 'Model Training - Iteration 1', status: PROJECT_STATUS.TODO, assigneeId: 'c2', dueDate: formatISO(addDays(today,35), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,1)) },
+
+  { id: 'task-proj301-1', title: 'Q&A Testing for Beta Corp App', description: 'Comprehensive testing of all features of process optimization app.', status: PROJECT_STATUS.DONE, assigneeId: 'c4', dueDate: formatISO(subDays(today, 50), { representation: 'date' }), priority: 'Medium', createdAt: formatISO(subDays(today,60)), completedAt: formatISO(subDays(today,50))  },
+  { id: 'task-proj301-2', title: 'Final Report Generation', status: PROJECT_STATUS.DONE, assigneeId: 'c3', dueDate: formatISO(subDays(today, 45), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,55)), completedAt: formatISO(subDays(today,45)) },
+  
+  { id: 'task-proj105-1', title: 'Deploy Innovatech Cloud Platform V1', description: 'Final deployment to production environment.', status: PROJECT_STATUS.DONE, assigneeId: 'c1', dueDate: formatISO(subDays(today, 30), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,40)), completedAt: formatISO(subDays(today,30))  },
+  { id: 'task-proj105-2', title: 'Infrastructure Setup on AWS', status: PROJECT_STATUS.TODO, assigneeId: 'c4', dueDate: formatISO(addDays(today, 5), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,3)) },
+  { id: 'task-proj105-3', title: 'Data Migration Plan Review', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c1', dueDate: formatISO(addDays(today, 10), { representation: 'date' }), priority: 'Medium', createdAt: formatISO(subDays(today,1)) },
 ];
 
 
@@ -535,18 +545,18 @@ export const initialExpenses: Expense[] = [
 // Use currentYear - 1 for historical data to ensure it's in the past for forecasting.
 const previousYear = currentYear -1;
 export const financialHealthData: RevenueData[] = [
-  { date: `${previousYear}-01-01`, actualRevenue: 50000, actualExpenses: 30000 },
-  { date: `${previousYear}-02-01`, actualRevenue: 65000, actualExpenses: 35000 },
-  { date: `${previousYear}-03-01`, actualRevenue: 58000, actualExpenses: 32000 },
-  { date: `${previousYear}-04-01`, actualRevenue: 72000, actualExpenses: 40000 },
-  { date: `${previousYear}-05-01`, actualRevenue: 68000, actualExpenses: 38000 },
-  { date: `${previousYear}-06-01`, actualRevenue: 75000, actualExpenses: 42000 },
-  { date: `${previousYear}-07-01`, actualRevenue: 82000, actualExpenses: 45000 },
-  { date: `${previousYear}-08-01`, actualRevenue: 78000, actualExpenses: 43000 },
-  { date: `${previousYear}-09-01`, actualRevenue: 85000, actualExpenses: 48000 },
-  { date: `${previousYear}-10-01`, actualRevenue: 92000, actualExpenses: 50000 },
-  { date: `${previousYear}-11-01`, actualRevenue: 88000, actualExpenses: 47000 },
-  { date: `${previousYear}-12-01`, actualRevenue: 95000, actualExpenses: 52000 },
+  { date: `${previousYear}-01-01`, actualRevenue: 50000, actualExpenses: 30000, month: 'Jan' },
+  { date: `${previousYear}-02-01`, actualRevenue: 65000, actualExpenses: 35000, month: 'Feb' },
+  { date: `${previousYear}-03-01`, actualRevenue: 58000, actualExpenses: 32000, month: 'Mar' },
+  { date: `${previousYear}-04-01`, actualRevenue: 72000, actualExpenses: 40000, month: 'Apr' },
+  { date: `${previousYear}-05-01`, actualRevenue: 68000, actualExpenses: 38000, month: 'May' },
+  { date: `${previousYear}-06-01`, actualRevenue: 75000, actualExpenses: 42000, month: 'Jun' },
+  { date: `${previousYear}-07-01`, actualRevenue: 82000, actualExpenses: 45000, month: 'Jul' },
+  { date: `${previousYear}-08-01`, actualRevenue: 78000, actualExpenses: 43000, month: 'Aug' },
+  { date: `${previousYear}-09-01`, actualRevenue: 85000, actualExpenses: 48000, month: 'Sep' },
+  { date: `${previousYear}-10-01`, actualRevenue: 92000, actualExpenses: 50000, month: 'Oct' },
+  { date: `${previousYear}-11-01`, actualRevenue: 88000, actualExpenses: 47000, month: 'Nov' },
+  { date: `${previousYear}-12-01`, actualRevenue: 95000, actualExpenses: 52000, month: 'Dec' },
 ];
 
 // Mock data for System Users
@@ -621,3 +631,12 @@ export const initialSystemUsers: SystemUser[] = [
     reportsToUserNameCache: 'Alex Mercer (Super Admin)',
   }
 ];
+
+// Mock data for revenue chart projections on Dashboard
+const revenueChartDataMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export const historicalRevenueData: RevenueData[] = revenueChartDataMonths.slice(0,9).map((month, index) => ({
+  date: `${currentYear-1}-${String(index+1).padStart(2,'0')}-01`, // Previous year actuals
+  month: month,
+  actualRevenue: 50000 + (index * 3000) + (Math.random() * 10000 - 5000), // Base + trend + noise
+  actualExpenses: 30000 + (index * 1500) + (Math.random() * 6000 - 3000),
+}));

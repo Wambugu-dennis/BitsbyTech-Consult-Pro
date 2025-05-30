@@ -16,11 +16,13 @@ export type ProjectTask = {
   id: string;
   title: string;
   description?: string;
-  status: ProjectStatusValue;
+  status: ProjectStatusValue; // Ensure this uses ProjectStatusValue
   assigneeId?: string;
   assigneeNameCache?: string;
   dueDate?: string;
   priority?: 'High' | 'Medium' | 'Low';
+  createdAt?: string; // Added for potential "new tasks" calculation
+  completedAt?: string; // Added for completion rate
 };
 
 export type Milestone = {
@@ -60,8 +62,8 @@ export type Project = {
   teamMemberIds?: string[];
   status: ProjectStatusValue;
   priority: 'High' | 'Medium' | 'Low';
-  startDate: string;
-  endDate: string;
+  startDate: string; // ISO Date string
+  endDate: string;   // ISO Date string
   actualEndDate?: string;
   financials: ProjectFinancials;
   milestones?: Milestone[];
@@ -195,9 +197,11 @@ export type RevenueData = {
   month?: string; // For display purposes if needed
   actualRevenue?: number;
   actualExpenses?: number;
-  forecastedRevenueValue?: number; // Distinct key for forecasted revenue
-  forecastedExpensesValue?: number; // Distinct key for forecasted expenses
-  // Flags to indicate if the *point* contains forecasted data for styling dots/lines
+  forecastedRevenue?: number; // For revenue chart projection
+  forecastedExpenses?: number; // For revenue chart projection
+  // The ones below are for the AI Insights page's predictive chart
+  forecastedRevenueValue?: number;
+  forecastedExpensesValue?: number;
   isRevenueForecasted?: boolean;
   isExpensesForecasted?: boolean;
 };
@@ -357,7 +361,7 @@ export type Budget = {
   currency: string;
   startDate: string;
   endDate: string;
-  status: BudgetStatus; // This could be dynamic based on dates and spending
+  status: BudgetStatus; 
   description?: string;
   createdAt: string;
   updatedAt: string;
