@@ -6,8 +6,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { HelpCircle, Search, BookOpen, Video, MessageSquareQuestion, Users, Info, FileText } from "lucide-react";
+import { HelpCircle, Search, BookOpen, Video, MessageCircleQuestion, Users, Info, FileText } from "lucide-react"; // Corrected icon
 import { useLocalization } from '@/context/localization-provider';
+import type { LanguagePack } from '@/lib/i18n-config';
 
 const faqData = [
   {
@@ -36,7 +37,7 @@ export default function HelpPage() {
   const { toast } = useToast();
   const { t } = useLocalization();
 
-  const handlePlaceholderAction = (titleKey: string, descriptionKey?: string) => {
+  const handlePlaceholderAction = (titleKey: keyof LanguagePack['translations'], descriptionKey?: keyof LanguagePack['translations']) => {
     toast({
       title: t(titleKey),
       description: descriptionKey ? t(descriptionKey) : t("This feature is currently under development and will be available soon."),
@@ -79,7 +80,7 @@ export default function HelpPage() {
         <Card className="shadow-md">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <MessageSquareQuestion className="h-7 w-7 text-primary" />
+              <MessageCircleQuestion className="h-7 w-7 text-primary" />
               <CardTitle className="text-xl">{t('Frequently Asked Questions (FAQs)')}</CardTitle>
             </div>
             <CardDescription>{t('Find answers to common questions about using Consult Vista.')}</CardDescription>
@@ -89,9 +90,9 @@ export default function HelpPage() {
               <Accordion type="single" collapsible className="w-full">
                 {faqData.map((faq) => (
                   <AccordionItem value={faq.id} key={faq.id}>
-                    <AccordionTrigger className="text-sm text-left hover:no-underline">{t(faq.questionKey)}</AccordionTrigger>
+                    <AccordionTrigger className="text-sm text-left hover:no-underline">{t(faq.questionKey as keyof LanguagePack['translations'])}</AccordionTrigger>
                     <AccordionContent className="text-sm text-muted-foreground">
-                      {t(faq.answerKey)}
+                      {t(faq.answerKey as keyof LanguagePack['translations'])}
                     </AccordionContent>
                   </AccordionItem>
                 ))}
@@ -154,21 +155,22 @@ export default function HelpPage() {
         <Card className="shadow-md">
           <CardHeader>
             <div className="flex items-center gap-3">
-                <Info className="h-7 w-7 text-primary" />
+                <MessageCircleQuestion className="h-7 w-7 text-primary" /> 
                 <CardTitle className="text-lg">{t('Contact Support')}</CardTitle>
             </div>
             <CardDescription>{t('Get direct assistance from our support team.')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              {t('If you can\'t find an answer in our FAQs or documentation, our support team is here to help.')}
+              {t("If you can't find an answer in our FAQs or documentation, our support team is here to help.")}
             </p>
             <div className="text-sm">
               <p><strong>{t('Email')}:</strong> <a href="mailto:support@consultvista.example.com" className="text-primary hover:underline">support@consultvista.example.com</a></p>
               <p><strong>{t('Phone')}:</strong> {t('+1-555-HELP-NOW (Feature Coming Soon)')}</p>
             </div>
             <Button className="w-full" onClick={() => handlePlaceholderAction("Submit Support Ticket Clicked", "This would open a support ticket submission form or integrate with a helpdesk system.")}>
-              <MessageSquareQuestion className="mr-2 h-4 w-4" /> {t('Submit Support Ticket')}
+              <MessageCircleQuestion className="mr-2 h-4 w-4" /> 
+              {t('Submit Support Ticket')}
             </Button>
           </CardContent>
         </Card>
@@ -208,5 +210,3 @@ export default function HelpPage() {
     </div>
   );
 }
-
-    
