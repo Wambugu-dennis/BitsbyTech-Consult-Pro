@@ -1,11 +1,11 @@
 
-import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, Expense, Budget, BudgetStatus, BudgetType, CalendarEvent, ClientMeeting, RevenueData, SystemUser, SystemUserStatus, SystemRole, TaxJurisdiction, TaxType, TaxRate, TaxApplicableEntity } from "@/lib/types";
-import { PROJECT_STATUS } from "@/lib/constants"; 
+import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, AppliedTaxInfo, Expense, Budget, BudgetStatus, BudgetType, CalendarEvent, ClientMeeting, RevenueData, SystemUser, SystemUserStatus, SystemRole, TaxJurisdiction, TaxType, TaxRate, TaxApplicableEntity } from "@/lib/types";
+import { PROJECT_STATUS } from "@/lib/constants";
 import { expenseCategories, budgetTypes, budgetStatuses, calendarEventTypes, systemUserStatuses, systemRoles, taxApplicableEntities } from "./types";
 import { formatISO, addDays, subDays, addMonths, parseISO, getMonth, format } from 'date-fns';
 
 const today = new Date();
-const currentYear = today.getFullYear(); 
+const currentYear = today.getFullYear();
 
 // Mock data for Clients
 export const initialClients: Client[] = [
@@ -35,7 +35,8 @@ export const initialClients: Client[] = [
     meetings: [
         { id:'m1', title: 'Quarterly Review with Innovatech', date: formatISO(subDays(today,15), { representation: 'date' }), time: '10:00', description: 'Discuss Q2 performance and Q3 roadmap.', attendees: ['Sarah Connor', 'Dr. Eleanor Vance'], location: 'Innovatech HQ / Video Call'},
         { id:'m2', title: 'Project Kickoff: AI Overhaul Phase 2', date: formatISO(addDays(today, 5), { representation: 'date' }), time: '14:00', description: 'Initiate phase 2 of AI Overhaul.', attendees: ['John Projectlead', 'Dr. Eleanor Vance', 'Marcus Chen'], location: 'Video Call' }
-    ]
+    ],
+    jurisdictionId: 'jur-us-ca', // Added for tax purposes
   },
   {
     id: '2',
@@ -57,7 +58,8 @@ export const initialClients: Client[] = [
     lastContact: formatISO(subDays(today, 10), { representation: 'date' }),
     meetings: [
         { id:'m3', title: 'Alpha Solutions Check-in', date: formatISO(addDays(today, 12), { representation: 'date' }), time: '11:00', description: 'Weekly sync on predictive model project.', attendees: ['Robert Neville', 'Aisha Khan'], location: 'Video Call' }
-    ]
+    ],
+    jurisdictionId: 'jur-us-tx', // Example for a different US state
   },
   {
     id: '3',
@@ -91,10 +93,11 @@ export const initialClients: Client[] = [
     ],
     notes: 'Initial discussions for supply chain optimization. Proposal sent.',
     lastContact: formatISO(subDays(today, 30), { representation: 'date' }),
+    jurisdictionId: 'jur-ke', // Example for an international client
   },
 ];
 
-// Mock data for Consultants
+// Mock data for Consultants (no tax-specific fields added here for now)
 export const initialConsultants: Consultant[] = [
   {
     id: 'c1',
@@ -163,24 +166,26 @@ export const initialConsultants: Consultant[] = [
   },
 ];
 
+// Mock data for Project Tasks (no tax-specific fields added here for now)
 export const initialProjectTasks: ProjectTask[] = [
   { id: 'task-proj101-1', title: 'Discovery Phase for Innovatech', description: 'Initial client meetings and requirement gathering for AI Overhaul.', status: PROJECT_STATUS.TODO, assigneeId: 'c1', dueDate: formatISO(addDays(today,15), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,5)) },
   { id: 'task-proj101-2', title: 'Backend API Integration for Innovatech', description: 'Connect frontend to new microservices for AI features.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c2', dueDate: formatISO(addDays(today,60), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,10)) },
   { id: 'task-proj101-3', title: 'User Interface Design for Chatbot', status: PROJECT_STATUS.TODO, assigneeId: 'c5', dueDate: formatISO(addDays(today,30), { representation: 'date' }), priority: 'Medium', createdAt: formatISO(subDays(today,2)) },
-  
+
   { id: 'task-proj202-1', title: 'Develop UI Mockups for Alpha Solutions', description: 'Create wireframes and high-fidelity mockups for predictive model interface.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c5', dueDate: formatISO(addDays(today,20), { representation: 'date' }), priority: 'Medium', createdAt: formatISO(subDays(today,7))  },
   { id: 'task-proj202-2', title: 'Data Cleaning and Preprocessing', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c2', dueDate: formatISO(addDays(today,10), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,15)) },
   { id: 'task-proj202-3', title: 'Model Training - Iteration 1', status: PROJECT_STATUS.TODO, assigneeId: 'c2', dueDate: formatISO(addDays(today,35), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,1)) },
 
   { id: 'task-proj301-1', title: 'Q&A Testing for Beta Corp App', description: 'Comprehensive testing of all features of process optimization app.', status: PROJECT_STATUS.DONE, assigneeId: 'c4', dueDate: formatISO(subDays(today, 50), { representation: 'date' }), priority: 'Medium', createdAt: formatISO(subDays(today,60)), completedAt: formatISO(subDays(today,50))  },
   { id: 'task-proj301-2', title: 'Final Report Generation', status: PROJECT_STATUS.DONE, assigneeId: 'c3', dueDate: formatISO(subDays(today, 45), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,55)), completedAt: formatISO(subDays(today,45)) },
-  
+
   { id: 'task-proj105-1', title: 'Deploy Innovatech Cloud Platform V1', description: 'Final deployment to production environment.', status: PROJECT_STATUS.DONE, assigneeId: 'c1', dueDate: formatISO(subDays(today, 30), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,40)), completedAt: formatISO(subDays(today,30))  },
   { id: 'task-proj105-2', title: 'Infrastructure Setup on AWS', status: PROJECT_STATUS.TODO, assigneeId: 'c4', dueDate: formatISO(addDays(today, 5), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,3)) },
   { id: 'task-proj105-3', title: 'Data Migration Plan Review', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c1', dueDate: formatISO(addDays(today, 10), { representation: 'date' }), priority: 'Medium', createdAt: formatISO(subDays(today,1)) },
 ];
 
 
+// Mock data for Projects
 export const initialProjects: Project[] = [
   {
     id: 'proj101',
@@ -205,6 +210,7 @@ export const initialProjects: Project[] = [
     tags: ['AI', 'Machine Learning', 'Cloud Integration'],
     lastUpdated: new Date().toISOString(),
     completionPercent: 45,
+    applicableTaxRateIds: ['rate-us-ca-sales'], // Example: California Sales Tax
   },
   {
     id: 'proj202',
@@ -229,6 +235,7 @@ export const initialProjects: Project[] = [
     tags: ['Healthcare', 'Predictive Analytics', 'Data Science'],
     lastUpdated: new Date().toISOString(),
     completionPercent: 30,
+     applicableTaxRateIds: [], // No specific tax for this example initially
   },
   {
     id: 'proj301',
@@ -277,6 +284,94 @@ export const initialProjects: Project[] = [
     tags: ['Cloud Migration', 'Infrastructure', 'AWS'],
     lastUpdated: new Date().toISOString(),
     completionPercent: 5,
+    applicableTaxRateIds: ['rate-us-ca-sales'],
+  }
+];
+
+
+// Tax Management Mock Data
+export const initialTaxJurisdictions: TaxJurisdiction[] = [
+  { id: 'jur-ke', name: 'Kenya', countryCode: 'KE', description: 'East African Nation', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'jur-us-ca', name: 'USA - California', countryCode: 'US', description: 'State of California, USA', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'jur-uk', name: 'United Kingdom', countryCode: 'GB', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'jur-us-tx', name: 'USA - Texas', countryCode: 'US', description: 'State of Texas, USA', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+];
+
+export const initialTaxTypes: TaxType[] = [
+  { id: 'type-vat', name: 'Value Added Tax', abbreviation: 'VAT', description: 'Consumption tax applied to goods and services.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'type-wht', name: 'Withholding Tax', abbreviation: 'WHT', description: 'Tax deducted at source from payments like dividends, interest, royalties.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'type-sales', name: 'Sales Tax', abbreviation: 'Sales', description: 'Tax on sale of goods and services, typically at point of sale.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'type-service', name: 'Service Tax', abbreviation: 'Service', description: 'Tax specifically on services rendered.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+];
+
+export const initialTaxRates: TaxRate[] = [
+  {
+    id: 'rate-ke-vat-std',
+    jurisdictionId: 'jur-ke',
+    jurisdictionNameCache: 'Kenya',
+    taxTypeId: 'type-vat',
+    taxTypeNameCache: 'Value Added Tax',
+    rate: 16,
+    description: 'Standard VAT rate for services in Kenya.',
+    startDate: '2020-01-01',
+    applicableTo: ['ServiceSales', 'InvoiceLineItem'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rate-us-ca-sales',
+    jurisdictionId: 'jur-us-ca',
+    jurisdictionNameCache: 'USA - California',
+    taxTypeId: 'type-sales',
+    taxTypeNameCache: 'Sales Tax',
+    rate: 7.25,
+    description: 'California statewide sales tax rate. Local taxes may apply.',
+    startDate: '2017-01-01',
+    applicableTo: ['InvoiceLineItem', 'ServiceSales'], // ServiceSales if services are taxable in CA
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rate-uk-vat-std',
+    jurisdictionId: 'jur-uk',
+    jurisdictionNameCache: 'United Kingdom',
+    taxTypeId: 'type-vat',
+    taxTypeNameCache: 'Value Added Tax',
+    rate: 20,
+    description: 'Standard VAT rate in the UK.',
+    startDate: '2011-01-04',
+    applicableTo: ['ServiceSales', 'InvoiceLineItem'],
+    isCompound: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rate-ke-wht-services',
+    jurisdictionId: 'jur-ke',
+    jurisdictionNameCache: 'Kenya',
+    taxTypeId: 'type-wht',
+    taxTypeNameCache: 'Withholding Tax',
+    rate: 5,
+    description: 'Withholding tax on consultancy and agency fees for residents.',
+    startDate: '2005-01-01',
+    applicableTo: ['ServiceSales'],
+    isCompound: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rate-us-tx-sales',
+    jurisdictionId: 'jur-us-tx',
+    jurisdictionNameCache: 'USA - Texas',
+    taxTypeId: 'type-sales',
+    taxTypeNameCache: 'Sales Tax',
+    rate: 6.25,
+    description: 'Texas state sales tax rate. Local taxes can add up to 2% more.',
+    startDate: '1990-01-01',
+    applicableTo: ['InvoiceLineItem'],
+    isCompound: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   }
 ];
 
@@ -293,18 +388,45 @@ const generateInvoiceItems = (num: number, basePrice: number): { items: InvoiceI
       quantity,
       unitPrice: parseFloat(unitPrice.toFixed(2)),
       totalPrice: parseFloat(totalPrice.toFixed(2)),
+      // appliedTaxes and taxAmountForItem would be calculated dynamically based on invoice/project settings
     });
     subTotal += totalPrice;
   }
   return { items, subTotal: parseFloat(subTotal.toFixed(2)) };
 };
 
-const createInvoice = (id: string, client: Client, project: Project | undefined, status: Invoice['status'], daysOffset: number, itemsInfo: { items: InvoiceItem[], subTotal: number }): Invoice => {
+const createInvoiceWithTaxes = (
+  id: string,
+  client: Client,
+  project: Project | undefined,
+  status: Invoice['status'],
+  daysOffset: number,
+  itemsInfo: { items: InvoiceItem[], subTotal: number },
+  applicableTaxRateIds: string[]
+): Invoice => {
   const issueDate = formatISO(subDays(today, daysOffset), { representation: 'date' });
   const dueDate = formatISO(addDays(new Date(issueDate), 30), { representation: 'date' });
-  const taxRate = 0.08;
-  const taxAmount = parseFloat((itemsInfo.subTotal * taxRate).toFixed(2));
-  const totalAmount = parseFloat((itemsInfo.subTotal + taxAmount).toFixed(2));
+
+  let totalTaxAmount = 0;
+  const appliedTaxesSummary: AppliedTaxInfo[] = [];
+
+  applicableTaxRateIds.forEach(rateId => {
+    const taxRateInfo = initialTaxRates.find(r => r.id === rateId);
+    if (taxRateInfo && taxRateInfo.applicableTo.includes('InvoiceLineItem') /* Simplified logic */) {
+      const taxAmountForThisRate = parseFloat(((itemsInfo.subTotal * taxRateInfo.rate) / 100).toFixed(2));
+      totalTaxAmount += taxAmountForThisRate;
+      appliedTaxesSummary.push({
+        taxRateId: taxRateInfo.id,
+        name: taxRateInfo.description,
+        rateValue: taxRateInfo.rate,
+        amount: taxAmountForThisRate,
+        jurisdiction: taxRateInfo.jurisdictionNameCache,
+        taxTypeName: taxRateInfo.taxTypeNameCache
+      });
+    }
+  });
+  totalTaxAmount = parseFloat(totalTaxAmount.toFixed(2));
+  const totalAmount = parseFloat((itemsInfo.subTotal + totalTaxAmount).toFixed(2));
 
   return {
     id,
@@ -316,8 +438,8 @@ const createInvoice = (id: string, client: Client, project: Project | undefined,
     dueDate,
     items: itemsInfo.items,
     subTotal: itemsInfo.subTotal,
-    taxRate,
-    taxAmount,
+    taxAmount: totalTaxAmount,
+    appliedTaxes: appliedTaxesSummary,
     totalAmount,
     status,
     currency: 'USD',
@@ -329,17 +451,19 @@ const createInvoice = (id: string, client: Client, project: Project | undefined,
   };
 };
 
-const inv1Items = generateInvoiceItems(3, 1500);
-const inv2Items = generateInvoiceItems(2, 2500);
-const inv3Items = generateInvoiceItems(5, 1000);
-const inv4Items = generateInvoiceItems(1, 5000);
+
+const inv1Items = generateInvoiceItems(3, 1500); // subtotal ~4500
+const inv2Items = generateInvoiceItems(2, 2500); // subtotal ~5000
+const inv3Items = generateInvoiceItems(5, 1000); // subtotal ~5000
+const inv4Items = generateInvoiceItems(1, 5000); // subtotal ~5000
 
 export const initialInvoices: Invoice[] = [
-  createInvoice('INV-2024-001', initialClients[0], initialProjects.find(p => p.clientId === initialClients[0].id), 'Paid', 45, inv1Items),
-  createInvoice('INV-2024-002', initialClients[1], initialProjects.find(p => p.clientId === initialClients[1].id), 'Sent', 20, inv2Items),
-  createInvoice('INV-2024-003', initialClients[0], initialProjects.find(p => p.clientId === initialClients[0].id && p.id === 'proj105'), 'Overdue', 35, inv3Items),
-  createInvoice('INV-2024-004', initialClients[2], undefined, 'Draft', 5, inv4Items),
+  createInvoiceWithTaxes('INV-2024-001', initialClients[0], initialProjects.find(p => p.id === 'proj101'), 'Paid', 45, inv1Items, ['rate-us-ca-sales']),
+  createInvoiceWithTaxes('INV-2024-002', initialClients[1], initialProjects.find(p => p.id === 'proj202'), 'Sent', 20, inv2Items, []), // No tax for this one
+  createInvoiceWithTaxes('INV-2024-003', initialClients[0], initialProjects.find(p => p.id === 'proj105'), 'Overdue', 35, inv3Items, ['rate-us-ca-sales']),
+  createInvoiceWithTaxes('INV-2024-004', initialClients[3], undefined, 'Draft', 5, inv4Items, ['rate-ke-vat-std', 'rate-ke-wht-services']), // Client in Kenya
 ];
+
 
 export const initialBudgets: Budget[] = [
   {
@@ -419,7 +543,7 @@ export const initialExpenses: Expense[] = [
     id: 'exp-001',
     date: formatISO(subDays(today, 10), { representation: 'date' }),
     description: 'Flight to Innovatech Ltd. for project kickoff (proj101)',
-    amount: 450.75,
+    amount: 450.75, // Pre-tax
     currency: 'USD',
     category: 'Travel',
     status: 'Approved',
@@ -436,6 +560,10 @@ export const initialExpenses: Expense[] = [
     approvedDate: formatISO(subDays(today, 8), { representation: 'date' }),
     createdAt: formatISO(subDays(today, 10), { representation: 'date' }),
     updatedAt: formatISO(subDays(today, 8), { representation: 'date' }),
+    // Example with tax:
+    // appliedTaxes: [{ taxRateId: 'rate-us-ca-sales', name: 'CA Sales Tax', rateValue: 7.25, amount: parseFloat((450.75 * 0.0725).toFixed(2)) , jurisdiction: 'USA - California', taxTypeName: 'Sales Tax'}],
+    // taxAmount: parseFloat((450.75 * 0.0725).toFixed(2)),
+    // totalAmountIncludingTax: parseFloat((450.75 * 1.0725).toFixed(2)),
   },
   {
     id: 'exp-002',
@@ -486,60 +614,13 @@ export const initialExpenses: Expense[] = [
     clientNameCache: initialClients.find(cl => cl.id === '4')?.companyName,
     createdAt: formatISO(subDays(today, 2), { representation: 'date' }),
     updatedAt: formatISO(subDays(today, 2), { representation: 'date' }),
+     // Example for client in Kenya
+    appliedTaxes: [{ taxRateId: 'rate-ke-vat-std', name: 'Kenyan VAT', rateValue: 16, amount: parseFloat((35.00 * 0.16).toFixed(2)), jurisdiction: 'Kenya', taxTypeName: 'Value Added Tax' }],
+    taxAmount: parseFloat((35.00 * 0.16).toFixed(2)),
+    totalAmountIncludingTax: parseFloat((35.00 * 1.16).toFixed(2)),
   },
-  {
-    id: 'exp-005',
-    date: formatISO(subDays(today, 20), { representation: 'date' }),
-    description: 'Marketing materials for Q3 Campaign',
-    amount: 1200.00,
-    currency: 'USD',
-    category: 'Marketing & Advertising',
-    status: 'Approved',
-    submittedByConsultantId: 'c1',
-    submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c1')?.name,
-    budgetId: 'bud-marketing-q3',
-    approvedByUserId: 'adminUser1',
-    approvedDate: formatISO(subDays(today, 18), { representation: 'date' }),
-    createdAt: formatISO(subDays(today, 20), { representation: 'date' }),
-    updatedAt: formatISO(subDays(today, 18), { representation: 'date' }),
-  },
-  {
-    id: 'exp-006',
-    date: formatISO(subDays(today, 45), { representation: 'date' }),
-    description: 'Consultant Certification Exam Fee - Agile Masterclass',
-    amount: 500.00,
-    currency: 'USD',
-    category: 'Training & Development',
-    status: 'Approved',
-    submittedByConsultantId: 'c3',
-    submittedByConsultantNameCache: initialConsultants.find(c=>c.id === 'c3')?.name,
-    budgetId: 'bud-training-annual',
-    approvedByUserId: 'adminUser1',
-    approvedDate: formatISO(subDays(today, 40), { representation: 'date' }),
-    createdAt: formatISO(subDays(today, 45), { representation: 'date' }),
-    updatedAt: formatISO(subDays(today, 40), { representation: 'date' }),
-  },
-  {
-    id: 'exp-007',
-    date: formatISO(subDays(today, 7), { representation: 'date' }),
-    description: 'Cloud Server Costs for AI Model Training (proj101)',
-    amount: 2500.00,
-    currency: 'USD',
-    category: 'Software & Subscriptions',
-    status: 'Approved',
-    submittedByConsultantId: 'c2',
-    submittedByConsultantNameCache: initialConsultants.find(c => c.id === 'c2')?.name,
-    projectId: 'proj101',
-    projectNameCache: initialProjects.find(p => p.id === 'proj101')?.name,
-    clientId: initialProjects.find(p => p.id === 'proj101')?.clientId,
-    clientNameCache: initialProjects.find(p => p.id === 'proj101')?.clientNameCache,
-    budgetId: 'bud-proj101',
-    approvedByUserId: 'adminUser1',
-    approvedDate: formatISO(subDays(today, 5), { representation: 'date' }),
-    createdAt: formatISO(subDays(today, 7), { representation: 'date' }),
-    updatedAt: formatISO(subDays(today, 5), { representation: 'date' }),
-  }
 ];
+
 
 const previousYear = currentYear -1;
 export const financialHealthData: RevenueData[] = [
@@ -629,80 +710,13 @@ export const initialSystemUsers: SystemUser[] = [
   }
 ];
 
+
 const revenueChartDataMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const historicalRevenueData: RevenueData[] = revenueChartDataMonths.slice(0,9).map((month, index) => ({
-  date: `${currentYear-1}-${String(index+1).padStart(2,'0')}-01`, 
+  date: `${currentYear-1}-${String(index+1).padStart(2,'0')}-01`,
   month: month,
-  actualRevenue: 50000 + (index * 3000) + (Math.random() * 10000 - 5000), 
+  actualRevenue: 50000 + (index * 3000) + (Math.random() * 10000 - 5000),
   actualExpenses: 30000 + (index * 1500) + (Math.random() * 6000 - 3000),
 }));
 
-
-// Tax Management Mock Data
-export const initialTaxJurisdictions: TaxJurisdiction[] = [
-  { id: 'jur-ke', name: 'Kenya', countryCode: 'KE', description: 'East African Nation', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'jur-us-ca', name: 'USA - California', countryCode: 'US', description: 'State of California, USA', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'jur-uk', name: 'United Kingdom', countryCode: 'GB', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
-
-export const initialTaxTypes: TaxType[] = [
-  { id: 'type-vat', name: 'Value Added Tax', abbreviation: 'VAT', description: 'Consumption tax applied to goods and services.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'type-wht', name: 'Withholding Tax', abbreviation: 'WHT', description: 'Tax deducted at source from payments like dividends, interest, royalties.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'type-sales', name: 'Sales Tax', abbreviation: 'Sales', description: 'Tax on sale of goods and services, typically at point of sale.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'type-service', name: 'Service Tax', abbreviation: 'Service', description: 'Tax specifically on services rendered.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
-
-export const initialTaxRates: TaxRate[] = [
-  {
-    id: 'rate-ke-vat-std',
-    jurisdictionId: 'jur-ke',
-    jurisdictionNameCache: 'Kenya',
-    taxTypeId: 'type-vat',
-    taxTypeNameCache: 'Value Added Tax',
-    rate: 16,
-    description: 'Standard VAT rate for services in Kenya.',
-    startDate: '2020-01-01',
-    applicableTo: ['ServiceSales', 'InvoiceLineItem'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'rate-us-ca-sales',
-    jurisdictionId: 'jur-us-ca',
-    jurisdictionNameCache: 'USA - California',
-    taxTypeId: 'type-sales',
-    taxTypeNameCache: 'Sales Tax',
-    rate: 7.25, // Base rate, can vary by locality
-    description: 'California statewide sales tax rate. Local taxes may apply.',
-    startDate: '2017-01-01',
-    applicableTo: ['InvoiceLineItem'], // Typically on goods, but services can be taxable
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'rate-uk-vat-std',
-    jurisdictionId: 'jur-uk',
-    jurisdictionNameCache: 'United Kingdom',
-    taxTypeId: 'type-vat',
-    taxTypeNameCache: 'Value Added Tax',
-    rate: 20,
-    description: 'Standard VAT rate in the UK.',
-    startDate: '2011-01-04',
-    applicableTo: ['ServiceSales', 'InvoiceLineItem'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'rate-ke-wht-services',
-    jurisdictionId: 'jur-ke',
-    jurisdictionNameCache: 'Kenya',
-    taxTypeId: 'type-wht',
-    taxTypeNameCache: 'Withholding Tax',
-    rate: 5,
-    description: 'Withholding tax on consultancy and agency fees for residents.',
-    startDate: '2005-01-01',
-    applicableTo: ['ServiceSales'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-];
+    

@@ -2,29 +2,30 @@
 'use client';
 
 import Link from 'next/link';
-import type { Expense, ExpenseStatus, Client, Project, Consultant } from "@/lib/types";
+import type { Expense, ExpenseStatus, Client, Project, Consultant, AppliedTaxInfo } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Eye, Edit, CheckCircle, XCircle, LinkIcon, FileText } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 interface ExpenseTableProps {
   expenses: Expense[];
-  clients: Client[]; // To resolve client names
-  projects: Project[]; // To resolve project names
-  consultants: Consultant[]; // To resolve consultant names
+  clients: Client[];
+  projects: Project[];
+  consultants: Consultant[];
   onUpdateExpenseStatus: (expenseId: string, newStatus: ExpenseStatus) => void;
 }
 
 export default function ExpenseTable({ expenses, clients, projects, consultants, onUpdateExpenseStatus }: ExpenseTableProps) {
-  
+
   const getStatusBadgeVariant = (status: ExpenseStatus): "default" | "secondary" | "outline" | "destructive" => {
     switch (status) {
-      case 'Approved': return 'default'; 
-      case 'Pending': return 'outline'; 
+      case 'Approved': return 'default';
+      case 'Pending': return 'outline';
       case 'Rejected': return 'destructive';
       default: return 'secondary';
     }
@@ -43,6 +44,31 @@ export default function ExpenseTable({ expenses, clients, projects, consultants,
   const getClientName = (clientId?: string) => clients.find(c => c.id === clientId)?.companyName || 'N/A';
   const getProjectName = (projectId?: string) => projects.find(p => p.id === projectId)?.name || 'N/A';
 
+  const renderAppliedTaxes = (appliedTaxes?: AppliedTaxInfo[]) => {
+    if (!appliedTaxes || appliedTaxes.length === 0) return null;
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-xs underline decoration-dotted cursor-help ml-1">
+              (incl. tax)
+            </span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs text-xs">
+            <p className="font-semibold mb-1">Applied Taxes:</p>
+            <ul className="space-y-1">
+              {appliedTaxes.map(tax => (
+                <li key={tax.taxRateId}>
+                  {tax.name} ({tax.rateValue}%): {tax.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </li>
+              ))}
+            </ul>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
   return (
     <div className="rounded-lg border overflow-hidden shadow">
       <Table>
@@ -51,7 +77,9 @@ export default function ExpenseTable({ expenses, clients, projects, consultants,
             <TableHead className="w-[100px]">Date</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Category</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
+            <TableHead className="text-right">Pre-Tax Amt.</TableHead>
+            <TableHead className="text-right">Tax Amt.</TableHead>
+            <TableHead className="text-right">Total Amt.</TableHead>
             <TableHead>Submitted By</TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Project</TableHead>
@@ -62,20 +90,27 @@ export default function ExpenseTable({ expenses, clients, projects, consultants,
         <TableBody>
           {expenses.length === 0 && (
             <TableRow>
-              <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
                 No expenses logged yet.
               </TableCell>
             </TableRow>
           )}
           {expenses.map((expense) => (
             <TableRow key={expense.id} className="hover:bg-muted/50">
-              <TableCell>{format(new Date(expense.date), 'MMM dd, yyyy')}</TableCell>
-              <TableCell className="font-medium max-w-[250px] truncate" title={expense.description}>
+              <TableCell>{format(parseISO(expense.date), 'MMM dd, yyyy')}</TableCell>
+              <TableCell className="font-medium max-w-[200px] truncate" title={expense.description}>
                 {expense.description}
               </TableCell>
               <TableCell>{expense.category}</TableCell>
               <TableCell className="text-right">
                 {expense.currency} {expense.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </TableCell>
+              <TableCell className="text-right">
+                {expense.taxAmount ? `${expense.currency} ${expense.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
+              </TableCell>
+              <TableCell className="text-right font-semibold">
+                {expense.currency} {(expense.totalAmountIncludingTax ?? expense.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {renderAppliedTaxes(expense.appliedTaxes)}
               </TableCell>
               <TableCell>{expense.submittedByConsultantNameCache || getConsultantName(expense.submittedByConsultantId)}</TableCell>
               <TableCell>{expense.clientNameCache || getClientName(expense.clientId)}</TableCell>
@@ -133,3 +168,5 @@ export default function ExpenseTable({ expenses, clients, projects, consultants,
     </div>
   );
 }
+
+    

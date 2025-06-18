@@ -5,8 +5,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { Project, Client, Consultant } from '@/lib/types'; // Ensure all types are imported
-import { initialProjects, initialClients, initialConsultants } from '@/lib/mockData';
+import type { Project, Client, Consultant, TaxRate } from '@/lib/types';
+import { initialProjects, initialClients, initialConsultants, initialTaxRates } from '@/lib/mockData';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,11 +14,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { 
-  ArrowLeft, Briefcase, Users, UserCog, CalendarDays, Target, DollarSign, Paperclip, ListChecks, Tag, Info, Users2, Clock
+import {
+  ArrowLeft, Briefcase, Users, UserCog, CalendarDays, Target, DollarSign, Paperclip, ListChecks, Tag, Info, Users2, Clock, Percent
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 
 const getProjectById = (id: string): Project | undefined => {
@@ -37,7 +37,7 @@ export default function ProjectProfilePage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
-  
+
   const [project, setProject] = useState<Project | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -67,7 +67,7 @@ export default function ProjectProfilePage() {
   };
 
   if (!isMounted) {
-    return ( // Skeleton loader
+    return (
       <div className="space-y-6 animate-pulse">
         <div className="h-8 bg-muted rounded w-1/4"></div>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -95,12 +95,12 @@ export default function ProjectProfilePage() {
       </div>
     );
   }
-  
+
   const client = getClientById(project.clientId);
   const projectManager = getConsultantById(project.projectManagerId);
   const teamMembers = project.teamMemberIds?.map(id => getConsultantById(id)).filter(Boolean) as Consultant[];
-
   const projectProgress = project.completionPercent || 0;
+  const projectTaxRates = project.applicableTaxRateIds?.map(id => initialTaxRates.find(r => r.id === id)).filter(Boolean) as TaxRate[];
 
 
   return (
@@ -135,7 +135,7 @@ export default function ProjectProfilePage() {
               <p className={cn("text-sm font-semibold text-center", getPriorityColor(project.priority))}>{project.priority} Priority</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Project Manager</CardTitle>
@@ -163,9 +163,9 @@ export default function ProjectProfilePage() {
               <CardTitle className="text-base">Key Dates</CardTitle>
             </CardHeader>
             <CardContent className="text-sm space-y-1">
-                <p><strong>Start:</strong> {format(new Date(project.startDate), "PPP")}</p>
-                <p><strong>End (Planned):</strong> {format(new Date(project.endDate), "PPP")}</p>
-                {project.actualEndDate && <p><strong>Completed:</strong> {format(new Date(project.actualEndDate), "PPP")}</p>}
+                <p><strong>Start:</strong> {format(parseISO(project.startDate), "PPP")}</p>
+                <p><strong>End (Planned):</strong> {format(parseISO(project.endDate), "PPP")}</p>
+                {project.actualEndDate && <p><strong>Completed:</strong> {format(parseISO(project.actualEndDate), "PPP")}</p>}
             </CardContent>
           </Card>
 
@@ -175,7 +175,7 @@ export default function ProjectProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
-                  <Progress value={projectProgress} className="h-2 flex-1" 
+                  <Progress value={projectProgress} className="h-2 flex-1"
                     indicatorClassName={
                       projectProgress >= 80 ? 'bg-green-500' : projectProgress >= 50 ? 'bg-blue-500' : projectProgress > 20 ? 'bg-yellow-500' : 'bg-red-500'
                     }
@@ -190,11 +190,12 @@ export default function ProjectProfilePage() {
         {/* Right Main Content with Tabs */}
         <div className="lg:col-span-8 xl:col-span-9">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mb-4">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mb-4">
               <TabsTrigger value="overview"><Info className="mr-1 h-4 w-4 sm:mr-2"/>Overview</TabsTrigger>
               <TabsTrigger value="tasks"><ListChecks className="mr-1 h-4 w-4 sm:mr-2"/>Tasks</TabsTrigger>
               <TabsTrigger value="milestones"><Target className="mr-1 h-4 w-4 sm:mr-2"/>Milestones</TabsTrigger>
               <TabsTrigger value="financials"><DollarSign className="mr-1 h-4 w-4 sm:mr-2"/>Financials</TabsTrigger>
+              <TabsTrigger value="tax"><Percent className="mr-1 h-4 w-4 sm:mr-2"/>Tax</TabsTrigger>
               <TabsTrigger value="documents"><Paperclip className="mr-1 h-4 w-4 sm:mr-2"/>Docs</TabsTrigger>
             </TabsList>
 
@@ -261,7 +262,7 @@ export default function ProjectProfilePage() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="milestones">
                 <Card>
                 <CardHeader>
@@ -276,9 +277,9 @@ export default function ProjectProfilePage() {
                             <div className="flex justify-between items-start">
                             <div>
                                 <h4 className="font-semibold">{milestone.name}</h4>
-                                <p className="text-xs text-muted-foreground">Due: {format(new Date(milestone.dueDate), "PPP")}</p>
+                                <p className="text-xs text-muted-foreground">Due: {format(parseISO(milestone.dueDate), "PPP")}</p>
                             </div>
-                            <Badge variant={milestone.status === 'Completed' ? 'default' : milestone.status === 'Delayed' || milestone.status === 'At Risk' ? 'destructive' : 'outline'} 
+                            <Badge variant={milestone.status === 'Completed' ? 'default' : milestone.status === 'Delayed' || milestone.status === 'At Risk' ? 'destructive' : 'outline'}
                                    className={cn(milestone.status === 'Completed' ? 'bg-green-500/20 border-green-500' : '')}>
                                 {milestone.status}
                             </Badge>
@@ -307,12 +308,36 @@ export default function ProjectProfilePage() {
                    <p><strong>Budget:</strong> {project.financials.currency} {project.financials.budget.toLocaleString()}</p>
                    <p><strong>Spent:</strong> {project.financials.currency} {project.financials.spentBudget.toLocaleString()}</p>
                    <p><strong>Remaining:</strong> {project.financials.currency} {(project.financials.budget - project.financials.spentBudget).toLocaleString()}</p>
-                   <Progress value={(project.financials.spentBudget / project.financials.budget) * 100} className="h-3 mt-1" 
+                   <Progress value={(project.financials.spentBudget / project.financials.budget) * 100} className="h-3 mt-1"
                     indicatorClassName={(project.financials.spentBudget > project.financials.budget) ? "bg-red-500" : "bg-primary"}
                    />
                    {project.financials.billingType && <p className="mt-2"><strong>Billing Type:</strong> {project.financials.billingType}</p>}
                    {project.financials.billingType === "Time & Materials" && project.financials.hourlyRate && <p><strong>Hourly Rate:</strong> {project.financials.currency} {project.financials.hourlyRate}/hr</p>}
                    <p className="text-xs text-muted-foreground mt-4">More detailed financial tracking and invoicing will be available in the Finances module.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tax">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Percent className="h-5 w-5 text-primary"/>Applicable Tax Settings</CardTitle>
+                  <CardDescription>Tax rates configured for this project. These may be used as defaults for invoicing.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {projectTaxRates.length > 0 ? (
+                    <ul className="space-y-2">
+                      {projectTaxRates.map(rate => (
+                        <li key={rate.id} className="p-3 border rounded-md bg-muted/20 text-sm">
+                          <p className="font-medium">{rate.description} ({rate.rate}%)</p>
+                          <p className="text-xs text-muted-foreground">{rate.taxTypeNameCache} - {rate.jurisdictionNameCache}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No specific tax rates configured for this project. System defaults or client jurisdiction may apply.</p>
+                  )}
+                  <Button variant="outline" size="sm" className="mt-4" onClick={() => alert("Tax settings management for projects under development.")}>Manage Project Taxes</Button>
                 </CardContent>
               </Card>
             </TabsContent>

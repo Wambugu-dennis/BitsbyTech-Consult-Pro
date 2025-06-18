@@ -4,17 +4,16 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Percent, MapPin, Tag as TagIcon, PlusCircle, ArrowLeft } from "lucide-react";
+import { Percent, MapPin, Tag as TagIcon, PlusCircle, ArrowLeft, FileText as ReportIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { TaxJurisdiction, TaxType, TaxRate } from '@/lib/types';
 import { initialTaxJurisdictions, initialTaxTypes, initialTaxRates } from '@/lib/mockData';
 
-import AddTaxJurisdictionDialog from '@/components/finances/taxes/add-tax-jurisdiction-dialog';
+import AddTaxJurisdictionDialog, { type AddTaxJurisdictionFormData } from '@/components/finances/taxes/add-tax-jurisdiction-dialog';
 import TaxJurisdictionTable from '@/components/finances/taxes/tax-jurisdiction-table';
-// Placeholder imports for Tax Types and Tax Rates components (to be fully implemented later)
-import AddTaxTypeDialog from '@/components/finances/taxes/add-tax-type-dialog';
+import AddTaxTypeDialog, { type AddTaxTypeFormData } from '@/components/finances/taxes/add-tax-type-dialog';
 import TaxTypeTable from '@/components/finances/taxes/tax-type-table';
-import AddTaxRateDialog from '@/components/finances/taxes/add-tax-rate-dialog';
+import AddTaxRateDialog, { type AddTaxRateFormData } from '@/components/finances/taxes/add-tax-rate-dialog';
 import TaxRateTable from '@/components/finances/taxes/tax-rate-table';
 
 export default function TaxManagementPage() {
@@ -31,9 +30,9 @@ export default function TaxManagementPage() {
     setIsMounted(true);
   }, []);
 
-  const handleAddTaxJurisdiction = (newJurisdiction: Omit<TaxJurisdiction, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleAddTaxJurisdiction = (newJurisdictionData: AddTaxJurisdictionFormData) => {
     const jurisdictionToAdd: TaxJurisdiction = {
-      ...newJurisdiction,
+      ...newJurisdictionData,
       id: `jur-${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -41,10 +40,9 @@ export default function TaxManagementPage() {
     setTaxJurisdictions(prev => [jurisdictionToAdd, ...prev]);
   };
   
-  // Placeholder handlers for Tax Types and Tax Rates
-  const handleAddTaxType = (newType: Omit<TaxType, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleAddTaxType = (newTypeData: AddTaxTypeFormData) => {
     const typeToAdd: TaxType = {
-      ...newType,
+      ...newTypeData,
       id: `type-${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -52,11 +50,11 @@ export default function TaxManagementPage() {
     setTaxTypes(prev => [typeToAdd, ...prev]);
   };
 
-  const handleAddTaxRate = (newRate: Omit<TaxRate, 'id' | 'createdAt' | 'updatedAt'>) => {
-     const jurisdiction = taxJurisdictions.find(j => j.id === newRate.jurisdictionId);
-     const taxType = taxTypes.find(t => t.id === newRate.taxTypeId);
+  const handleAddTaxRate = (newRateData: AddTaxRateFormData) => {
+     const jurisdiction = taxJurisdictions.find(j => j.id === newRateData.jurisdictionId);
+     const taxType = taxTypes.find(t => t.id === newRateData.taxTypeId);
     const rateToAdd: TaxRate = {
-      ...newRate,
+      ...newRateData,
       id: `rate-${Date.now()}`,
       jurisdictionNameCache: jurisdiction?.name,
       taxTypeNameCache: taxType?.name,
@@ -141,6 +139,25 @@ export default function TaxManagementPage() {
         </CardHeader>
         <CardContent>
           <TaxRateTable taxRates={taxRates} />
+           <p className="text-xs text-muted-foreground mt-2">
+            Note: When selecting tax rates for invoices/expenses, the system should ideally filter rates based on the transaction date matching the rate's Start/End Date. This historical tracking is key for accurate calculations.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ReportIcon className="h-5 w-5 text-primary"/>Tax Reporting & Summaries (Placeholder)
+          </CardTitle>
+          <CardDescription>
+            Future section for generating tax reports and viewing summaries.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            This area will provide tools to generate reports for tax filing purposes, summarizing taxes collected and paid across different jurisdictions and tax types. It will integrate with invoices and expenses.
+          </p>
         </CardContent>
       </Card>
 
@@ -153,17 +170,19 @@ export default function TaxManagementPage() {
         </CardHeader>
         <CardContent>
             <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground columns-1 md:columns-2">
-              <li>Application of configured taxes to Invoices (line items & total).</li>
-              <li>Tax calculation on Expenses.</li>
-              <li>Project-level tax applicability settings.</li>
-              <li>Tax reporting and summaries.</li>
-              <li>Integration with accounting software for tax filing.</li>
-              <li>Support for compound taxes and tax-on-tax scenarios.</li>
+              <li>Application of configured taxes to Invoices (line items & total). (Partially Implemented)</li>
+              <li>Tax calculation on Expenses. (Partially Implemented)</li>
+              <li>Project-level tax applicability settings. (Partially Implemented)</li>
               <li>Automated tax lookup based on client/project jurisdiction (potential integration).</li>
-              <li>More detailed historical tracking of tax rate changes.</li>
+              <li>More detailed historical tracking of tax rate changes and their application.</li>
+              <li>Support for compound taxes and tax-on-tax scenarios in calculations.</li>
+              <li>Integration with accounting software for tax filing.</li>
+              <li>User interface to edit and delete existing tax jurisdictions, types, and rates.</li>
             </ul>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

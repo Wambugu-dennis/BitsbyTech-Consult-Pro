@@ -72,8 +72,7 @@ export type Project = {
   attachments?: ProjectAttachment[];
   lastUpdated: string;
   completionPercent?: number;
-  // Placeholder for future tax integration on projects
-  // applicableTaxRateIds?: string[]; 
+  applicableTaxRateIds?: string[];
 };
 
 
@@ -191,6 +190,7 @@ export type Client = {
   financialSummary?: ClientFinancialSummary;
   lastContact?: string;
   meetings?: ClientMeeting[];
+  jurisdictionId?: string; // For tax purposes
 };
 
 
@@ -263,14 +263,24 @@ export type Consultant = {
   certifications?: Certification[];
 };
 
+export interface AppliedTaxInfo {
+  taxRateId: string;
+  name: string; // e.g., "Standard VAT"
+  rateValue: number; // e.g., 16 (for 16%)
+  amount: number; // Calculated tax amount for this specific tax
+  jurisdiction?: string;
+  taxTypeName?: string;
+}
+
 export type InvoiceItem = {
   id: string;
   description: string;
   quantity: number;
   unitPrice: number;
-  totalPrice: number;
-  // Placeholder for future detailed tax per item
-  // appliedTaxes?: Array<{ taxRateId: string; rateValue: number; amount: number; name: string; jurisdiction: string; }>;
+  totalPrice: number; // Pre-tax price for this line item
+  appliedTaxes?: AppliedTaxInfo[];
+  taxAmountForItem?: number; // Sum of taxes for this specific item
+  totalPriceIncludingTax?: number; // totalPrice + taxAmountForItem
 };
 
 export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Void';
@@ -284,11 +294,10 @@ export type Invoice = {
   issueDate: string;
   dueDate: string;
   items: InvoiceItem[];
-  subTotal: number;
-  taxRate?: number; // This might become an array or calculated effective rate
-  taxAmount?: number; // This might become an array or calculated effective rate
-  // appliedTaxes?: Array<{ taxRateId: string; rateValue: number; amount: number; name: string; jurisdiction: string; }>;
-  totalAmount: number;
+  subTotal: number; // Sum of all item.totalPrice (pre-tax)
+  taxAmount?: number; // Total tax amount for the entire invoice
+  appliedTaxes?: AppliedTaxInfo[]; // Summary of taxes applied at invoice level
+  totalAmount: number; // subTotal + taxAmount
   status: InvoiceStatus;
   currency: string;
   notes?: string;
@@ -329,7 +338,7 @@ export type Expense = {
   id: string;
   date: string;
   description: string;
-  amount: number;
+  amount: number; // Pre-tax amount
   currency: string;
   category: ExpenseCategory | string;
   status: ExpenseStatus;
@@ -346,8 +355,9 @@ export type Expense = {
   approvedDate?: string;
   createdAt: string;
   updatedAt: string;
-  // Placeholder for future tax integration on expenses
-  // appliedTaxes?: Array<{ taxRateId: string; rateValue: number; amount: number; name: string; jurisdiction: string; }>;
+  appliedTaxes?: AppliedTaxInfo[];
+  taxAmount?: number;
+  totalAmountIncludingTax?: number; // amount + taxAmount
 };
 
 export type BudgetStatus = 'Planning' | 'Active' | 'Overspent' | 'Completed' | 'On Hold';
@@ -368,7 +378,7 @@ export type Budget = {
   currency: string;
   startDate: string;
   endDate: string;
-  status: BudgetStatus; 
+  status: BudgetStatus;
   description?: string;
   createdAt: string;
   updatedAt: string;
@@ -413,11 +423,11 @@ export interface TaxType {
   updatedAt: string;
 }
 
-export type TaxApplicableEntity = 
-  | 'ProjectRevenue' 
-  | 'ProjectExpense' 
-  | 'InvoiceLineItem' 
-  | 'GeneralExpense' 
+export type TaxApplicableEntity =
+  | 'ProjectRevenue'
+  | 'ProjectExpense'
+  | 'InvoiceLineItem'
+  | 'GeneralExpense'
   | 'ServiceSales';
 
 export const taxApplicableEntities: TaxApplicableEntity[] = [
@@ -440,3 +450,5 @@ export interface TaxRate {
   createdAt: string;
   updatedAt: string;
 }
+
+    

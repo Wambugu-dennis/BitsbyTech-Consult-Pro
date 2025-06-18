@@ -2,27 +2,28 @@
 'use client';
 
 import Link from 'next/link';
-import type { Invoice, InvoiceStatus } from "@/lib/types";
+import type { Invoice, InvoiceStatus, AppliedTaxInfo } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Eye, Edit, Send, Printer, FileText, Trash2 } from "lucide-react";
+import { MoreHorizontal, Eye, Edit, Send, Printer, FileText, Trash2, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 interface InvoiceTableProps {
   invoices: Invoice[];
 }
 
 export default function InvoiceTable({ invoices }: InvoiceTableProps) {
-  
+
   const getStatusBadgeVariant = (status: InvoiceStatus): "default" | "secondary" | "outline" | "destructive" => {
     switch (status) {
-      case 'Paid': return 'default'; // Greenish (default primary is blue, can customize theme)
-      case 'Sent': return 'outline'; // Blueish
-      case 'Draft': return 'secondary'; // Grayish
-      case 'Overdue': return 'destructive'; // Reddish
+      case 'Paid': return 'default';
+      case 'Sent': return 'outline';
+      case 'Draft': return 'secondary';
+      case 'Overdue': return 'destructive';
       case 'Void': return 'secondary';
       default: return 'secondary';
     }
@@ -39,6 +40,31 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
     }
   };
 
+  const renderAppliedTaxes = (appliedTaxes?: AppliedTaxInfo[]) => {
+    if (!appliedTaxes || appliedTaxes.length === 0) return 'N/A';
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-xs underline decoration-dotted cursor-help">
+              {appliedTaxes.length} tax(es)
+            </span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs text-xs">
+            <ul className="space-y-1">
+              {appliedTaxes.map(tax => (
+                <li key={tax.taxRateId}>
+                  <strong>{tax.name} ({tax.rateValue}%):</strong> {tax.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </li>
+              ))}
+            </ul>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
+
   return (
     <div className="rounded-lg border overflow-hidden shadow">
       <Table>
@@ -49,7 +75,9 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
             <TableHead>Project</TableHead>
             <TableHead>Issue Date</TableHead>
             <TableHead>Due Date</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
+            <TableHead className="text-right">Subtotal</TableHead>
+            <TableHead className="text-right">Tax Amount</TableHead>
+            <TableHead className="text-right">Total Amount</TableHead>
             <TableHead className="text-center w-[100px]">Status</TableHead>
             <TableHead className="text-right w-[50px]">Actions</TableHead>
           </TableRow>
@@ -57,7 +85,7 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
         <TableBody>
           {invoices.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                 No invoices found. Add a new invoice to get started.
               </TableCell>
             </TableRow>
@@ -71,8 +99,17 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
               </TableCell>
               <TableCell>{invoice.clientNameCache}</TableCell>
               <TableCell>{invoice.projectNameCache || 'N/A'}</TableCell>
-              <TableCell>{format(new Date(invoice.issueDate), 'MMM dd, yyyy')}</TableCell>
-              <TableCell>{format(new Date(invoice.dueDate), 'MMM dd, yyyy')}</TableCell>
+              <TableCell>{format(parseISO(invoice.issueDate), 'MMM dd, yyyy')}</TableCell>
+              <TableCell>{format(parseISO(invoice.dueDate), 'MMM dd, yyyy')}</TableCell>
+              <TableCell className="text-right">
+                {invoice.currency} {invoice.subTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </TableCell>
+              <TableCell className="text-right">
+                {invoice.taxAmount ? `${invoice.currency} ${invoice.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
+                {invoice.appliedTaxes && invoice.appliedTaxes.length > 0 && (
+                  <div className="text-xs text-muted-foreground">{renderAppliedTaxes(invoice.appliedTaxes)}</div>
+                )}
+              </TableCell>
               <TableCell className="text-right font-medium">
                 {invoice.currency} {invoice.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </TableCell>
@@ -91,8 +128,7 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                       {/* TODO: Create dedicated invoice view page */}
-                      <Link href={`/finances/invoices/${invoice.id}`}> 
+                      <Link href={`/finances/invoices/${invoice.id}`}>
                         <Eye className="mr-2 h-4 w-4" /> View Details
                       </Link>
                     </DropdownMenuItem>
@@ -123,3 +159,5 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
     </div>
   );
 }
+
+    

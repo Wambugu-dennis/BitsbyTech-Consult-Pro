@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as FormDesc } from '@/components/ui/form'; // Aliased FormDescription
+import { Form, FormControl, FormDescription as FormDesc, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,7 +16,10 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import type { Client, Consultant } from '@/lib/types';
+import type { Client, Consultant, TaxRate } from '@/lib/types';
+import { initialTaxRates } from '@/lib/mockData'; // For tax rate selection
+import { Checkbox } from "@/components/ui/checkbox"
+
 
 const projectFormSchema = z.object({
   name: z.string().min(3, 'Project name must be at least 3 characters.'),
@@ -28,6 +31,7 @@ const projectFormSchema = z.object({
   endDate: z.date({ required_error: 'End date is required.' }),
   budget: z.coerce.number().min(0, 'Budget must be a positive number.'),
   tags: z.string().optional(),
+  applicableTaxRateIds: z.array(z.string()).optional(),
 }).refine(data => data.endDate >= data.startDate, {
   message: "End date cannot be before start date.",
   path: ["endDate"],
@@ -47,7 +51,7 @@ interface AddProjectDialogProps {
 
 export default function AddProjectDialog({ onAddProject, clients, consultants }: AddProjectDialogProps) {
   const [open, setOpen] = useState(false);
-  const form = useForm<z.infer<typeof projectFormSchema>>({ // Use Zod schema type for form
+  const form = useForm<z.infer<typeof projectFormSchema>>({
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
       name: '',
@@ -57,7 +61,7 @@ export default function AddProjectDialog({ onAddProject, clients, consultants }:
       priority: 'Medium',
       budget: 0,
       tags: '',
-      // startDate and endDate will be set by date pickers
+      applicableTaxRateIds: [],
     },
   });
 
@@ -66,6 +70,7 @@ export default function AddProjectDialog({ onAddProject, clients, consultants }:
       ...data,
       startDate: data.startDate.toISOString(),
       endDate: data.endDate.toISOString(),
+      applicableTaxRateIds: data.applicableTaxRateIds || [],
     };
     onAddProject(projectData);
     form.reset();
@@ -80,7 +85,7 @@ export default function AddProjectDialog({ onAddProject, clients, consultants }:
           New Project
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
@@ -151,7 +156,7 @@ export default function AddProjectDialog({ onAddProject, clients, consultants }:
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {consultants.filter(c => c.role.includes('Manager') || c.role.includes('Lead') || c.status === 'Available').map(consultant => ( // Simple filter for PMs
+                        {consultants.filter(c => c.role.includes('Manager') || c.role.includes('Lead') || c.status === 'Available').map(consultant => (
                           <SelectItem key={consultant.id} value={consultant.id}>{consultant.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -293,6 +298,56 @@ export default function AddProjectDialog({ onAddProject, clients, consultants }:
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="applicableTaxRateIds"
+              render={() => (
+                <FormItem>
+                  <div className="mb-2">
+                    <FormLabel className="text-base">Applicable Tax Rates (Optional)</FormLabel>
+                    <FormDesc>
+                      Select tax rates that generally apply to this project. Specific taxes for invoices/expenses can be adjusted later.
+                    </FormDesc>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded-md">
+                    {initialTaxRates.map((rate) => (
+                      <FormField
+                        key={rate.id}
+                        control={form.control}
+                        name="applicableTaxRateIds"
+                        render={({ field }) => {
+                          return (
+                            <FormItem
+                              key={rate.id}
+                              className="flex flex-row items-start space-x-2 space-y-0 rounded-md border p-2.5"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(rate.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([...(field.value || []), rate.id])
+                                      : field.onChange(
+                                          (field.value || []).filter(
+                                            (value) => value !== rate.id
+                                          )
+                                        );
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="text-xs font-normal cursor-pointer">
+                                {rate.description} ({rate.rate}%) - {rate.jurisdictionNameCache}
+                              </FormLabel>
+                            </FormItem>
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
               <Button type="submit">Save Project</Button>
@@ -303,3 +358,5 @@ export default function AddProjectDialog({ onAddProject, clients, consultants }:
     </Dialog>
   );
 }
+
+    
