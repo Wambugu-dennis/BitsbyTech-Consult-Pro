@@ -18,28 +18,33 @@ import React, { useState, useEffect } from 'react';
 export default function SidebarNav() {
   const pathname = usePathname();
   const { t } = useLocalization();
+  
   const [openAccordionValues, setOpenAccordionValues] = useState<Record<string, string | undefined>>({});
-  const [isClient, setIsClient] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
+    setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!isClient) return; // Only run on client after initial mount
+    if (!isMounted) return; // Only run after client has mounted
 
+    const currentPathname = pathname; // Capture pathname for stable dependency
     const initialOpenStates: Record<string, string | undefined> = {};
     navLinks.forEach(navLink => {
       if (navLink.subItems && navLink.subItems.length > 0) {
-        const isActiveParentOrChild = 
-          navLink.subItems.some(subItem => pathname === subItem.href) ||
-          (pathname === navLink.href && navLink.subItems.some(si => si.href === navLink.href));
+        const isParentOverviewActive = currentPathname === navLink.href;
+        const isAnyChildActive = navLink.subItems.some(subItem => currentPathname === subItem.href && subItem.href !== navLink.href);
         
-        initialOpenStates[navLink.href] = isActiveParentOrChild ? navLink.href : undefined;
+        if (isParentOverviewActive || isAnyChildActive) {
+          initialOpenStates[navLink.href] = navLink.href; // AccordionItem's value is the parent link's href
+        } else {
+          initialOpenStates[navLink.href] = undefined; // Ensure it's closed if not active
+        }
       }
     });
     setOpenAccordionValues(initialOpenStates);
-  }, [pathname, isClient]); // Add navLinks if it's not stable, but it should be from constants
+  }, [pathname, isMounted, t]); // Added t to dependencies if labels affect logic, though unlikely here
 
   return (
     <SidebarMenu className="p-2">
@@ -47,23 +52,24 @@ export default function SidebarNav() {
         const translatedLabel = t(link.label as keyof LanguagePack['translations']);
         
         if (link.subItems && link.subItems.length > 0) {
-          const isParentCurrentlyActive = pathname === link.href && link.subItems.some(si => si.href === link.href);
-          const isAnyChildActive = link.subItems.some(subItem => pathname === subItem.href && subItem.href !== link.href);
-          const isAccordionTriggerActive = isParentCurrentlyActive || isAnyChildActive;
+          const isParentCurrentlyActiveForButton = pathname === link.href && link.subItems.some(si => si.href === link.href);
+          const isAnyChildActiveForButton = link.subItems.some(subItem => pathname === subItem.href && subItem.href !== link.href);
+          const isAccordionTriggerActive = isParentCurrentlyActiveForButton || isAnyChildActiveForButton;
 
           return (
             <SidebarMenuItem key={link.href} className="p-0">
               <Accordion 
+                key={isMounted ? `${link.href}-client` : `${link.href}-server`} // Force re-render on client mount
                 type="single" 
                 collapsible 
-                value={isClient ? openAccordionValues[link.href] : undefined} // Use undefined during SSR/initial client render
-                onValueChange={(value) => {
-                  if (isClient) { // Only allow changes on client
-                    setOpenAccordionValues(prev => ({
-                      ...prev,
-                      [link.href]: value === link.href ? link.href : undefined,
-                    }));
-                  }
+                value={isMounted ? openAccordionValues[link.href] : undefined}
+                onValueChange={(itemValue) => { // itemValue is string (item's value) or undefined (if collapsible and all closed)
+                    if (isMounted) {
+                        setOpenAccordionValues(prev => ({
+                            ...prev,
+                            [link.href]: itemValue, // if itemValue is undefined, it's closed. If it's link.href, it's open.
+                        }));
+                    }
                 }}
                 className="w-full"
               >
@@ -122,7 +128,7 @@ export default function SidebarNav() {
         const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href) && link.href !== '/dashboard');
         const isDashboardActive = link.href === '/dashboard' && pathname === '/dashboard';
         const finalIsActive = link.href === '/dashboard' ? isDashboardActive : isActive;
-
+        
         return (
           <SidebarMenuItem key={link.href}>
             <SidebarMenuButton
@@ -147,4 +153,3 @@ export default function SidebarNav() {
     </SidebarMenu>
   );
 }
-
