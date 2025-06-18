@@ -12,10 +12,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Textarea } from '@/components/ui/textarea'; // Added missing import
 import { CalendarIcon, PlusCircle, AlertTriangle } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from '@/lib/utils';
-import { format, formatISO, parseISO, addDays } from 'date-fns'; // Added addDays import
+import { format, formatISO, parseISO, addDays } from 'date-fns';
 import type { Client, Project, InvoiceStatus, TaxRate, AppliedTaxInfo, Invoice } from '@/lib/types';
 import { initialTaxRates } from '@/lib/mockData';
 
@@ -434,3 +435,5 @@ export default function AddInvoiceDialog({
     </Dialog>
   );
 }
+
+    
