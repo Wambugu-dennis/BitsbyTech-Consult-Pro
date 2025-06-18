@@ -6,22 +6,23 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings, UserCircle } from "lucide-react";
 import Link from "next/link";
-import { useAuth } from '@/context/auth-provider'; // Import useAuth
+import { useRouter } from "next/navigation"; // For simulated logout if needed
 
-// Mock user data for display when not using AuthContext
-const fallbackUser = {
-  name: 'Guest User',
-  email: 'guest@example.com',
-  avatarUrl: 'https://placehold.co/100x100/78909C/FFFFFF.png?text=GU',
+// Mock user data for display as auth has been rolled back
+const mockUser = {
+  name: 'Alex Mercer (Admin)', // Default mock user
+  email: 'alex.mercer@consult.com',
+  avatarUrl: 'https://placehold.co/100x100/78909C/FFFFFF.png?text=AM',
 };
 
 export default function UserProfile() {
-  const { currentUser, logout } = useAuth(); // Use the auth context
-
-  const userToDisplay = currentUser || fallbackUser;
+  const router = useRouter(); // If we want to simulate logout redirect
 
   const handleLogout = () => {
-    logout();
+    // In a real app, this would call an auth service.
+    // Since auth is rolled back, we can simulate by redirecting or just logging.
+    console.log("Logout action triggered (simulation).");
+    // router.push('/'); // Redirect to a public page or home if desired
   };
 
   return (
@@ -30,15 +31,15 @@ export default function UserProfile() {
         <Button variant="ghost" className="flex h-auto w-full items-center justify-start gap-2 p-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
           <Avatar className="h-8 w-8">
             <AvatarImage 
-              src={userToDisplay.avatarUrl || `https://placehold.co/100x100.png?text=${userToDisplay.name.substring(0,2).toUpperCase()}`} 
-              alt={userToDisplay.name} 
+              src={mockUser.avatarUrl} 
+              alt={mockUser.name} 
               data-ai-hint="user avatar"
             />
-            <AvatarFallback>{userToDisplay.name.substring(0,2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{mockUser.name.substring(0,2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="text-left group-data-[collapsible=icon]:hidden">
-            <p className="text-sm font-medium truncate" title={userToDisplay.name}>{userToDisplay.name}</p>
-            <p className="text-xs text-muted-foreground truncate" title={userToDisplay.email}>{userToDisplay.email}</p>
+            <p className="text-sm font-medium truncate" title={mockUser.name}>{mockUser.name}</p>
+            <p className="text-xs text-muted-foreground truncate" title={mockUser.email}>{mockUser.email}</p>
           </div>
         </Button>
       </DropdownMenuTrigger>
@@ -60,7 +61,7 @@ export default function UserProfile() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>Log out (Simulated)</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
