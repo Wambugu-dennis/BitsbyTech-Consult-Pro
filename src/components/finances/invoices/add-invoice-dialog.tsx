@@ -15,7 +15,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, PlusCircle, AlertTriangle } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from '@/lib/utils';
-import { format, formatISO, parseISO } from 'date-fns';
+import { format, formatISO, parseISO, addDays } from 'date-fns'; // Added addDays import
 import type { Client, Project, InvoiceStatus, TaxRate, AppliedTaxInfo, Invoice } from '@/lib/types';
 import { initialTaxRates } from '@/lib/mockData';
 
