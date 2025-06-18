@@ -6,27 +6,27 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'; // Removed DialogTrigger
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, PlusCircle, AlertTriangle } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from '@/lib/utils';
 import { format, formatISO, parseISO } from 'date-fns';
-import type { Client, Project, InvoiceStatus, TaxRate, AppliedTaxInfo } from '@/lib/types';
-import { initialTaxRates } from '@/lib/mockData'; // To select tax rates
+import type { Client, Project, InvoiceStatus, TaxRate, AppliedTaxInfo, Invoice } from '@/lib/types';
+import { initialTaxRates } from '@/lib/mockData';
 
 const addInvoiceFormSchema = z.object({
   clientId: z.string().min(1, 'Client is required.'),
   projectId: z.string().optional(),
   issueDate: z.date({ required_error: 'Issue date is required.' }),
   dueDate: z.date({ required_error: 'Due date is required.' }),
-  subTotal: z.coerce.number().min(0.01, 'Subtotal must be greater than 0.'), // Changed from totalAmount
+  subTotal: z.coerce.number().min(0.01, 'Subtotal must be greater than 0.'),
   currency: z.string().min(3, 'Currency code is required (e.g., USD).').default('USD'),
-  status: z.enum(['Draft', 'Sent']),
+  status: z.enum(['Draft', 'Sent', 'Paid', 'Overdue', 'Void']), // Expanded status for edit mode
   notes: z.string().optional(),
   applicableTaxRateIds: z.array(z.string()).optional(),
 }).refine(data => data.dueDate >= data.issueDate, {
@@ -34,23 +34,35 @@ const addInvoiceFormSchema = z.object({
   path: ["dueDate"],
 });
 
-export type AddInvoiceFormData = Omit<z.infer<typeof addInvoiceFormSchema>, 'issueDate' | 'dueDate' | 'subTotal'> & {
+export type AddInvoiceDialogFormData = Omit<z.infer<typeof addInvoiceFormSchema>, 'issueDate' | 'dueDate' | 'subTotal' | 'status'> & {
   issueDate: string;
   dueDate: string;
   subTotal: number;
   taxAmount: number;
   totalAmount: number;
   appliedTaxes: AppliedTaxInfo[];
+  status: InvoiceStatus; // Ensure this is InvoiceStatus
 };
 
 interface AddInvoiceDialogProps {
-  onAddInvoice: (formData: AddInvoiceFormData) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (formData: AddInvoiceDialogFormData, mode: 'add' | 'edit') => void;
   clients: Client[];
   projects: Project[];
+  invoiceToEdit?: Invoice;
+  mode: 'add' | 'edit';
 }
 
-export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: AddInvoiceDialogProps) {
-  const [open, setOpen] = useState(false);
+export default function AddInvoiceDialog({
+  isOpen,
+  onClose,
+  onSubmit,
+  clients,
+  projects,
+  invoiceToEdit,
+  mode,
+}: AddInvoiceDialogProps) {
   const form = useForm<z.infer<typeof addInvoiceFormSchema>>({
     resolver: zodResolver(addInvoiceFormSchema),
     defaultValues: {
@@ -61,6 +73,8 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
       status: 'Draft',
       notes: '',
       applicableTaxRateIds: [],
+      issueDate: new Date(),
+      dueDate: addDays(new Date(), 30),
     },
   });
 
@@ -75,25 +89,51 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
   const [appliedTaxesDisplay, setAppliedTaxesDisplay] = useState<AppliedTaxInfo[]>([]);
 
   useEffect(() => {
-    const selectedProject = projects.find(p => p.id === selectedProjectId);
-    if (selectedProject && selectedProject.applicableTaxRateIds) {
-      form.setValue('applicableTaxRateIds', selectedProject.applicableTaxRateIds);
-    } else if (selectedClientId) {
-        const client = clients.find(c => c.id === selectedClientId);
-        if (client?.jurisdictionId) {
-            // Suggest taxes based on client jurisdiction if project not selected or has no specific taxes
-            const clientJurisdictionRates = initialTaxRates.filter(
-                rate => rate.jurisdictionId === client.jurisdictionId &&
-                        rate.applicableTo.includes('InvoiceLineItem') && // or ServiceSales
-                        (!rate.startDate || (issueDate && new Date(rate.startDate) <= issueDate)) &&
-                        (!rate.endDate || (issueDate && new Date(rate.endDate) >= issueDate))
-            ).map(r => r.id);
-            form.setValue('applicableTaxRateIds', clientJurisdictionRates);
+    if (mode === 'edit' && invoiceToEdit) {
+      form.reset({
+        clientId: invoiceToEdit.clientId,
+        projectId: invoiceToEdit.projectId || '',
+        issueDate: parseISO(invoiceToEdit.issueDate),
+        dueDate: parseISO(invoiceToEdit.dueDate),
+        subTotal: invoiceToEdit.subTotal,
+        currency: invoiceToEdit.currency,
+        status: invoiceToEdit.status,
+        notes: invoiceToEdit.notes || '',
+        applicableTaxRateIds: invoiceToEdit.appliedTaxes.map(t => t.taxRateId),
+      });
+    } else {
+      form.reset({
+        clientId: '', projectId: '', subTotal: 0, currency: 'USD', status: 'Draft', notes: '', applicableTaxRateIds: [],
+        issueDate: new Date(), dueDate: addDays(new Date(), 30)
+      });
+    }
+  }, [invoiceToEdit, mode, form]);
+
+  useEffect(() => {
+    if (mode === 'add') { // Only auto-suggest taxes in add mode or if project/client changes
+        const selectedProject = projects.find(p => p.id === selectedProjectId);
+        if (selectedProject && selectedProject.applicableTaxRateIds && selectedProject.applicableTaxRateIds.length > 0) {
+          form.setValue('applicableTaxRateIds', selectedProject.applicableTaxRateIds);
+        } else if (selectedClientId) {
+            const client = clients.find(c => c.id === selectedClientId);
+            if (client?.jurisdictionId) {
+                const clientJurisdictionRates = initialTaxRates.filter(
+                    rate => rate.jurisdictionId === client.jurisdictionId &&
+                            rate.applicableTo.includes('InvoiceLineItem') &&
+                            (!rate.startDate || (issueDate && parseISO(rate.startDate) <= issueDate)) &&
+                            (!rate.endDate || (issueDate && parseISO(rate.endDate) >= issueDate))
+                ).map(r => r.id);
+                form.setValue('applicableTaxRateIds', clientJurisdictionRates);
+            } else {
+               // If client changes and has no jurisdiction, or project is deselected, clear taxes
+               // form.setValue('applicableTaxRateIds', []);
+            }
         } else {
-           // form.setValue('applicableTaxRateIds', []); // Clear if client changes and no jurisdiction
+            // If no client selected, clear taxes
+            // form.setValue('applicableTaxRateIds', []);
         }
     }
-  }, [selectedProjectId, selectedClientId, projects, clients, form, issueDate]);
+  }, [selectedProjectId, selectedClientId, projects, clients, form, issueDate, mode]);
 
 
   useEffect(() => {
@@ -106,7 +146,6 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
     );
 
     activeTaxRates.forEach(rate => {
-      // For now, assuming no compound taxes for simplicity in this calculation step
       const taxForThisRate = (subTotal * rate.rate) / 100;
       currentTaxAmount += taxForThisRate;
       currentAppliedTaxes.push({
@@ -126,7 +165,7 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
   }, [subTotal, selectedTaxRateIds, issueDate]);
 
   const handleSubmit = (data: z.infer<typeof addInvoiceFormSchema>) => {
-    const formData: AddInvoiceFormData = {
+    const finalFormData: AddInvoiceDialogFormData = {
       ...data,
       issueDate: formatISO(data.issueDate, { representation: 'date' }),
       dueDate: formatISO(data.dueDate, { representation: 'date' }),
@@ -134,28 +173,22 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
       taxAmount: calculatedTaxAmount,
       totalAmount: calculatedTotalAmount,
       appliedTaxes: appliedTaxesDisplay,
+      status: data.status as InvoiceStatus,
       applicableTaxRateIds: data.applicableTaxRateIds || [],
     };
-    onAddInvoice(formData);
-    form.reset({ currency: 'USD', status: 'Draft', subTotal: 0, applicableTaxRateIds: [], notes: '' });
-    setOpen(false);
+    onSubmit(finalFormData, mode);
+    form.reset(); // Reset form after submit
   };
 
   const filteredProjects = projects.filter(p => p.clientId === selectedClientId);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add New Invoice
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create New Invoice</DialogTitle>
+          <DialogTitle>{mode === 'add' ? 'Create New Invoice' : `Edit Invoice ${invoiceToEdit?.id || ''}`}</DialogTitle>
           <DialogDescription>
-            Fill in invoice details. Taxes will be calculated based on selected rates. Line items can be detailed later.
+            {mode === 'add' ? 'Fill in invoice details. Taxes will be calculated based on selected rates. Line items can be detailed later.' : 'Update invoice details.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -166,7 +199,7 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={(value) => { field.onChange(value); form.setValue('projectId', ''); }} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a client" />
@@ -188,13 +221,14 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedClientId || filteredProjects.length === 0}>
+                  <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedClientId || filteredProjects.length === 0}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={!selectedClientId ? "Select client first" : filteredProjects.length === 0 ? "No projects for client" : "Select a project"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                        <SelectItem value="">-- None --</SelectItem>
                       {filteredProjects.map(project => (
                         <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                       ))}
@@ -285,12 +319,12 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
                   <div className="mb-2">
                     <FormLabel className="text-base">Applicable Tax Rates</FormLabel>
                     <FormDescription>
-                      Select tax rates to apply to this invoice. Rates are filtered by issue date.
+                      Select tax rates to apply. If none selected, tax will be 0. Filtered by issue date.
                     </FormDescription>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto border p-2 rounded-md">
                     {initialTaxRates
-                      .filter(rate => (!rate.startDate || (issueDate && parseISO(rate.startDate) <= issueDate)) && (!rate.endDate || (issueDate && parseISO(rate.endDate) >= issueDate)))
+                      .filter(rate => rate.applicableTo.includes('InvoiceLineItem') && (!rate.startDate || (issueDate && parseISO(rate.startDate) <= issueDate)) && (!rate.endDate || (issueDate && parseISO(rate.endDate) >= issueDate)))
                       .map((rate) => (
                       <FormField
                         key={rate.id}
@@ -317,6 +351,9 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
                         }}
                       />
                     ))}
+                     {initialTaxRates.filter(rate => rate.applicableTo.includes('InvoiceLineItem') && (!rate.startDate || (issueDate && parseISO(rate.startDate) <= issueDate)) && (!rate.endDate || (issueDate && parseISO(rate.endDate) >= issueDate))).length === 0 && (
+                        <p className="text-xs text-muted-foreground col-span-full text-center py-2">No tax rates applicable for the selected issue date or criteria.</p>
+                    )}
                   </div>
                   <FormMessage />
                 </FormItem>
@@ -355,7 +392,7 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
@@ -364,6 +401,9 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
                       <SelectContent>
                         <SelectItem value="Draft">Draft</SelectItem>
                         <SelectItem value="Sent">Sent</SelectItem>
+                        {mode === 'edit' && invoiceToEdit?.status === 'Paid' && <SelectItem value="Paid" disabled>Paid</SelectItem>}
+                        {mode === 'edit' && invoiceToEdit?.status === 'Overdue' && <SelectItem value="Overdue" disabled>Overdue</SelectItem>}
+                        {mode === 'edit' && invoiceToEdit?.status === 'Void' && <SelectItem value="Void" disabled>Void</SelectItem>}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -378,15 +418,15 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
                 <FormItem>
                   <FormLabel>Notes (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Payment terms, project reference" {...field} />
+                    <Textarea placeholder="e.g., Payment terms, project reference" {...field} rows={2} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit">Create Invoice</Button>
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+              <Button type="submit">{mode === 'add' ? 'Create Invoice' : 'Save Changes'}</Button>
             </DialogFooter>
           </form>
         </Form>
@@ -394,5 +434,3 @@ export default function AddInvoiceDialog({ onAddInvoice, clients, projects }: Ad
     </Dialog>
   );
 }
-
-    

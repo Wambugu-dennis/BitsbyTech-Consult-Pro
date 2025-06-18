@@ -284,6 +284,8 @@ export type InvoiceItem = {
 };
 
 export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Void';
+export const invoiceStatuses: InvoiceStatus[] = ['Draft', 'Sent', 'Paid', 'Overdue', 'Void'];
+
 
 export type Invoice = {
   id: string;
@@ -295,8 +297,8 @@ export type Invoice = {
   dueDate: string;
   items: InvoiceItem[];
   subTotal: number; // Sum of all item.totalPrice (pre-tax)
-  taxAmount?: number; // Total tax amount for the entire invoice
-  appliedTaxes?: AppliedTaxInfo[]; // Summary of taxes applied at invoice level
+  taxAmount: number; // Total tax amount for the entire invoice. Made non-optional.
+  appliedTaxes: AppliedTaxInfo[]; // Summary of taxes applied at invoice level. Made non-optional.
   totalAmount: number; // subTotal + taxAmount
   status: InvoiceStatus;
   currency: string;

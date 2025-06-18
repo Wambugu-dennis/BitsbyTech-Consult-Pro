@@ -7,16 +7,33 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Eye, Edit, Send, Printer, FileText, Trash2, Info } from "lucide-react";
+import { MoreHorizontal, Eye, Edit, Send, Printer, FileText, Trash2, Info, AlertCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, formatISO } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+
 
 interface InvoiceTableProps {
   invoices: Invoice[];
+  onEditInvoice: (invoiceId: string) => void;
+  onUpdateStatus: (invoiceId: string, newStatus: InvoiceStatus, paymentDate?: string) => void;
+  onDeleteInvoice: (invoiceId: string) => void;
 }
 
-export default function InvoiceTable({ invoices }: InvoiceTableProps) {
+export default function InvoiceTable({ invoices, onEditInvoice, onUpdateStatus, onDeleteInvoice }: InvoiceTableProps) {
+  const { toast } = useToast();
 
   const getStatusBadgeVariant = (status: InvoiceStatus): "default" | "secondary" | "outline" | "destructive" => {
     switch (status) {
@@ -41,16 +58,17 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
   };
 
   const renderAppliedTaxes = (appliedTaxes?: AppliedTaxInfo[]) => {
-    if (!appliedTaxes || appliedTaxes.length === 0) return 'N/A';
+    if (!appliedTaxes || appliedTaxes.length === 0) return null; // Return null instead of N/A for cleaner UI
     return (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="text-xs underline decoration-dotted cursor-help">
-              {appliedTaxes.length} tax(es)
+            <span className="text-xs underline decoration-dotted cursor-help ml-1">
+              ({appliedTaxes.length} tax{appliedTaxes.length > 1 ? 'es' : ''})
             </span>
           </TooltipTrigger>
-          <TooltipContent className="max-w-xs text-xs">
+          <TooltipContent className="max-w-xs text-xs bg-popover text-popover-foreground p-2 rounded-md shadow-lg border">
+            <p className="font-semibold mb-1">Applied Taxes:</p>
             <ul className="space-y-1">
               {appliedTaxes.map(tax => (
                 <li key={tax.taxRateId}>
@@ -64,6 +82,13 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
     );
   };
 
+  const handlePrint = (invoiceId: string) => {
+    toast({
+      title: "Print/PDF Action",
+      description: `Printing/Generating PDF for invoice ${invoiceId} (Simulated). This feature is under development.`,
+      duration: 3000,
+    });
+  };
 
   return (
     <div className="rounded-lg border overflow-hidden shadow">
@@ -105,10 +130,8 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
                 {invoice.currency} {invoice.subTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </TableCell>
               <TableCell className="text-right">
-                {invoice.taxAmount ? `${invoice.currency} ${invoice.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
-                {invoice.appliedTaxes && invoice.appliedTaxes.length > 0 && (
-                  <div className="text-xs text-muted-foreground">{renderAppliedTaxes(invoice.appliedTaxes)}</div>
-                )}
+                {invoice.currency} {(invoice.taxAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {renderAppliedTaxes(invoice.appliedTaxes)}
               </TableCell>
               <TableCell className="text-right font-medium">
                 {invoice.currency} {invoice.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -132,22 +155,68 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
                         <Eye className="mr-2 h-4 w-4" /> View Details
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => alert(`Editing ${invoice.id}`)}>
+                    <DropdownMenuItem onClick={() => onEditInvoice(invoice.id)} disabled={invoice.status === 'Paid' || invoice.status === 'Void'}>
                       <Edit className="mr-2 h-4 w-4" /> Edit Invoice
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => alert(`Sending ${invoice.id}`)} disabled={invoice.status === 'Sent' || invoice.status === 'Paid'}>
+                    <DropdownMenuItem onClick={() => onUpdateStatus(invoice.id, 'Sent')} disabled={invoice.status === 'Sent' || invoice.status === 'Paid' || invoice.status === 'Void'}>
                       <Send className="mr-2 h-4 w-4" /> Mark as Sent
                     </DropdownMenuItem>
-                     <DropdownMenuItem onClick={() => alert(`Printing ${invoice.id}`)}>
+                     <DropdownMenuItem onClick={() => handlePrint(invoice.id)}>
                       <Printer className="mr-2 h-4 w-4" /> Print / PDF
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => alert(`Record payment for ${invoice.id}`)} disabled={invoice.status === 'Paid'}>
-                      <FileText className="mr-2 h-4 w-4" /> Record Payment
-                    </DropdownMenuItem>
+                     <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem 
+                          onSelect={(e) => e.preventDefault()} 
+                          disabled={invoice.status === 'Paid' || invoice.status === 'Void'}
+                          className={cn((invoice.status === 'Paid' || invoice.status === 'Void') && "text-muted-foreground")}
+                        >
+                          <FileText className="mr-2 h-4 w-4" /> Record Payment
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Record Payment for Invoice {invoice.id}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will mark the invoice as 'Paid' and set the payment date to today. This action can be reveresed if needed.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => onUpdateStatus(invoice.id, 'Paid', formatISO(new Date(), { representation: 'date' }))}>
+                            Confirm Payment
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                      <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => alert(`Voiding ${invoice.id}`)} disabled={invoice.status === 'Void' || invoice.status === 'Paid'}>
-                      <Trash2 className="mr-2 h-4 w-4" /> Void Invoice
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                         <DropdownMenuItem 
+                            onSelect={(e) => e.preventDefault()} 
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10" 
+                            disabled={invoice.status === 'Void' || invoice.status === 'Paid'}>
+                          <AlertCircle className="mr-2 h-4 w-4" /> Void Invoice
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Void Invoice {invoice.id}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action will mark the invoice as 'Void'. This is typically used for invoices issued in error and should not be paid. This action cannot be easily undone for accounting purposes.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onUpdateStatus(invoice.id, 'Void')}>
+                            Confirm Void
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                     <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => onDeleteInvoice(invoice.id)} disabled={invoice.status === 'Paid'}>
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete Invoice
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -159,5 +228,3 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
     </div>
   );
 }
-
-    

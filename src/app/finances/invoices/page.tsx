@@ -2,49 +2,123 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Invoice } from "@/lib/types";
+import type { Invoice, InvoiceStatus, Client, Project, AppliedTaxInfo } from "@/lib/types";
 import { initialInvoices, initialClients, initialProjects } from "@/lib/mockData";
-import AddInvoiceDialog, { type AddInvoiceFormData } from "@/components/finances/invoices/add-invoice-dialog";
+import AddInvoiceDialog, { type AddInvoiceDialogFormData } from "@/components/finances/invoices/add-invoice-dialog";
 import InvoiceTable from "@/components/finances/invoices/invoice-table";
-import { FileText } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { FileText, PlusCircle } from 'lucide-react';
+import { formatISO } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const [showAddEditDialog, setShowAddEditDialog] = useState(false);
+  const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | undefined>(undefined);
+  const { toast } = useToast();
 
   useEffect(() => {
     setInvoices(initialInvoices);
     setIsMounted(true);
   }, []);
 
-  const handleAddInvoice = (formData: AddInvoiceFormData) => {
-    const client = initialClients.find(c => c.id === formData.clientId);
-    const project = formData.projectId ? initialProjects.find(p => p.id === formData.projectId) : undefined;
-
-    const newInvoice: Invoice = {
-      id: `INV-${Date.now().toString().slice(-6)}`, // Simple ID
-      clientId: formData.clientId,
-      clientNameCache: client?.companyName || 'N/A',
-      projectId: formData.projectId,
-      projectNameCache: project?.name,
-      issueDate: formData.issueDate,
-      dueDate: formData.dueDate,
-      items: [{ // Simplified: one item based on total amount for now
-        id: `item-${Date.now()}`,
-        description: `Consulting Services for ${project?.name || client?.companyName || 'Selected Client'}`,
-        quantity: 1,
-        unitPrice: formData.totalAmount,
-        totalPrice: formData.totalAmount,
-      }],
-      subTotal: formData.totalAmount, // Assuming no tax for this simplified version
-      totalAmount: formData.totalAmount,
-      status: formData.status,
-      currency: formData.currency,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setInvoices(prevInvoices => [...prevInvoices, newInvoice]);
+  const handleOpenAddDialog = () => {
+    setInvoiceToEdit(undefined);
+    setShowAddEditDialog(true);
   };
+
+  const handleOpenEditDialog = (invoiceId: string) => {
+    const invoice = invoices.find(inv => inv.id === invoiceId);
+    if (invoice) {
+      setInvoiceToEdit(invoice);
+      setShowAddEditDialog(true);
+    }
+  };
+
+  const handleSaveInvoice = (formData: AddInvoiceDialogFormData, mode: 'add' | 'edit') => {
+    if (mode === 'add') {
+      const newInvoice: Invoice = {
+        id: `INV-${Date.now().toString().slice(-6)}`,
+        clientId: formData.clientId,
+        clientNameCache: initialClients.find(c => c.id === formData.clientId)?.companyName || 'N/A',
+        projectId: formData.projectId,
+        projectNameCache: formData.projectId ? initialProjects.find(p => p.id === formData.projectId)?.name : undefined,
+        issueDate: formData.issueDate,
+        dueDate: formData.dueDate,
+        items: [{
+          id: `item-${Date.now()}`,
+          description: `Consulting Services for ${formData.projectId ? initialProjects.find(p => p.id === formData.projectId)?.name : initialClients.find(c => c.id === formData.clientId)?.companyName || 'Selected Client'}`,
+          quantity: 1,
+          unitPrice: formData.subTotal,
+          totalPrice: formData.subTotal,
+        }],
+        subTotal: formData.subTotal,
+        taxAmount: formData.taxAmount,
+        appliedTaxes: formData.appliedTaxes,
+        totalAmount: formData.totalAmount,
+        status: formData.status as InvoiceStatus, // Form schema matches InvoiceStatus 'Draft' | 'Sent'
+        currency: formData.currency,
+        notes: formData.notes,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setInvoices(prevInvoices => [newInvoice, ...prevInvoices]);
+      toast({ title: "Invoice Created", description: `Invoice ${newInvoice.id} has been successfully created.` });
+    } else if (mode === 'edit' && invoiceToEdit) {
+      setInvoices(prevInvoices =>
+        prevInvoices.map(inv =>
+          inv.id === invoiceToEdit.id
+            ? {
+                ...inv,
+                clientId: formData.clientId,
+                clientNameCache: initialClients.find(c => c.id === formData.clientId)?.companyName || 'N/A',
+                projectId: formData.projectId,
+                projectNameCache: formData.projectId ? initialProjects.find(p => p.id === formData.projectId)?.name : undefined,
+                issueDate: formData.issueDate,
+                dueDate: formData.dueDate,
+                items: [{ // Simplified update, real app would handle item edits
+                  id: inv.items[0]?.id || `item-${Date.now()}`,
+                  description: `Consulting Services for ${formData.projectId ? initialProjects.find(p => p.id === formData.projectId)?.name : initialClients.find(c => c.id === formData.clientId)?.companyName || 'Selected Client'}`,
+                  quantity: 1,
+                  unitPrice: formData.subTotal,
+                  totalPrice: formData.subTotal,
+                }],
+                subTotal: formData.subTotal,
+                taxAmount: formData.taxAmount,
+                appliedTaxes: formData.appliedTaxes,
+                totalAmount: formData.totalAmount,
+                status: formData.status as InvoiceStatus,
+                currency: formData.currency,
+                notes: formData.notes,
+                updatedAt: new Date().toISOString(),
+              }
+            : inv
+        )
+      );
+      toast({ title: "Invoice Updated", description: `Invoice ${invoiceToEdit.id} has been successfully updated.` });
+    }
+    setShowAddEditDialog(false);
+    setInvoiceToEdit(undefined);
+  };
+  
+  const handleUpdateInvoiceStatus = (invoiceId: string, newStatus: InvoiceStatus, paymentDate?: string) => {
+    setInvoices(prevInvoices =>
+      prevInvoices.map(inv =>
+        inv.id === invoiceId
+          ? { ...inv, status: newStatus, paymentDate: paymentDate || inv.paymentDate, updatedAt: new Date().toISOString() }
+          : inv
+      )
+    );
+    toast({ title: "Invoice Status Updated", description: `Invoice ${invoiceId} status changed to ${newStatus}.` });
+  };
+
+  const handleDeleteInvoice = (invoiceId: string) => {
+    // Simulate deletion, in a real app this would be an API call
+    setInvoices(prevInvoices => prevInvoices.filter(inv => inv.id !== invoiceId));
+    toast({ title: "Invoice Deleted", description: `Invoice ${invoiceId} has been deleted (simulated).`, variant: "destructive" });
+  };
+
 
   if (!isMounted) {
     return (
@@ -78,13 +152,29 @@ export default function InvoicesPage() {
                 </p>
             </div>
         </div>
-        <AddInvoiceDialog 
-          onAddInvoice={handleAddInvoice} 
-          clients={initialClients} 
-          projects={initialProjects} 
-        />
+        <Button onClick={handleOpenAddDialog}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add New Invoice
+        </Button>
       </header>
-      <InvoiceTable invoices={invoices} />
+      <InvoiceTable 
+        invoices={invoices} 
+        onEditInvoice={handleOpenEditDialog}
+        onUpdateStatus={handleUpdateInvoiceStatus}
+        onDeleteInvoice={handleDeleteInvoice}
+      />
+      {showAddEditDialog && (
+        <AddInvoiceDialog
+          isOpen={showAddEditDialog}
+          onClose={() => { setShowAddEditDialog(false); setInvoiceToEdit(undefined); }}
+          onSubmit={handleSaveInvoice}
+          clients={initialClients}
+          projects={initialProjects}
+          invoiceToEdit={invoiceToEdit}
+          mode={invoiceToEdit ? 'edit' : 'add'}
+        />
+      )}
     </div>
   );
 }
+
