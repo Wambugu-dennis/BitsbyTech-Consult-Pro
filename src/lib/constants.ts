@@ -48,6 +48,7 @@ export const navLinks: NavLink[] = [
     label: 'Finances',
     icon: DollarSign,
     subItems: [
+      { href: '/finances', label: 'Finances Overview', icon: DollarSign },
       { href: '/finances/invoices', label: 'Invoices', icon: FileText },
       { href: '/finances/expenses', label: 'Expenses', icon: Receipt },
       { href: '/finances/budgets', label: 'Budgets', icon: Target },
@@ -61,10 +62,11 @@ export const navLinks: NavLink[] = [
     label: 'Analytics',
     icon: TrendingUp,
     subItems: [
-        { href: '/analytics/project-success-report', label: 'Project Success', icon: Briefcase }, // Re-using Briefcase
+        { href: '/analytics', label: 'Analytics Overview', icon: TrendingUp },
+        { href: '/analytics/project-success-report', label: 'Project Success', icon: Briefcase },
         { href: '/analytics/client-relationship-report', label: 'Client Relationships', icon: Users2 },
         { href: '/analytics/consultant-performance-report', label: 'Consultant Performance', icon: User },
-        { href: '/analytics/financial-health-report', label: 'Financial Health', icon: DollarSign }, // Re-using DollarSign
+        { href: '/analytics/financial-health-report', label: 'Financial Health', icon: DollarSign },
         { href: '/analytics/ai-insights', label: 'AI Insights', icon: Brain },
     ]
   },
@@ -75,22 +77,24 @@ export const navLinks: NavLink[] = [
     label: 'Settings',
     icon: SettingsIcon,
     subItems: [
+      // The main /settings link is the parent trigger, so direct links to sections are fine
       { href: '/settings#account', label: 'Account', icon: UserCog },
       { href: '/settings#notifications', label: 'Notifications', icon: BellRing },
-      { href: '/settings#security', label: 'Security', icon: ShieldCheck }, // Changed from ShieldAlert for variety
+      { href: '/settings#security', label: 'Security', icon: ShieldCheck },
       { href: '/settings#appearance', label: 'Appearance', icon: Paintbrush },
       { href: '/settings#language', label: 'Language & Region', icon: Languages },
       { href: '/settings#billing', label: 'Billing', icon: CreditCard },
-      { href: '/settings#userManagement', label: 'User Management', icon: Users }, // Re-using Users
+      { href: '/settings#userManagement', label: 'User Management', icon: Users },
       { href: '/settings#accessControl', label: 'Access Control', icon: ShieldCheck },
       { href: '/settings#integrations', label: 'Integrations', icon: Link2 },
       { href: '/settings#workflow', label: 'Workflow Customization', icon: Workflow },
       { href: '/settings#system', label: 'System & Compliance', icon: Server },
-    ].map(item => ({...item, href: `/settings#${item.label.toLowerCase().replace(/ & /g, '-').replace(/\s+/g, '-')}`}))
+    ].map(item => ({...item, href: `/settings#${item.label.toLowerCase().replace(/ & /g, '-').replace(/\s+/g, '-')}`})) // Retain hash linking for settings sub-items
   },
   { href: '/help', label: 'Help', icon: HelpCircle },
 ];
 
+// Helper export for settings sub-links (if used elsewhere, otherwise not strictly necessary for sidebar)
 export const settingsSubLinks = navLinks.find(link => link.label === 'Settings')?.subItems || [];
 
 
