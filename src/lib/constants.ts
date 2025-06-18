@@ -18,7 +18,7 @@ import {
   PieChart as PieChartIconLucide,
   Brain,
   Users2,
-  User, // Keep for Analytics sub-item
+  User, 
   BellRing,
   Paintbrush,
   Languages,
@@ -27,13 +27,14 @@ import {
   Link2,
   Workflow,
   Server,
-  ListChecks, // For Analytics sub-item
+  ListChecks, 
+  Percent, // Icon for Tax Management
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavLink {
   href: string;
-  label: string; // This will be used as the translation key
+  label: string; 
   icon: LucideIcon;
   subItems?: NavLink[];
 }
@@ -52,6 +53,7 @@ export const navLinks: NavLink[] = [
       { href: '/finances/invoices', label: 'Invoices', icon: FileText },
       { href: '/finances/expenses', label: 'Expenses', icon: Receipt },
       { href: '/finances/budgets', label: 'Budgets', icon: Target },
+      { href: '/finances/taxes', label: 'Tax Management', icon: Percent },
       { href: '/finances/revenue-recognition', label: 'Revenue Recognition', icon: Landmark },
       { href: '/finances/profitability', label: 'Profitability Analysis', icon: PieChartIconLucide },
     ],
@@ -63,7 +65,7 @@ export const navLinks: NavLink[] = [
     icon: TrendingUp,
     subItems: [
         { href: '/analytics', label: 'Analytics Overview', icon: TrendingUp },
-        { href: '/analytics/project-success-report', label: 'Project Success', icon: Briefcase }, // Changed icon to ListChecks for variety if desired, or keep Briefcase
+        { href: '/analytics/project-success-report', label: 'Project Success', icon: Briefcase }, 
         { href: '/analytics/client-relationship-report', label: 'Client Relationships', icon: Users2 },
         { href: '/analytics/consultant-performance-report', label: 'Consultant Performance', icon: User },
         { href: '/analytics/financial-health-report', label: 'Financial Health', icon: DollarSign },
@@ -73,17 +75,14 @@ export const navLinks: NavLink[] = [
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/risk-analyzer', label: 'AI Risk Analyzer', icon: ShieldAlert },
   {
-    href: '/settings', // Direct link
+    href: '/settings', 
     label: 'Settings',
     icon: SettingsIcon,
-    // No subItems here for the main sidebar navigation
   },
   { href: '/help', label: 'Help', icon: HelpCircle },
 ];
 
-// This export can still be useful if the settings page itself wants to build its internal nav from it,
-// or it can be removed if the settings page hardcodes its internal nav.
-// For clarity, let's keep it as it might be used by the settings page directly.
+
 export const settingsPageInternalNavItems: Array<Omit<NavLink, 'subItems'>> = [
     { href: '/settings#account', label: 'Account', icon: UserCog },
     { href: '/settings#notifications', label: 'Notifications', icon: BellRing },
@@ -148,8 +147,3 @@ export const EVENT_TYPE_CONFIG: Record<CalendarEventType, EventTypeConfig> = {
   'Holiday': { label: 'Holiday', color: 'bg-teal-500', textColor: 'text-white', borderColor: 'border-teal-700' },
   'Other': { label: 'Other', color: 'bg-pink-500', textColor: 'text-white', borderColor: 'border-pink-700' },
 };
-
-// Note: The `settingsSubLinks` that was previously derived from `navLinks` for Settings is no longer needed
-// for the main sidebar nav, but I've kept a similar structure named `settingsPageInternalNavItems`
-// which could be used by the settings page itself if it dynamically builds its internal menu.
-// If the settings page hardcodes its menu, this export can also be removed.

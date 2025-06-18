@@ -1,12 +1,11 @@
 
-import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, Expense, Budget, BudgetStatus, BudgetType, CalendarEvent, ClientMeeting, RevenueData, SystemUser, SystemUserStatus, SystemRole } from "@/lib/types";
-// Removed PROJECT_STATUS import as it's not directly used here anymore for expense creation status, but it is used in ProjectTask, so re-added
-import { PROJECT_STATUS } from "@/lib/constants"; // Corrected import for PROJECT_STATUS
-import { expenseCategories, budgetTypes, budgetStatuses, calendarEventTypes, systemUserStatuses, systemRoles } from "./types";
+import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, Expense, Budget, BudgetStatus, BudgetType, CalendarEvent, ClientMeeting, RevenueData, SystemUser, SystemUserStatus, SystemRole, TaxJurisdiction, TaxType, TaxRate, TaxApplicableEntity } from "@/lib/types";
+import { PROJECT_STATUS } from "@/lib/constants"; 
+import { expenseCategories, budgetTypes, budgetStatuses, calendarEventTypes, systemUserStatuses, systemRoles, taxApplicableEntities } from "./types";
 import { formatISO, addDays, subDays, addMonths, parseISO, getMonth, format } from 'date-fns';
 
 const today = new Date();
-const currentYear = today.getFullYear(); // Use current year for mock data for relevance
+const currentYear = today.getFullYear(); 
 
 // Mock data for Clients
 export const initialClients: Client[] = [
@@ -542,7 +541,6 @@ export const initialExpenses: Expense[] = [
   }
 ];
 
-// Use currentYear - 1 for historical data to ensure it's in the past for forecasting.
 const previousYear = currentYear -1;
 export const financialHealthData: RevenueData[] = [
   { date: `${previousYear}-01-01`, actualRevenue: 50000, actualExpenses: 30000, month: 'Jan' },
@@ -559,7 +557,6 @@ export const financialHealthData: RevenueData[] = [
   { date: `${previousYear}-12-01`, actualRevenue: 95000, actualExpenses: 52000, month: 'Dec' },
 ];
 
-// Mock data for System Users
 export const initialSystemUsers: SystemUser[] = [
   {
     id: 'user-001',
@@ -632,11 +629,80 @@ export const initialSystemUsers: SystemUser[] = [
   }
 ];
 
-// Mock data for revenue chart projections on Dashboard
 const revenueChartDataMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const historicalRevenueData: RevenueData[] = revenueChartDataMonths.slice(0,9).map((month, index) => ({
-  date: `${currentYear-1}-${String(index+1).padStart(2,'0')}-01`, // Previous year actuals
+  date: `${currentYear-1}-${String(index+1).padStart(2,'0')}-01`, 
   month: month,
-  actualRevenue: 50000 + (index * 3000) + (Math.random() * 10000 - 5000), // Base + trend + noise
+  actualRevenue: 50000 + (index * 3000) + (Math.random() * 10000 - 5000), 
   actualExpenses: 30000 + (index * 1500) + (Math.random() * 6000 - 3000),
 }));
+
+
+// Tax Management Mock Data
+export const initialTaxJurisdictions: TaxJurisdiction[] = [
+  { id: 'jur-ke', name: 'Kenya', countryCode: 'KE', description: 'East African Nation', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'jur-us-ca', name: 'USA - California', countryCode: 'US', description: 'State of California, USA', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'jur-uk', name: 'United Kingdom', countryCode: 'GB', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+];
+
+export const initialTaxTypes: TaxType[] = [
+  { id: 'type-vat', name: 'Value Added Tax', abbreviation: 'VAT', description: 'Consumption tax applied to goods and services.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'type-wht', name: 'Withholding Tax', abbreviation: 'WHT', description: 'Tax deducted at source from payments like dividends, interest, royalties.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'type-sales', name: 'Sales Tax', abbreviation: 'Sales', description: 'Tax on sale of goods and services, typically at point of sale.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'type-service', name: 'Service Tax', abbreviation: 'Service', description: 'Tax specifically on services rendered.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+];
+
+export const initialTaxRates: TaxRate[] = [
+  {
+    id: 'rate-ke-vat-std',
+    jurisdictionId: 'jur-ke',
+    jurisdictionNameCache: 'Kenya',
+    taxTypeId: 'type-vat',
+    taxTypeNameCache: 'Value Added Tax',
+    rate: 16,
+    description: 'Standard VAT rate for services in Kenya.',
+    startDate: '2020-01-01',
+    applicableTo: ['ServiceSales', 'InvoiceLineItem'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rate-us-ca-sales',
+    jurisdictionId: 'jur-us-ca',
+    jurisdictionNameCache: 'USA - California',
+    taxTypeId: 'type-sales',
+    taxTypeNameCache: 'Sales Tax',
+    rate: 7.25, // Base rate, can vary by locality
+    description: 'California statewide sales tax rate. Local taxes may apply.',
+    startDate: '2017-01-01',
+    applicableTo: ['InvoiceLineItem'], // Typically on goods, but services can be taxable
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rate-uk-vat-std',
+    jurisdictionId: 'jur-uk',
+    jurisdictionNameCache: 'United Kingdom',
+    taxTypeId: 'type-vat',
+    taxTypeNameCache: 'Value Added Tax',
+    rate: 20,
+    description: 'Standard VAT rate in the UK.',
+    startDate: '2011-01-04',
+    applicableTo: ['ServiceSales', 'InvoiceLineItem'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rate-ke-wht-services',
+    jurisdictionId: 'jur-ke',
+    jurisdictionNameCache: 'Kenya',
+    taxTypeId: 'type-wht',
+    taxTypeNameCache: 'Withholding Tax',
+    rate: 5,
+    description: 'Withholding tax on consultancy and agency fees for residents.',
+    startDate: '2005-01-01',
+    applicableTo: ['ServiceSales'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];

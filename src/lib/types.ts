@@ -72,6 +72,8 @@ export type Project = {
   attachments?: ProjectAttachment[];
   lastUpdated: string;
   completionPercent?: number;
+  // Placeholder for future tax integration on projects
+  // applicableTaxRateIds?: string[]; 
 };
 
 
@@ -267,6 +269,8 @@ export type InvoiceItem = {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  // Placeholder for future detailed tax per item
+  // appliedTaxes?: Array<{ taxRateId: string; rateValue: number; amount: number; name: string; jurisdiction: string; }>;
 };
 
 export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Void';
@@ -281,8 +285,9 @@ export type Invoice = {
   dueDate: string;
   items: InvoiceItem[];
   subTotal: number;
-  taxRate?: number;
-  taxAmount?: number;
+  taxRate?: number; // This might become an array or calculated effective rate
+  taxAmount?: number; // This might become an array or calculated effective rate
+  // appliedTaxes?: Array<{ taxRateId: string; rateValue: number; amount: number; name: string; jurisdiction: string; }>;
   totalAmount: number;
   status: InvoiceStatus;
   currency: string;
@@ -341,6 +346,8 @@ export type Expense = {
   approvedDate?: string;
   createdAt: string;
   updatedAt: string;
+  // Placeholder for future tax integration on expenses
+  // appliedTaxes?: Array<{ taxRateId: string; rateValue: number; amount: number; name: string; jurisdiction: string; }>;
 };
 
 export type BudgetStatus = 'Planning' | 'Active' | 'Overspent' | 'Completed' | 'On Hold';
@@ -385,4 +392,51 @@ export interface SystemUser {
   dateJoined?: string; // ISO date string
   reportsToUserId?: string;
   reportsToUserNameCache?: string;
+}
+
+// New Tax Management Types
+export interface TaxJurisdiction {
+  id: string;
+  name: string; // e.g., "Kenya", "USA - California", "European Union"
+  countryCode?: string; // e.g., "KE", "US", "EU" (ISO 3166-1 alpha-2 or similar)
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaxType {
+  id: string;
+  name: string; // e.g., "Value Added Tax", "Sales Tax", "Withholding Tax", "Service Tax"
+  abbreviation?: string; // e.g., "VAT", "WHT"
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TaxApplicableEntity = 
+  | 'ProjectRevenue' 
+  | 'ProjectExpense' 
+  | 'InvoiceLineItem' 
+  | 'GeneralExpense' 
+  | 'ServiceSales';
+
+export const taxApplicableEntities: TaxApplicableEntity[] = [
+  'ProjectRevenue', 'ProjectExpense', 'InvoiceLineItem', 'GeneralExpense', 'ServiceSales'
+];
+
+export interface TaxRate {
+  id: string;
+  jurisdictionId: string;
+  jurisdictionNameCache?: string; // Denormalized for display
+  taxTypeId: string;
+  taxTypeNameCache?: string; // Denormalized for display
+  rate: number; // Percentage, e.g., 16 for 16%
+  description: string; // e.g., "Standard VAT rate for services"
+  startDate: string; // ISO Date string
+  endDate?: string; // ISO Date string, for historical rates or temporary taxes
+  isCompound?: boolean; // Does this tax apply on top of other taxes?
+  applicableTo: TaxApplicableEntity[]; // Specifies where this tax rate can be applied
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
