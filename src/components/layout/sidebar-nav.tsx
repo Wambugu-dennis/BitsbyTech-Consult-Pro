@@ -13,23 +13,33 @@ import { navLinks } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useLocalization, type LanguagePack } from '@/context/localization-provider';
 import { ChevronDown } from 'lucide-react';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function SidebarNav() {
   const pathname = usePathname();
   const { t } = useLocalization();
+  const [openAccordionValues, setOpenAccordionValues] = useState<Record<string, string | undefined>>({});
+  const [isClient, setIsClient] = useState(false);
 
-  const defaultOpenAccordionItems = React.useMemo(() => {
-    const openItems: string[] = [];
-    navLinks.forEach(link => {
-      if (link.subItems && link.subItems.some(subItem => pathname.startsWith(subItem.href) && subItem.href !== link.href)) { // Ensure parent overview doesn't keep it always open
-        openItems.push(link.href); 
-      } else if (link.subItems && pathname === link.href && link.subItems.some(si => si.href === link.href)) { // Open if on parent overview page
-        openItems.push(link.href);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return; // Only run on client after initial mount
+
+    const initialOpenStates: Record<string, string | undefined> = {};
+    navLinks.forEach(navLink => {
+      if (navLink.subItems && navLink.subItems.length > 0) {
+        const isActiveParentOrChild = 
+          navLink.subItems.some(subItem => pathname === subItem.href) ||
+          (pathname === navLink.href && navLink.subItems.some(si => si.href === navLink.href));
+        
+        initialOpenStates[navLink.href] = isActiveParentOrChild ? navLink.href : undefined;
       }
     });
-    return openItems;
-  }, [pathname]);
+    setOpenAccordionValues(initialOpenStates);
+  }, [pathname, isClient]); // Add navLinks if it's not stable, but it should be from constants
 
   return (
     <SidebarMenu className="p-2">
@@ -37,13 +47,26 @@ export default function SidebarNav() {
         const translatedLabel = t(link.label as keyof LanguagePack['translations']);
         
         if (link.subItems && link.subItems.length > 0) {
-          const isParentCurrentlyActive = link.subItems.some(subItem => pathname === subItem.href);
-          // The AccordionTrigger itself is active if any of its children are active OR if the path matches the parent link's href AND it has an overview sub-item
-          const isAccordionTriggerActive = isParentCurrentlyActive || (pathname === link.href && link.subItems.some(si => si.href === link.href));
+          const isParentCurrentlyActive = pathname === link.href && link.subItems.some(si => si.href === link.href);
+          const isAnyChildActive = link.subItems.some(subItem => pathname === subItem.href && subItem.href !== link.href);
+          const isAccordionTriggerActive = isParentCurrentlyActive || isAnyChildActive;
 
           return (
             <SidebarMenuItem key={link.href} className="p-0">
-              <Accordion type="single" collapsible defaultValue={defaultOpenAccordionItems.includes(link.href) ? link.href : undefined} className="w-full">
+              <Accordion 
+                type="single" 
+                collapsible 
+                value={isClient ? openAccordionValues[link.href] : undefined} // Use undefined during SSR/initial client render
+                onValueChange={(value) => {
+                  if (isClient) { // Only allow changes on client
+                    setOpenAccordionValues(prev => ({
+                      ...prev,
+                      [link.href]: value === link.href ? link.href : undefined,
+                    }));
+                  }
+                }}
+                className="w-full"
+              >
                 <AccordionItem value={link.href} className="border-none">
                   <SidebarMenuButton
                     asChild
@@ -54,7 +77,7 @@ export default function SidebarNav() {
                        isAccordionTriggerActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground"
                     )}
                   >
-                    <AccordionTrigger className="p-0 hover:no-underline [&>svg.accord-chevron]:data-[state=open]:rotate-180">
+                    <AccordionTrigger className="p-0 hover:no-underline [&>svg.accord-chevron]:data-[state=open]:rotate-180 [&[data-state=open]>div>svg.accord-chevron]:rotate-180">
                        <div className="flex items-center gap-2 flex-1 p-2">
                          <link.icon className="h-5 w-5 shrink-0" />
                          <span className="flex-grow text-left group-data-[collapsible=icon]:hidden">{translatedLabel}</span>
@@ -65,7 +88,7 @@ export default function SidebarNav() {
                   <AccordionContent className="pb-1 pl-4 pr-1 group-data-[collapsible=icon]:hidden">
                     <SidebarMenu className="mt-1 space-y-0.5 border-l border-sidebar-border/70 pl-3">
                       {link.subItems.map((subItem) => {
-                        const isSubItemActive = pathname === subItem.href; // Strict equality for sub-item active state
+                        const isSubItemActive = pathname === subItem.href;
                         const translatedSubLabel = t(subItem.label as keyof LanguagePack['translations']);
                         return (
                           <SidebarMenuItem key={subItem.href} className="py-0.5">
@@ -96,7 +119,6 @@ export default function SidebarNav() {
           );
         }
 
-        // Render as a simple link if no subItems
         const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href) && link.href !== '/dashboard');
         const isDashboardActive = link.href === '/dashboard' && pathname === '/dashboard';
         const finalIsActive = link.href === '/dashboard' ? isDashboardActive : isActive;
@@ -125,3 +147,4 @@ export default function SidebarNav() {
     </SidebarMenu>
   );
 }
+
