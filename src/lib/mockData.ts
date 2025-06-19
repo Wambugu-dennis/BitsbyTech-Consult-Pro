@@ -23,11 +23,11 @@ export const initialClients: Client[] = [
       { id: 'kc1-1', name: 'Sarah Connor', role: 'CEO', email: 's.connor@innovatech.example.com', phone: '555-0100' },
       { id: 'kc1-2', name: 'John Projectlead', role: 'Head of R&D', email: 'j.projectlead@innovatech.example.com' },
     ],
-    satisfactionScore: 92,
+    satisfactionScore: 92, // Made static
     notes: 'Long-term client, high value. Focus on AI and cloud solutions.',
     linkedProjectIds: ['proj101', 'proj105'],
     financialSummary: { totalBilled: 120000, totalPaid: 115000, outstandingAmount: 5000, lastInvoiceDate: '2024-07-01', currency: 'USD' },
-    lastContact: formatISO(subDays(today, 15), { representation: 'date' }),
+    lastContact: formatISO(subDays(today, 15), { representation: 'date' }), // Date.now() is fine for relative dates like this
     communicationLogs: [
       {id: 'cl1', date: formatISO(subDays(today, 15), { representation: 'date' }), type: 'Meeting', summary: 'Quarterly review, positive feedback.', participants: ['Sarah Connor', 'Dr. Eleanor Vance']},
       {id: 'cl2', date: formatISO(subDays(today, 40), { representation: 'date' }), type: 'Email', summary: 'Sent project update for proj105.'}
@@ -36,7 +36,7 @@ export const initialClients: Client[] = [
         { id:'m1', title: 'Quarterly Review with Innovatech', date: formatISO(subDays(today,15), { representation: 'date' }), time: '10:00', description: 'Discuss Q2 performance and Q3 roadmap.', attendees: ['Sarah Connor', 'Dr. Eleanor Vance'], location: 'Innovatech HQ / Video Call'},
         { id:'m2', title: 'Project Kickoff: AI Overhaul Phase 2', date: formatISO(addDays(today, 5), { representation: 'date' }), time: '14:00', description: 'Initiate phase 2 of AI Overhaul.', attendees: ['John Projectlead', 'Dr. Eleanor Vance', 'Marcus Chen'], location: 'Video Call' }
     ],
-    jurisdictionId: 'jur-us-ca', // Added for tax purposes
+    jurisdictionId: 'jur-us-ca',
   },
   {
     id: '2',
@@ -51,7 +51,7 @@ export const initialClients: Client[] = [
     keyContacts: [
       { id: 'kc2-1', name: 'Robert Neville', role: 'CTO', email: 'r.neville@alphasolutions.example.io', phone: '555-0200' }
     ],
-    satisfactionScore: 85,
+    satisfactionScore: 85, // Made static
     notes: 'Focused on data analytics and patient management systems.',
     linkedProjectIds: ['proj202'],
     financialSummary: { totalBilled: 75000, totalPaid: 75000, outstandingAmount: 0, lastInvoiceDate: '2024-06-15', currency: 'USD' },
@@ -59,7 +59,7 @@ export const initialClients: Client[] = [
     meetings: [
         { id:'m3', title: 'Alpha Solutions Check-in', date: formatISO(addDays(today, 12), { representation: 'date' }), time: '11:00', description: 'Weekly sync on predictive model project.', attendees: ['Robert Neville', 'Aisha Khan'], location: 'Video Call' }
     ],
-    jurisdictionId: 'jur-us-tx', // Example for a different US state
+    jurisdictionId: 'jur-us-tx',
   },
   {
     id: '3',
@@ -74,7 +74,7 @@ export const initialClients: Client[] = [
     keyContacts: [
       { id: 'kc3-1', name: 'Carol Danvers', role: 'Operations Manager', email: 'c.danvers@betacorp.example.dev', phone: '555-0300' }
     ],
-    satisfactionScore: 70,
+    satisfactionScore: 70, // Made static
     notes: 'Previous engagement for process optimization. Potential for follow-up work.',
     financialSummary: { totalBilled: 45000, totalPaid: 45000, outstandingAmount: 0, currency: 'USD' },
     lastContact: formatISO(subDays(today, 300), { representation: 'date' }),
@@ -93,11 +93,10 @@ export const initialClients: Client[] = [
     ],
     notes: 'Initial discussions for supply chain optimization. Proposal sent.',
     lastContact: formatISO(subDays(today, 30), { representation: 'date' }),
-    jurisdictionId: 'jur-ke', // Example for an international client
+    jurisdictionId: 'jur-ke',
   },
 ];
 
-// Mock data for Consultants (no tax-specific fields added here for now)
 export const initialConsultants: Consultant[] = [
   {
     id: 'c1',
@@ -166,7 +165,6 @@ export const initialConsultants: Consultant[] = [
   },
 ];
 
-// Mock data for Project Tasks (no tax-specific fields added here for now)
 export const initialProjectTasks: ProjectTask[] = [
   { id: 'task-proj101-1', title: 'Discovery Phase for Innovatech', description: 'Initial client meetings and requirement gathering for AI Overhaul.', status: PROJECT_STATUS.TODO, assigneeId: 'c1', dueDate: formatISO(addDays(today,15), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,5)) },
   { id: 'task-proj101-2', title: 'Backend API Integration for Innovatech', description: 'Connect frontend to new microservices for AI features.', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c2', dueDate: formatISO(addDays(today,60), { representation: 'date' }), priority: 'High', createdAt: formatISO(subDays(today,10)) },
@@ -184,8 +182,6 @@ export const initialProjectTasks: ProjectTask[] = [
   { id: 'task-proj105-3', title: 'Data Migration Plan Review', status: PROJECT_STATUS.IN_PROGRESS, assigneeId: 'c1', dueDate: formatISO(addDays(today, 10), { representation: 'date' }), priority: 'Medium', createdAt: formatISO(subDays(today,1)) },
 ];
 
-
-// Mock data for Projects
 export const initialProjects: Project[] = [
   {
     id: 'proj101',
@@ -210,7 +206,7 @@ export const initialProjects: Project[] = [
     tags: ['AI', 'Machine Learning', 'Cloud Integration'],
     lastUpdated: new Date().toISOString(),
     completionPercent: 45,
-    applicableTaxRateIds: ['rate-us-ca-sales'], // Example: California Sales Tax
+    applicableTaxRateIds: ['rate-us-ca-sales'],
     revenueRecognitionRuleId: 'rule-milestone',
   },
   {
@@ -236,7 +232,7 @@ export const initialProjects: Project[] = [
     tags: ['Healthcare', 'Predictive Analytics', 'Data Science'],
     lastUpdated: new Date().toISOString(),
     completionPercent: 30,
-    applicableTaxRateIds: [], // No specific tax for this example initially
+    applicableTaxRateIds: [],
     revenueRecognitionRuleId: 'rule-poc',
   },
   {
@@ -381,25 +377,27 @@ export const initialTaxRates: TaxRate[] = [
   }
 ];
 
-const generateInvoiceItems = (num: number, basePrice: number): { items: InvoiceItem[], subTotal: number } => {
+// Modified generateInvoiceItems to be deterministic
+const generateInvoiceItems = (num: number, basePrice: number, seed: number = 1): { items: InvoiceItem[], subTotal: number } => {
   const items: InvoiceItem[] = [];
   let subTotal = 0;
   for (let i = 1; i <= num; i++) {
-    const quantity = Math.floor(Math.random() * 5) + 1;
-    const unitPrice = basePrice * (Math.random() * 0.5 + 0.75);
+    // Deterministic quantity and unitPrice based on i and seed
+    const quantity = ((i + seed) % 3) + 1; // Cycles 1, 2, 3 based on i and seed
+    const unitPrice = basePrice * (1 + ((i + seed) * 0.02)); // Deterministic small increase
     const totalPrice = quantity * unitPrice;
     items.push({
-      id: `item-${Date.now()}-${i}`,
+      id: `item-${Date.now()}-${i}-${seed}`, // Date.now() for ID uniqueness is fine
       description: `Consulting Service ${i} / Development Hours`,
       quantity,
       unitPrice: parseFloat(unitPrice.toFixed(2)),
       totalPrice: parseFloat(totalPrice.toFixed(2)),
-      // appliedTaxes and taxAmountForItem would be calculated dynamically based on invoice/project settings
     });
     subTotal += totalPrice;
   }
   return { items, subTotal: parseFloat(subTotal.toFixed(2)) };
 };
+
 
 const createInvoiceWithTaxes = (
   id: string,
@@ -473,16 +471,16 @@ const createInvoiceWithTaxes = (
 };
 
 
-const inv1Items = generateInvoiceItems(3, 1500); // subtotal ~4500
-const inv2Items = generateInvoiceItems(2, 2500); // subtotal ~5000
-const inv3Items = generateInvoiceItems(5, 1000); // subtotal ~5000
-const inv4Items = generateInvoiceItems(1, 5000); // subtotal ~5000
+const inv1Items = generateInvoiceItems(3, 1500, 1); // seed 1
+const inv2Items = generateInvoiceItems(2, 2500, 2); // seed 2
+const inv3Items = generateInvoiceItems(5, 1000, 3); // seed 3
+const inv4Items = generateInvoiceItems(1, 5000, 4); // seed 4
 
 export const initialInvoices: Invoice[] = [
   createInvoiceWithTaxes('INV-2024-001', initialClients[0], initialProjects.find(p => p.id === 'proj101'), 'Paid', 45, inv1Items, ['rate-us-ca-sales']),
-  createInvoiceWithTaxes('INV-2024-002', initialClients[1], initialProjects.find(p => p.id === 'proj202'), 'Sent', 20, inv2Items, []), // No tax for this one
+  createInvoiceWithTaxes('INV-2024-002', initialClients[1], initialProjects.find(p => p.id === 'proj202'), 'Sent', 20, inv2Items, []),
   createInvoiceWithTaxes('INV-2024-003', initialClients[0], initialProjects.find(p => p.id === 'proj105'), 'Overdue', 35, inv3Items, ['rate-us-ca-sales']),
-  createInvoiceWithTaxes('INV-2024-004', initialClients[3], undefined, 'Draft', 5, inv4Items, ['rate-ke-vat-std', 'rate-ke-wht-services']), // Client in Kenya
+  createInvoiceWithTaxes('INV-2024-004', initialClients[3], undefined, 'Draft', 5, inv4Items, ['rate-ke-vat-std', 'rate-ke-wht-services']),
 ];
 
 
@@ -603,6 +601,8 @@ export const initialExpenses: Expense[] = [
     budgetId: 'bud-proj202',
     createdAt: formatISO(subDays(today, 5), { representation: 'date' }),
     updatedAt: formatISO(subDays(today, 5), { representation: 'date' }),
+    taxAmount: 0, // Explicitly setting for clarity if no taxes apply
+    totalAmountIncludingTax: 120.50,
   },
   {
     id: 'exp-003',
@@ -620,6 +620,8 @@ export const initialExpenses: Expense[] = [
     approvedDate: formatISO(subDays(today, 12), { representation: 'date' }),
     createdAt: formatISO(subDays(today, 15), { representation: 'date' }),
     updatedAt: formatISO(subDays(today, 12), { representation: 'date' }),
+    taxAmount: 0,
+    totalAmountIncludingTax: 99.00,
   },
   {
     id: 'exp-004',
@@ -736,8 +738,8 @@ const revenueChartDataMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul',
 export const historicalRevenueData: RevenueData[] = revenueChartDataMonths.slice(0,9).map((month, index) => ({
   date: `${currentYear-1}-${String(index+1).padStart(2,'0')}-01`,
   month: month,
-  actualRevenue: 50000 + (index * 3000) + (Math.random() * 10000 - 5000),
-  actualExpenses: 30000 + (index * 1500) + (Math.random() * 6000 - 3000),
+  actualRevenue: 50000 + (index * 3000) + (Math.random() * 10000 - 5000), // Keep this for historical chart variation
+  actualExpenses: 30000 + (index * 1500) + (Math.random() * 6000 - 3000), // Keep this for historical chart variation
 }));
 
 // Revenue Recognition Mock Data
@@ -834,5 +836,6 @@ initialInvoices.forEach(inv => {
     inv.deferredRevenueAmount = inv.totalAmount - (inv.recognizedRevenueEntries[0].amountRecognized);
   }
 });
-
+    
+    
     
