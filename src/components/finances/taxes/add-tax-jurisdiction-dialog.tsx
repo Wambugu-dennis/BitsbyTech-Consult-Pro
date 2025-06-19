@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,28 +13,36 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  // DialogTrigger, // Trigger is now managed by parent page
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle } from 'lucide-react';
 import type { TaxJurisdiction } from '@/lib/types';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Jurisdiction name must be at least 2 characters.'),
-  countryCode: z.string().optional(),
+  countryCode: z.string().max(3, 'Country code should be 2-3 chars (e.g., US, KEN).').optional(),
   description: z.string().max(200, 'Description too long.').optional(),
 });
 
 export type AddTaxJurisdictionFormData = z.infer<typeof formSchema>;
 
 interface AddTaxJurisdictionDialogProps {
-  onAddJurisdiction: (formData: AddTaxJurisdictionFormData) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (formData: AddTaxJurisdictionFormData, mode: 'add' | 'edit') => void;
+  jurisdictionToEdit?: TaxJurisdiction;
+  mode: 'add' | 'edit';
 }
 
-export default function AddTaxJurisdictionDialog({ onAddJurisdiction }: AddTaxJurisdictionDialogProps) {
-  const [open, setOpen] = useState(false);
+export default function AddTaxJurisdictionDialog({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  jurisdictionToEdit, 
+  mode 
+}: AddTaxJurisdictionDialogProps) {
   const form = useForm<AddTaxJurisdictionFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -44,25 +52,29 @@ export default function AddTaxJurisdictionDialog({ onAddJurisdiction }: AddTaxJu
     },
   });
 
+  useEffect(() => {
+    if (mode === 'edit' && jurisdictionToEdit) {
+      form.reset({
+        name: jurisdictionToEdit.name,
+        countryCode: jurisdictionToEdit.countryCode || '',
+        description: jurisdictionToEdit.description || '',
+      });
+    } else {
+      form.reset({ name: '', countryCode: '', description: '' });
+    }
+  }, [isOpen, mode, jurisdictionToEdit, form]);
+
   const handleSubmit = (data: AddTaxJurisdictionFormData) => {
-    onAddJurisdiction(data);
-    form.reset();
-    setOpen(false);
+    onSave(data, mode);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Jurisdiction
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Add New Tax Jurisdiction</DialogTitle>
+          <DialogTitle>{mode === 'add' ? 'Add New Tax Jurisdiction' : `Edit Tax Jurisdiction: ${jurisdictionToEdit?.name}`}</DialogTitle>
           <DialogDescription>
-            Define a new country or region for tax purposes.
+            {mode === 'add' ? 'Define a new country or region for tax purposes.' : 'Update the details for this tax jurisdiction.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -107,8 +119,8 @@ export default function AddTaxJurisdictionDialog({ onAddJurisdiction }: AddTaxJu
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit">Add Jurisdiction</Button>
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+              <Button type="submit">{mode === 'add' ? 'Add Jurisdiction' : 'Save Changes'}</Button>
             </DialogFooter>
           </form>
         </Form>
@@ -116,3 +128,5 @@ export default function AddTaxJurisdictionDialog({ onAddJurisdiction }: AddTaxJu
     </Dialog>
   );
 }
+
+    

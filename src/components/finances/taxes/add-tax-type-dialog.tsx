@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,28 +13,36 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  // DialogTrigger, // Trigger managed by parent
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle } from 'lucide-react';
 import type { TaxType } from '@/lib/types';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Tax type name must be at least 2 characters.'),
-  abbreviation: z.string().optional(),
+  abbreviation: z.string().max(10, 'Abbreviation too long.').optional(),
   description: z.string().max(200, 'Description too long.').optional(),
 });
 
 export type AddTaxTypeFormData = z.infer<typeof formSchema>;
 
 interface AddTaxTypeDialogProps {
-  onAddTaxType: (formData: AddTaxTypeFormData) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (formData: AddTaxTypeFormData, mode: 'add' | 'edit') => void;
+  taxTypeToEdit?: TaxType;
+  mode: 'add' | 'edit';
 }
 
-export default function AddTaxTypeDialog({ onAddTaxType }: AddTaxTypeDialogProps) {
-  const [open, setOpen] = useState(false);
+export default function AddTaxTypeDialog({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  taxTypeToEdit, 
+  mode 
+}: AddTaxTypeDialogProps) {
   const form = useForm<AddTaxTypeFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -44,25 +52,29 @@ export default function AddTaxTypeDialog({ onAddTaxType }: AddTaxTypeDialogProps
     },
   });
 
+  useEffect(() => {
+    if (mode === 'edit' && taxTypeToEdit) {
+      form.reset({
+        name: taxTypeToEdit.name,
+        abbreviation: taxTypeToEdit.abbreviation || '',
+        description: taxTypeToEdit.description || '',
+      });
+    } else {
+      form.reset({ name: '', abbreviation: '', description: '' });
+    }
+  }, [isOpen, mode, taxTypeToEdit, form]);
+
   const handleSubmit = (data: AddTaxTypeFormData) => {
-    onAddTaxType(data);
-    form.reset();
-    setOpen(false);
+    onSave(data, mode);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Tax Type
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Add New Tax Type</DialogTitle>
+          <DialogTitle>{mode === 'add' ? 'Add New Tax Type' : `Edit Tax Type: ${taxTypeToEdit?.name}`}</DialogTitle>
           <DialogDescription>
-            Define a new category of tax (e.g., VAT, Sales Tax).
+            {mode === 'add' ? 'Define a new category of tax (e.g., VAT, Sales Tax).' : 'Update the details for this tax type.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -107,8 +119,8 @@ export default function AddTaxTypeDialog({ onAddTaxType }: AddTaxTypeDialogProps
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit">Add Tax Type</Button>
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+              <Button type="submit">{mode === 'add' ? 'Add Tax Type' : 'Save Changes'}</Button>
             </DialogFooter>
           </form>
         </Form>
@@ -116,3 +128,5 @@ export default function AddTaxTypeDialog({ onAddTaxType }: AddTaxTypeDialogProps
     </Dialog>
   );
 }
+
+    

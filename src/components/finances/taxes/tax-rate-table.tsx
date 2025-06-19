@@ -7,14 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format, parseISO } from 'date-fns';
 import { cn } from "@/lib/utils";
 
 interface TaxRateTableProps {
   taxRates: TaxRate[];
+  onEditTaxRate: (taxRate: TaxRate) => void;
+  onDeleteTaxRate: (rateId: string) => void;
 }
 
-export default function TaxRateTable({ taxRates }: TaxRateTableProps) {
+export default function TaxRateTable({ taxRates, onEditTaxRate, onDeleteTaxRate }: TaxRateTableProps) {
   return (
     <div className="rounded-md border overflow-x-auto">
       <Table>
@@ -54,7 +67,7 @@ export default function TaxRateTable({ taxRates }: TaxRateTableProps) {
                     </div>
                 </TableCell>
                 <TableCell className="text-center">
-                    <Badge variant={rate.isCompound ? "default" : "outline"} className={cn("text-xs", rate.isCompound && "bg-blue-100 text-blue-700 border-blue-300")}>
+                    <Badge variant={rate.isCompound ? "default" : "outline"} className={cn("text-xs", rate.isCompound ? "bg-blue-100 text-blue-700 border-blue-300" : "border-border")}>
                         {rate.isCompound ? 'Yes' : 'No'}
                     </Badge>
                 </TableCell>
@@ -66,12 +79,36 @@ export default function TaxRateTable({ taxRates }: TaxRateTableProps) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => alert(`Editing ${rate.description} (to be implemented)`)}>
+                      <DropdownMenuItem onClick={() => onEditTaxRate(rate)}>
                         <Edit className="mr-2 h-4 w-4" /> Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => alert(`Deleting ${rate.description} (to be implemented)`)}>
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
+                       <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <DropdownMenuItem 
+                            onSelect={(e) => e.preventDefault()}
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                           >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Tax Rate: {rate.description}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the tax rate. Ensure it's not actively used in calculations if possible.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              className="bg-destructive hover:bg-destructive/90"
+                              onClick={() => onDeleteTaxRate(rate.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -83,3 +120,5 @@ export default function TaxRateTable({ taxRates }: TaxRateTableProps) {
     </div>
   );
 }
+
+    

@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  // DialogTrigger, // Trigger managed by parent
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -22,10 +22,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from "@/components/ui/checkbox"
-import { Switch } from "@/components/ui/switch"; // Added missing import
-import { CalendarIcon, PlusCircle } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
+import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, formatISO } from 'date-fns';
+import { format, formatISO, parseISO } from 'date-fns';
 import type { TaxJurisdiction, TaxType, TaxRate, TaxApplicableEntity } from '@/lib/types';
 import { taxApplicableEntities } from '@/lib/types';
 
@@ -49,55 +49,82 @@ export type AddTaxRateFormData = Omit<z.infer<typeof formSchema>, 'startDate' | 
   startDate: string;
   endDate?: string;
   applicableTo: TaxApplicableEntity[];
+  isCompound: boolean;
 };
 
 interface AddTaxRateDialogProps {
-  onAddTaxRate: (formData: AddTaxRateFormData) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (formData: AddTaxRateFormData, mode: 'add' | 'edit') => void;
   jurisdictions: TaxJurisdiction[];
   taxTypes: TaxType[];
+  taxRateToEdit?: TaxRate;
+  mode: 'add' | 'edit';
 }
 
-export default function AddTaxRateDialog({ onAddTaxRate, jurisdictions, taxTypes }: AddTaxRateDialogProps) {
-  const [open, setOpen] = useState(false);
+export default function AddTaxRateDialog({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  jurisdictions, 
+  taxTypes, 
+  taxRateToEdit, 
+  mode 
+}: AddTaxRateDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      jurisdictionId: '',
+      taxTypeId: '',
       rate: 0,
+      description: '',
+      startDate: new Date(),
+      endDate: undefined,
       isCompound: false,
       applicableTo: [],
-      // Other fields will be empty or set by user
+      notes: '',
     },
   });
+
+  useEffect(() => {
+    if (mode === 'edit' && taxRateToEdit) {
+      form.reset({
+        jurisdictionId: taxRateToEdit.jurisdictionId,
+        taxTypeId: taxRateToEdit.taxTypeId,
+        rate: taxRateToEdit.rate,
+        description: taxRateToEdit.description,
+        startDate: parseISO(taxRateToEdit.startDate),
+        endDate: taxRateToEdit.endDate ? parseISO(taxRateToEdit.endDate) : undefined,
+        isCompound: taxRateToEdit.isCompound || false,
+        applicableTo: taxRateToEdit.applicableTo || [],
+        notes: taxRateToEdit.notes || '',
+      });
+    } else {
+      form.reset({
+        jurisdictionId: '', taxTypeId: '', rate: 0, description: '', startDate: new Date(),
+        endDate: undefined, isCompound: false, applicableTo: [], notes: ''
+      });
+    }
+  }, [isOpen, mode, taxRateToEdit, form]);
 
   const handleSubmit = (data: z.infer<typeof formSchema>) => {
     const formData: AddTaxRateFormData = {
       ...data,
       startDate: formatISO(data.startDate, { representation: 'date' }),
       endDate: data.endDate ? formatISO(data.endDate, { representation: 'date' }) : undefined,
-      applicableTo: data.applicableTo as TaxApplicableEntity[], // Cast after validation
+      applicableTo: data.applicableTo as TaxApplicableEntity[],
+      isCompound: data.isCompound,
     };
-    onAddTaxRate(formData);
-    form.reset({ rate: 0, isCompound: false, applicableTo: [], jurisdictionId: '', taxTypeId: '', description: '', notes: ''});
-    setOpen(false);
+    onSave(formData, mode);
   };
   
-  const resetForm = () => {
-     form.reset({ rate: 0, isCompound: false, applicableTo: [], jurisdictionId: '', taxTypeId: '', description: '', notes: ''});
-  }
-
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if(!isOpen) resetForm(); setOpen(isOpen);}}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Tax Rate
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={(open) => { if(!open) onClose(); }}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Add New Tax Rate</DialogTitle>
+          <DialogTitle>{mode === 'add' ? 'Add New Tax Rate' : `Edit Tax Rate: ${taxRateToEdit?.description}`}</DialogTitle>
           <DialogDescription>
-            Define a specific tax rate for a jurisdiction and tax type.
+            {mode === 'add' ? 'Define a specific tax rate for a jurisdiction and tax type.' : 'Update the details for this tax rate.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -109,7 +136,7 @@ export default function AddTaxRateDialog({ onAddTaxRate, jurisdictions, taxTypes
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Jurisdiction *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select jurisdiction" /></SelectTrigger></FormControl>
                       <SelectContent>{jurisdictions.map(j => <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>)}</SelectContent>
                     </Select>
@@ -123,9 +150,9 @@ export default function AddTaxRateDialog({ onAddTaxRate, jurisdictions, taxTypes
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tax Type *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select tax type" /></SelectTrigger></FormControl>
-                      <SelectContent>{taxTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.name} ({t.abbreviation})</SelectItem>)}</SelectContent>
+                      <SelectContent>{taxTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.name} ({t.abbreviation || t.name})</SelectItem>)}</SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
@@ -177,7 +204,7 @@ export default function AddTaxRateDialog({ onAddTaxRate, jurisdictions, taxTypes
                   <FormItem className="flex flex-col"><FormLabel>End Date (Optional)</FormLabel>
                     <Popover><PopoverTrigger asChild><FormControl>
                         <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                          {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                          {field.value ? format(field.value, 'PPP') : <span>Pick an end date</span>}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button></FormControl></PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -257,8 +284,8 @@ export default function AddTaxRateDialog({ onAddTaxRate, jurisdictions, taxTypes
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { resetForm(); setOpen(false);}}>Cancel</Button>
-              <Button type="submit">Add Tax Rate</Button>
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+              <Button type="submit">{mode === 'add' ? 'Add Tax Rate' : 'Save Changes'}</Button>
             </DialogFooter>
           </form>
         </Form>
@@ -266,3 +293,5 @@ export default function AddTaxRateDialog({ onAddTaxRate, jurisdictions, taxTypes
     </Dialog>
   );
 }
+
+    

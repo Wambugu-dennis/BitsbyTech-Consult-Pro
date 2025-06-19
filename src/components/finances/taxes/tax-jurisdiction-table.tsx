@@ -6,15 +6,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 
 interface TaxJurisdictionTableProps {
   jurisdictions: TaxJurisdiction[];
-  // onEditJurisdiction: (jurisdiction: TaxJurisdiction) => void; // Future
-  // onDeleteJurisdiction: (jurisdictionId: string) => void; // Future
+  onEditJurisdiction: (jurisdiction: TaxJurisdiction) => void;
+  onDeleteJurisdiction: (jurisdictionId: string) => void;
 }
 
-export default function TaxJurisdictionTable({ jurisdictions }: TaxJurisdictionTableProps) {
+export default function TaxJurisdictionTable({ jurisdictions, onEditJurisdiction, onDeleteJurisdiction }: TaxJurisdictionTableProps) {
   return (
     <div className="rounded-md border overflow-x-auto">
       <Table>
@@ -53,12 +64,36 @@ export default function TaxJurisdictionTable({ jurisdictions }: TaxJurisdictionT
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => alert(`Editing ${jurisdiction.name} (to be implemented)`)}>
+                      <DropdownMenuItem onClick={() => onEditJurisdiction(jurisdiction)}>
                         <Edit className="mr-2 h-4 w-4" /> Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => alert(`Deleting ${jurisdiction.name} (to be implemented)`)}>
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <DropdownMenuItem 
+                            onSelect={(e) => e.preventDefault()}
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                           >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Jurisdiction: {jurisdiction.name}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the jurisdiction. Make sure it's not used by any tax rates.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              className="bg-destructive hover:bg-destructive/90"
+                              onClick={() => onDeleteJurisdiction(jurisdiction.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -70,3 +105,5 @@ export default function TaxJurisdictionTable({ jurisdictions }: TaxJurisdictionT
     </div>
   );
 }
+
+    

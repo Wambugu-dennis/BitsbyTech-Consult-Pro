@@ -308,7 +308,7 @@ export default function ProjectProfilePage() {
                    <p><strong>Budget:</strong> {project.financials.currency} {project.financials.budget.toLocaleString()}</p>
                    <p><strong>Spent:</strong> {project.financials.currency} {project.financials.spentBudget.toLocaleString()}</p>
                    <p><strong>Remaining:</strong> {project.financials.currency} {(project.financials.budget - project.financials.spentBudget).toLocaleString()}</p>
-                   <Progress value={(project.financials.spentBudget / project.financials.budget) * 100} className="h-3 mt-1"
+                   <Progress value={(project.financials.budget - project.financials.spentBudget) > 0 ? (project.financials.spentBudget / project.financials.budget) * 100 : 100} className="h-3 mt-1"
                     indicatorClassName={(project.financials.spentBudget > project.financials.budget) ? "bg-red-500" : "bg-primary"}
                    />
                    {project.financials.billingType && <p className="mt-2"><strong>Billing Type:</strong> {project.financials.billingType}</p>}
@@ -322,7 +322,7 @@ export default function ProjectProfilePage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2"><Percent className="h-5 w-5 text-primary"/>Applicable Tax Settings</CardTitle>
-                  <CardDescription>Tax rates configured for this project. These may be used as defaults for invoicing.</CardDescription>
+                  <CardDescription>Default tax rates configured for this project. These may be used as defaults for invoicing.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {projectTaxRates.length > 0 ? (
@@ -335,9 +335,9 @@ export default function ProjectProfilePage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No specific tax rates configured for this project. System defaults or client jurisdiction may apply.</p>
+                    <p className="text-sm text-muted-foreground">No specific tax rates configured for this project. System defaults or client jurisdiction may apply when invoicing.</p>
                   )}
-                  <Button variant="outline" size="sm" className="mt-4" onClick={() => alert("Tax settings management for projects under development.")}>Manage Project Taxes</Button>
+                  <Button variant="outline" size="sm" className="mt-4" onClick={() => alert("Managing project-specific tax rates (overrides/additions) is under development. Configure general tax rates in Finances > Tax Management.")}>Manage Project Taxes</Button>
                 </CardContent>
               </Card>
             </TabsContent>

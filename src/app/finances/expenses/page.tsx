@@ -2,23 +2,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Expense, ExpenseStatus, Client, Project, Consultant, Budget } from "@/lib/types"; // Added Budget
-import { initialExpenses, initialClients, initialProjects, initialConsultants, initialBudgets } from "@/lib/mockData"; // Added initialBudgets
+import type { Expense, ExpenseStatus, Client, Project, Consultant, Budget, TaxRate } from "@/lib/types"; // Added Budget, TaxRate
+import { initialExpenses, initialClients, initialProjects, initialConsultants, initialBudgets, initialTaxRates } from "@/lib/mockData"; // Added initialBudgets, initialTaxRates
 import AddExpenseDialog from "@/components/finances/expenses/add-expense-dialog";
 import ExpenseTable from "@/components/finances/expenses/expense-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Receipt, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useToast } from '@/hooks/use-toast';
 
 export default function ExpensesPage() {
   const router = useRouter();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const { toast } = useToast();
+  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [isMounted, setIsMounted] = useState(false);
+  
+  // Make allTaxRates available (could come from context/props in real app)
+  const [allTaxRates, setAllTaxRates] = useState<TaxRate[]>(initialTaxRates);
 
   useEffect(() => {
     // Simulate fetching data
     setExpenses(initialExpenses);
+    setAllTaxRates(initialTaxRates); // If dynamic, fetch here
     setIsMounted(true);
   }, []);
 
@@ -28,9 +34,9 @@ export default function ExpensesPage() {
     const project = initialProjects.find(p => p.id === newExpenseData.projectId);
     
     const newExpense: Expense = {
-      ...newExpenseData,
-      id: `exp-${Date.now()}`, // Simple ID generation for mock
-      status: 'Pending', // Default status
+      ...newExpenseData, // This already includes amount, taxAmount, totalAmountIncludingTax, appliedTaxes from the dialog
+      id: `exp-${Date.now()}`, 
+      status: 'Pending', 
       submittedByConsultantNameCache: consultant?.name,
       clientNameCache: client?.companyName,
       projectNameCache: project?.name,
@@ -38,6 +44,7 @@ export default function ExpensesPage() {
       updatedAt: new Date().toISOString(),
     }
     setExpenses(prevExpenses => [newExpense, ...prevExpenses]);
+    toast({ title: "Expense Logged", description: `Expense "${newExpense.description}" has been successfully logged.` });
   };
 
   const handleUpdateExpenseStatus = (expenseId: string, newStatus: ExpenseStatus) => {
@@ -46,6 +53,7 @@ export default function ExpensesPage() {
         exp.id === expenseId ? { ...exp, status: newStatus, updatedAt: new Date().toISOString() } : exp
       )
     );
+    toast({ title: "Expense Status Updated", description: `Expense status changed to ${newStatus}.` });
   };
 
   if (!isMounted) {
@@ -82,7 +90,8 @@ export default function ExpensesPage() {
           clients={initialClients}
           projects={initialProjects}
           consultants={initialConsultants}
-          budgets={initialBudgets} // Pass initialBudgets here
+          budgets={initialBudgets}
+          allTaxRates={allTaxRates} // Pass allTaxRates
         />
       </header>
       
@@ -90,7 +99,7 @@ export default function ExpensesPage() {
         <CardHeader>
           <CardTitle>All Logged Expenses</CardTitle>
           <CardDescription>
-            View, manage, and approve/reject submitted expenses. Expenses can be linked to clients, projects, consultants, and budgets.
+            View, manage, and approve/reject submitted expenses. Expenses can be linked to clients, projects, consultants, and budgets, with applicable taxes calculated.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -113,11 +122,12 @@ export default function ExpensesPage() {
         </CardHeader>
         <CardContent>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-1 md:columns-2">
-              <li>Advanced Expense Logging Form (Current form is simplified; receipt file upload is planned).</li>
+              <li>Edit and Delete existing expenses.</li>
+              <li>Advanced Expense Logging Form (Current form is functional; receipt file upload is planned).</li>
               <li>Multi-step Approval Workflows & Notifications.</li>
-              <li>Detailed Expense Reporting & Analytics (by category, project, client, budget).</li>
+              <li>Detailed Expense Reporting & Analytics (by category, project, client, budget, tax collected).</li>
               <li>Bulk Actions (e.g., approve multiple, export selected).</li>
-              <li>Data Export to Excel (Under development, for integration with accounting software).</li>
+              <li>Data Export to Excel/CSV (for integration with accounting software).</li>
               <li>Policy Enforcement (e.g., spending limits per category/project).</li>
             </ul>
         </CardContent>

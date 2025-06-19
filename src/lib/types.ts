@@ -72,7 +72,7 @@ export type Project = {
   attachments?: ProjectAttachment[];
   lastUpdated: string;
   completionPercent?: number;
-  applicableTaxRateIds?: string[];
+  applicableTaxRateIds?: string[]; // IDs of TaxRate s that generally apply
 };
 
 
@@ -270,6 +270,7 @@ export interface AppliedTaxInfo {
   amount: number; // Calculated tax amount for this specific tax
   jurisdiction?: string;
   taxTypeName?: string;
+  isCompound?: boolean; // Store if it was applied as compound
 }
 
 export type InvoiceItem = {
@@ -277,8 +278,9 @@ export type InvoiceItem = {
   description: string;
   quantity: number;
   unitPrice: number;
-  totalPrice: number; // Pre-tax price for this line item
-  appliedTaxes?: AppliedTaxInfo[];
+  totalPrice: number; // Pre-tax price for this line item (quantity * unitPrice)
+  applicableTaxRateIds?: string[]; // Specific tax rates selected for this item
+  appliedTaxes?: AppliedTaxInfo[]; // Taxes actually calculated and applied to this item
   taxAmountForItem?: number; // Sum of taxes for this specific item
   totalPriceIncludingTax?: number; // totalPrice + taxAmountForItem
 };
@@ -297,8 +299,8 @@ export type Invoice = {
   dueDate: string;
   items: InvoiceItem[];
   subTotal: number; // Sum of all item.totalPrice (pre-tax)
-  taxAmount: number; // Total tax amount for the entire invoice. Made non-optional.
-  appliedTaxes: AppliedTaxInfo[]; // Summary of taxes applied at invoice level. Made non-optional.
+  taxAmount: number; // Total tax amount for the entire invoice (sum of item.taxAmountForItem).
+  appliedTaxes: AppliedTaxInfo[]; // Summary of unique taxes applied across all items on the invoice.
   totalAmount: number; // subTotal + taxAmount
   status: InvoiceStatus;
   currency: string;
@@ -357,7 +359,8 @@ export type Expense = {
   approvedDate?: string;
   createdAt: string;
   updatedAt: string;
-  appliedTaxes?: AppliedTaxInfo[];
+  applicableTaxRateIds?: string[]; // Tax rates selected for this expense
+  appliedTaxes?: AppliedTaxInfo[]; // Taxes actually calculated and applied
   taxAmount?: number;
   totalAmountIncludingTax?: number; // amount + taxAmount
 };
@@ -426,11 +429,11 @@ export interface TaxType {
 }
 
 export type TaxApplicableEntity =
-  | 'ProjectRevenue'
-  | 'ProjectExpense'
+  | 'ProjectRevenue' // Placeholder, not directly used for calculation yet
+  | 'ProjectExpense' // Placeholder
   | 'InvoiceLineItem'
   | 'GeneralExpense'
-  | 'ServiceSales';
+  | 'ServiceSales'; // Could be used to categorize rates further
 
 export const taxApplicableEntities: TaxApplicableEntity[] = [
   'ProjectRevenue', 'ProjectExpense', 'InvoiceLineItem', 'GeneralExpense', 'ServiceSales'
@@ -446,7 +449,7 @@ export interface TaxRate {
   description: string; // e.g., "Standard VAT rate for services"
   startDate: string; // ISO Date string
   endDate?: string; // ISO Date string, for historical rates or temporary taxes
-  isCompound?: boolean; // Does this tax apply on top of other taxes?
+  isCompound: boolean; // Does this tax apply on top of other taxes?
   applicableTo: TaxApplicableEntity[]; // Specifies where this tax rate can be applied
   notes?: string;
   createdAt: string;

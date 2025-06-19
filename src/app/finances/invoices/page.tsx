@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Invoice, InvoiceStatus, Client, Project, AppliedTaxInfo } from "@/lib/types";
-import { initialInvoices, initialClients, initialProjects } from "@/lib/mockData";
+import type { Invoice, InvoiceStatus, Client, Project, AppliedTaxInfo, TaxRate } from "@/lib/types";
+import { initialInvoices, initialClients, initialProjects, initialTaxRates } from "@/lib/mockData";
 import AddInvoiceDialog, { type AddInvoiceDialogFormData } from "@/components/finances/invoices/add-invoice-dialog";
 import InvoiceTable from "@/components/finances/invoices/invoice-table";
 import { Button } from "@/components/ui/button";
@@ -12,14 +12,19 @@ import { formatISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [isMounted, setIsMounted] = useState(false);
   const [showAddEditDialog, setShowAddEditDialog] = useState(false);
   const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | undefined>(undefined);
   const { toast } = useToast();
 
+  // Make allTaxRates available from mockData or potentially a context/prop in a real app
+  const allTaxRates: TaxRate[] = initialTaxRates; 
+
   useEffect(() => {
-    setInvoices(initialInvoices);
+    // Simulate fetching initial data
+    // In a real app, you might fetch invoices and tax rates here
+    setInvoices(initialInvoices); 
     setIsMounted(true);
   }, []);
 
@@ -46,18 +51,12 @@ export default function InvoicesPage() {
         projectNameCache: formData.projectId ? initialProjects.find(p => p.id === formData.projectId)?.name : undefined,
         issueDate: formData.issueDate,
         dueDate: formData.dueDate,
-        items: [{
-          id: `item-${Date.now()}`,
-          description: `Consulting Services for ${formData.projectId ? initialProjects.find(p => p.id === formData.projectId)?.name : initialClients.find(c => c.id === formData.clientId)?.companyName || 'Selected Client'}`,
-          quantity: 1,
-          unitPrice: formData.subTotal,
-          totalPrice: formData.subTotal,
-        }],
+        items: formData.items, // items from form now include calculated tax details
         subTotal: formData.subTotal,
         taxAmount: formData.taxAmount,
         appliedTaxes: formData.appliedTaxes,
         totalAmount: formData.totalAmount,
-        status: formData.status as InvoiceStatus, // Form schema matches InvoiceStatus 'Draft' | 'Sent'
+        status: formData.status as InvoiceStatus,
         currency: formData.currency,
         notes: formData.notes,
         createdAt: new Date().toISOString(),
@@ -77,13 +76,7 @@ export default function InvoicesPage() {
                 projectNameCache: formData.projectId ? initialProjects.find(p => p.id === formData.projectId)?.name : undefined,
                 issueDate: formData.issueDate,
                 dueDate: formData.dueDate,
-                items: [{ // Simplified update, real app would handle item edits
-                  id: inv.items[0]?.id || `item-${Date.now()}`,
-                  description: `Consulting Services for ${formData.projectId ? initialProjects.find(p => p.id === formData.projectId)?.name : initialClients.find(c => c.id === formData.clientId)?.companyName || 'Selected Client'}`,
-                  quantity: 1,
-                  unitPrice: formData.subTotal,
-                  totalPrice: formData.subTotal,
-                }],
+                items: formData.items, // Use processed items
                 subTotal: formData.subTotal,
                 taxAmount: formData.taxAmount,
                 appliedTaxes: formData.appliedTaxes,
@@ -114,7 +107,6 @@ export default function InvoicesPage() {
   };
 
   const handleDeleteInvoice = (invoiceId: string) => {
-    // Simulate deletion, in a real app this would be an API call
     setInvoices(prevInvoices => prevInvoices.filter(inv => inv.id !== invoiceId));
     toast({ title: "Invoice Deleted", description: `Invoice ${invoiceId} has been deleted (simulated).`, variant: "destructive" });
   };
@@ -148,7 +140,7 @@ export default function InvoicesPage() {
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Invoices</h1>
                 <p className="text-muted-foreground">
-                Create, track, and manage all client invoices.
+                Create, track, and manage all client invoices. Taxes are applied per line item.
                 </p>
             </div>
         </div>
@@ -172,9 +164,11 @@ export default function InvoicesPage() {
           projects={initialProjects}
           invoiceToEdit={invoiceToEdit}
           mode={invoiceToEdit ? 'edit' : 'add'}
+          allTaxRates={allTaxRates} // Pass allTaxRates
         />
       )}
     </div>
   );
 }
 
+    
