@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card import
+import { Card } from "@/components/ui/card";
 import { CalendarIcon, PlusCircle, Trash2, AlertTriangle, CircleDollarSign } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
@@ -22,6 +22,8 @@ import { format, formatISO, parseISO, addDays } from 'date-fns';
 import type { Client, Project, InvoiceStatus, TaxRate, AppliedTaxInfo, Invoice, InvoiceItem } from '@/lib/types';
 import { initialTaxRates } from '@/lib/mockData'; // For tax rate selection
 import { useToast } from '@/hooks/use-toast';
+
+const NONE_VALUE_PLACEHOLDER = "--none--"; // Define placeholder
 
 const invoiceItemSchema = z.object({
   id: z.string().optional(), // For existing items during edit
@@ -33,7 +35,7 @@ const invoiceItemSchema = z.object({
 
 const addInvoiceFormSchema = z.object({
   clientId: z.string().min(1, 'Client is required.'),
-  projectId: z.string().optional(),
+  projectId: z.string().optional(), // Can be undefined
   issueDate: z.date({ required_error: 'Issue date is required.' }),
   dueDate: z.date({ required_error: 'Due date is required.' }),
   currency: z.string().min(3, 'Currency code is required (e.g., USD).').default('USD'),
@@ -81,7 +83,7 @@ export default function AddInvoiceDialog({
     resolver: zodResolver(addInvoiceFormSchema),
     defaultValues: {
       clientId: '',
-      projectId: '',
+      projectId: undefined, // Use undefined for optional select
       currency: 'USD',
       status: 'Draft',
       notes: '',
@@ -114,12 +116,12 @@ export default function AddInvoiceDialog({
       const activeTaxRatesForItem = (item.applicableTaxRateIds || [])
         .map(rateId => allTaxRates.find(r => r.id === rateId && r.applicableTo.includes('InvoiceLineItem')))
         .filter((rate): rate is TaxRate => Boolean(rate)) // Type guard
-        .filter(rate => 
-          issueDate && 
+        .filter(rate =>
+          issueDate &&
           (!rate.startDate || parseISO(rate.startDate) <= issueDate) &&
           (!rate.endDate || parseISO(rate.endDate) >= issueDate)
         );
-      
+
       activeTaxRatesForItem.sort((a, b) => (a.isCompound ? 1 : 0) - (b.isCompound ? 1 : 0));
 
       let baseForItemTaxCalculation = itemPreTaxTotal;
@@ -132,11 +134,11 @@ export default function AddInvoiceDialog({
         }
         taxForThisRateOnItem = parseFloat(taxForThisRateOnItem.toFixed(2));
         itemTaxAmount += taxForThisRateOnItem;
-        
+
         if (rate.isCompound) {
           baseForItemTaxCalculation += taxForThisRateOnItem;
         }
-        
+
         if (currentUniqueAppliedTaxesMap.has(rate.id)) {
             const existing = currentUniqueAppliedTaxesMap.get(rate.id)!;
             existing.amount = parseFloat((existing.amount + taxForThisRateOnItem).toFixed(2));
@@ -154,7 +156,7 @@ export default function AddInvoiceDialog({
       });
       currentTotalTaxAmount += itemTaxAmount;
     });
-    
+
     currentSubTotal = parseFloat(currentSubTotal.toFixed(2));
     currentTotalTaxAmount = parseFloat(currentTotalTaxAmount.toFixed(2));
 
@@ -171,7 +173,7 @@ export default function AddInvoiceDialog({
     if (mode === 'edit' && invoiceToEdit) {
       form.reset({
         clientId: invoiceToEdit.clientId,
-        projectId: invoiceToEdit.projectId || '',
+        projectId: invoiceToEdit.projectId || undefined, // Ensure it's undefined if null/empty
         issueDate: parseISO(invoiceToEdit.issueDate),
         dueDate: parseISO(invoiceToEdit.dueDate),
         currency: invoiceToEdit.currency,
@@ -185,14 +187,14 @@ export default function AddInvoiceDialog({
           applicableTaxRateIds: item.applicableTaxRateIds || item.appliedTaxes?.map(t => t.taxRateId) || [],
         })),
       });
-    } else { 
+    } else {
       form.reset({
-        clientId: '', projectId: '', currency: 'USD', status: 'Draft', notes: '',
+        clientId: '', projectId: undefined, currency: 'USD', status: 'Draft', notes: '',
         items: [{ description: '', quantity: 1, unitPrice: 0, applicableTaxRateIds: [] }],
         issueDate: new Date(), dueDate: addDays(new Date(), 30)
       });
     }
-  }, [invoiceToEdit, mode, form, isOpen]); 
+  }, [invoiceToEdit, mode, form, isOpen]);
 
   useEffect(() => {
     if (mode === 'add' && (selectedClientId || selectedProjectId) && issueDate) {
@@ -205,7 +207,7 @@ export default function AddInvoiceDialog({
         const client = clients.find(c => c.id === selectedClientId);
         if (client?.jurisdictionId) {
           suggestedRateIds = allTaxRates
-            .filter(rate => 
+            .filter(rate =>
               rate.jurisdictionId === client.jurisdictionId &&
               rate.applicableTo.includes('InvoiceLineItem') &&
               (!rate.startDate || parseISO(rate.startDate) <= issueDate) &&
@@ -226,12 +228,12 @@ export default function AddInvoiceDialog({
       const itemPreTaxTotal = (item.quantity || 0) * (item.unitPrice || 0);
       let itemTaxAmount = 0;
       const itemAppliedTaxes: AppliedTaxInfo[] = [];
-      
+
       const activeTaxRatesForItem = (item.applicableTaxRateIds || [])
         .map(rateId => allTaxRates.find(r => r.id === rateId && r.applicableTo.includes('InvoiceLineItem')))
         .filter((rate): rate is TaxRate => Boolean(rate)) // Type guard
-        .filter(rate => 
-            issueDate && 
+        .filter(rate =>
+            issueDate &&
             (!rate.startDate || parseISO(rate.startDate) <= issueDate) &&
             (!rate.endDate || parseISO(rate.endDate) >= issueDate)
         );
@@ -256,7 +258,7 @@ export default function AddInvoiceDialog({
             baseForItemTaxCalc += taxForThisRate;
         }
       });
-      
+
       return {
         id: item.id || `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         description: item.description,
@@ -272,7 +274,7 @@ export default function AddInvoiceDialog({
 
     const finalFormData: AddInvoiceDialogFormData = {
       clientId: data.clientId,
-      projectId: data.projectId,
+      projectId: data.projectId === NONE_VALUE_PLACEHOLDER ? undefined : data.projectId,
       issueDate: formatISO(data.issueDate, { representation: 'date' }),
       dueDate: formatISO(data.dueDate, { representation: 'date' }),
       currency: data.currency,
@@ -288,7 +290,7 @@ export default function AddInvoiceDialog({
   };
 
   const filteredProjects = projects.filter(p => p.clientId === selectedClientId);
-  const availableTaxRates = allTaxRates.filter(rate => 
+  const availableTaxRates = allTaxRates.filter(rate =>
     rate.applicableTo.includes('InvoiceLineItem') &&
     issueDate &&
     (!rate.startDate || parseISO(rate.startDate) <= issueDate) &&
@@ -313,7 +315,13 @@ export default function AddInvoiceDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Client *</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); form.setValue('projectId', ''); }} value={field.value}>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('projectId', undefined); // Reset project when client changes
+                      }}
+                      value={field.value}
+                    >
                       <FormControl><SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger></FormControl>
                       <SelectContent>{clients.map(client => (<SelectItem key={client.id} value={client.id}>{client.companyName}</SelectItem>))}</SelectContent>
                     </Select>
@@ -326,9 +334,16 @@ export default function AddInvoiceDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Project (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedClientId || filteredProjects.length === 0}>
+                    <Select
+                      onValueChange={(value) => field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value)}
+                      value={field.value || NONE_VALUE_PLACEHOLDER} // Use placeholder if field.value is undefined
+                      disabled={!selectedClientId || filteredProjects.length === 0}
+                    >
                       <FormControl><SelectTrigger><SelectValue placeholder={!selectedClientId ? "Select client first" : filteredProjects.length === 0 ? "No projects for client" : "Select a project"} /></SelectTrigger></FormControl>
-                      <SelectContent><SelectItem value="">-- None --</SelectItem>{filteredProjects.map(project => (<SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>))}</SelectContent>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE_PLACEHOLDER}>-- None --</SelectItem>
+                        {filteredProjects.map(project => (<SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>))}
+                      </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
