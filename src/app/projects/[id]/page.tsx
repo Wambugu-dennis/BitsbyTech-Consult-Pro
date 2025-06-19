@@ -2,11 +2,11 @@
 // src/app/projects/[id]/page.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { Project, Client, Consultant, TaxRate } from '@/lib/types';
-import { initialProjects, initialClients, initialConsultants, initialTaxRates } from '@/lib/mockData';
+import type { Project, Client, Consultant, TaxRate, RevenueRecognitionRule, RecognizedRevenueEntry } from '@/lib/types';
+import { initialProjects, initialClients, initialConsultants, initialTaxRates, initialRevenueRecognitionRules, initialRecognizedRevenueEntries } from '@/lib/mockData';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,10 +15,11 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import {
-  ArrowLeft, Briefcase, Users, UserCog, CalendarDays, Target, DollarSign, Paperclip, ListChecks, Tag, Info, Users2, Clock, Percent
+  ArrowLeft, Briefcase, Users, UserCog, CalendarDays, Target, DollarSign, Paperclip, ListChecks, Tag, Info, Users2, Clock, Percent, Landmark as RevenueIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+import RecognizedRevenueLogTable from '@/components/finances/revenue-recognition/recognized-revenue-log-table';
 
 
 const getProjectById = (id: string): Project | undefined => {
@@ -65,6 +66,17 @@ export default function ProjectProfilePage() {
       default: return 'text-muted-foreground';
     }
   };
+
+  const projectRevenueRecognitionRule = useMemo(() => {
+    if (!project || !project.revenueRecognitionRuleId) return null;
+    return initialRevenueRecognitionRules.find(rule => rule.id === project.revenueRecognitionRuleId) || null;
+  }, [project]);
+
+  const projectRecognizedRevenue = useMemo(() => {
+    if (!project) return [];
+    return initialRecognizedRevenueEntries.filter(entry => entry.projectId === project.id);
+  }, [project]);
+
 
   if (!isMounted) {
     return (
@@ -190,11 +202,12 @@ export default function ProjectProfilePage() {
         {/* Right Main Content with Tabs */}
         <div className="lg:col-span-8 xl:col-span-9">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mb-4">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 mb-4">
               <TabsTrigger value="overview"><Info className="mr-1 h-4 w-4 sm:mr-2"/>Overview</TabsTrigger>
               <TabsTrigger value="tasks"><ListChecks className="mr-1 h-4 w-4 sm:mr-2"/>Tasks</TabsTrigger>
               <TabsTrigger value="milestones"><Target className="mr-1 h-4 w-4 sm:mr-2"/>Milestones</TabsTrigger>
               <TabsTrigger value="financials"><DollarSign className="mr-1 h-4 w-4 sm:mr-2"/>Financials</TabsTrigger>
+              <TabsTrigger value="revenue"><RevenueIcon className="mr-1 h-4 w-4 sm:mr-2"/>Revenue</TabsTrigger>
               <TabsTrigger value="tax"><Percent className="mr-1 h-4 w-4 sm:mr-2"/>Tax</TabsTrigger>
               <TabsTrigger value="documents"><Paperclip className="mr-1 h-4 w-4 sm:mr-2"/>Docs</TabsTrigger>
             </TabsList>
@@ -316,6 +329,33 @@ export default function ProjectProfilePage() {
                    <p className="text-xs text-muted-foreground mt-4">More detailed financial tracking and invoicing will be available in the Finances module.</p>
                 </CardContent>
               </Card>
+            </TabsContent>
+            
+            <TabsContent value="revenue">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><RevenueIcon className="h-5 w-5 text-primary"/>Revenue Recognition</CardTitle>
+                        <CardDescription>Revenue recognized for {project.name}.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {projectRevenueRecognitionRule ? (
+                            <div className="p-3 mb-4 border rounded-md bg-muted/30">
+                                <h4 className="font-semibold text-sm">Applied Rule: {projectRevenueRecognitionRule.name}</h4>
+                                <p className="text-xs text-muted-foreground">{projectRevenueRecognitionRule.method.replace(/([A-Z])/g, ' $1').trim()}</p>
+                                {projectRevenueRecognitionRule.criteriaDescription && <p className="text-xs text-muted-foreground mt-1">Criteria: {projectRevenueRecognitionRule.criteriaDescription}</p>}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground mb-3">No specific revenue recognition rule linked. Revenue may be recognized manually or based on invoice payments.</p>
+                        )}
+                        <h4 className="font-semibold text-md mb-2">Recognized Revenue Log for this Project:</h4>
+                        {projectRecognizedRevenue.length > 0 ? (
+                            <RecognizedRevenueLogTable entries={projectRecognizedRevenue} />
+                        ) : (
+                           <p className="text-sm text-muted-foreground text-center py-4">No revenue recognized yet for this project.</p>
+                        )}
+                         <Button variant="outline" size="sm" className="mt-4" onClick={() => router.push('/finances/revenue-recognition')}>Manage Revenue Recognition</Button>
+                    </CardContent>
+                </Card>
             </TabsContent>
 
             <TabsContent value="tax">

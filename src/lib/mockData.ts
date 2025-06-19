@@ -1,7 +1,7 @@
 
-import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, AppliedTaxInfo, Expense, Budget, BudgetStatus, BudgetType, CalendarEvent, ClientMeeting, RevenueData, SystemUser, SystemUserStatus, SystemRole, TaxJurisdiction, TaxType, TaxRate, TaxApplicableEntity } from "@/lib/types";
+import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, AppliedTaxInfo, Expense, Budget, BudgetStatus, BudgetType, CalendarEvent, ClientMeeting, RevenueData, SystemUser, SystemUserStatus, SystemRole, TaxJurisdiction, TaxType, TaxRate, TaxApplicableEntity, RevenueRecognitionRule, RevenueRecognitionMethod, RecognizedRevenueEntry } from "@/lib/types";
 import { PROJECT_STATUS } from "@/lib/constants";
-import { expenseCategories, budgetTypes, budgetStatuses, calendarEventTypes, systemUserStatuses, systemRoles, taxApplicableEntities } from "./types";
+import { expenseCategories, budgetTypes, budgetStatuses, calendarEventTypes, systemUserStatuses, systemRoles, taxApplicableEntities, revenueRecognitionMethods } from "./types";
 import { formatISO, addDays, subDays, addMonths, parseISO, getMonth, format } from 'date-fns';
 
 const today = new Date();
@@ -211,6 +211,7 @@ export const initialProjects: Project[] = [
     lastUpdated: new Date().toISOString(),
     completionPercent: 45,
     applicableTaxRateIds: ['rate-us-ca-sales'], // Example: California Sales Tax
+    revenueRecognitionRuleId: 'rule-milestone',
   },
   {
     id: 'proj202',
@@ -235,7 +236,8 @@ export const initialProjects: Project[] = [
     tags: ['Healthcare', 'Predictive Analytics', 'Data Science'],
     lastUpdated: new Date().toISOString(),
     completionPercent: 30,
-     applicableTaxRateIds: [], // No specific tax for this example initially
+    applicableTaxRateIds: [], // No specific tax for this example initially
+    revenueRecognitionRuleId: 'rule-poc',
   },
   {
     id: 'proj301',
@@ -259,7 +261,8 @@ export const initialProjects: Project[] = [
         { id: 'm301-1', name: 'Initial Assessment', dueDate: formatISO(subDays(today, 180), { representation: 'date' }), status: 'Completed' },
         { id: 'm301-2', name: 'Implementation Phase', dueDate: formatISO(subDays(today, 120), { representation: 'date' }), status: 'Completed' },
         { id: 'm301-3', name: 'Final Report & Handover', dueDate: formatISO(subDays(today, 100), { representation: 'date' }), status: 'Completed' },
-    ]
+    ],
+    revenueRecognitionRuleId: 'rule-onpaid',
   },
   {
     id: 'proj105',
@@ -285,6 +288,7 @@ export const initialProjects: Project[] = [
     lastUpdated: new Date().toISOString(),
     completionPercent: 5,
     applicableTaxRateIds: ['rate-us-ca-sales'],
+    revenueRecognitionRuleId: 'rule-milestone',
   }
 ];
 
@@ -314,7 +318,8 @@ export const initialTaxRates: TaxRate[] = [
     rate: 16,
     description: 'Standard VAT rate for services in Kenya.',
     startDate: '2020-01-01',
-    applicableTo: ['ServiceSales', 'InvoiceLineItem'],
+    applicableTo: ['ServiceSales', 'InvoiceLineItem', 'GeneralExpense'],
+    isCompound: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -327,7 +332,8 @@ export const initialTaxRates: TaxRate[] = [
     rate: 7.25,
     description: 'California statewide sales tax rate. Local taxes may apply.',
     startDate: '2017-01-01',
-    applicableTo: ['InvoiceLineItem', 'ServiceSales'], // ServiceSales if services are taxable in CA
+    applicableTo: ['InvoiceLineItem', 'ServiceSales', 'GeneralExpense'],
+    isCompound: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -421,7 +427,8 @@ const createInvoiceWithTaxes = (
         rateValue: taxRateInfo.rate,
         amount: taxAmountForThisRate,
         jurisdiction: taxRateInfo.jurisdictionNameCache,
-        taxTypeName: taxRateInfo.taxTypeNameCache
+        taxTypeName: taxRateInfo.taxTypeNameCache,
+        isCompound: taxRateInfo.isCompound
       });
     }
   });
@@ -448,6 +455,20 @@ const createInvoiceWithTaxes = (
     createdAt: formatISO(subDays(today, daysOffset + 2)),
     updatedAt: formatISO(subDays(today, daysOffset + 1)),
     paymentDate: status === 'Paid' ? formatISO(subDays(today, daysOffset - 5), { representation: 'date' }) : undefined,
+    deferredRevenueAmount: status === 'Paid' ? totalAmount * 0.5 : totalAmount, // Example initial deferral
+    recognizedRevenueEntries: status === 'Paid' ? [
+      {
+        id: `rr-${id}-1`,
+        invoiceId: id,
+        invoiceNumberCache: id,
+        dateRecognized: formatISO(subDays(today, daysOffset - 5)), // Same as payment date
+        amountRecognized: totalAmount * 0.5,
+        currency: 'USD',
+        recognitionRuleId: 'rule-onpaid', // Example
+        recognitionRuleNameCache: 'Recognize 50% on Payment',
+        createdAt: formatISO(subDays(today, daysOffset - 5)),
+      }
+    ] : [],
   };
 };
 
@@ -560,10 +581,10 @@ export const initialExpenses: Expense[] = [
     approvedDate: formatISO(subDays(today, 8), { representation: 'date' }),
     createdAt: formatISO(subDays(today, 10), { representation: 'date' }),
     updatedAt: formatISO(subDays(today, 8), { representation: 'date' }),
-    // Example with tax:
-    // appliedTaxes: [{ taxRateId: 'rate-us-ca-sales', name: 'CA Sales Tax', rateValue: 7.25, amount: parseFloat((450.75 * 0.0725).toFixed(2)) , jurisdiction: 'USA - California', taxTypeName: 'Sales Tax'}],
-    // taxAmount: parseFloat((450.75 * 0.0725).toFixed(2)),
-    // totalAmountIncludingTax: parseFloat((450.75 * 1.0725).toFixed(2)),
+    applicableTaxRateIds: ['rate-us-ca-sales'],
+    appliedTaxes: [{ taxRateId: 'rate-us-ca-sales', name: 'CA Sales Tax', rateValue: 7.25, amount: parseFloat((450.75 * 0.0725).toFixed(2)) , jurisdiction: 'USA - California', taxTypeName: 'Sales Tax', isCompound: false}],
+    taxAmount: parseFloat((450.75 * 0.0725).toFixed(2)),
+    totalAmountIncludingTax: parseFloat((450.75 * 1.0725).toFixed(2)),
   },
   {
     id: 'exp-002',
@@ -614,8 +635,8 @@ export const initialExpenses: Expense[] = [
     clientNameCache: initialClients.find(cl => cl.id === '4')?.companyName,
     createdAt: formatISO(subDays(today, 2), { representation: 'date' }),
     updatedAt: formatISO(subDays(today, 2), { representation: 'date' }),
-     // Example for client in Kenya
-    appliedTaxes: [{ taxRateId: 'rate-ke-vat-std', name: 'Kenyan VAT', rateValue: 16, amount: parseFloat((35.00 * 0.16).toFixed(2)), jurisdiction: 'Kenya', taxTypeName: 'Value Added Tax' }],
+    applicableTaxRateIds: ['rate-ke-vat-std'],
+    appliedTaxes: [{ taxRateId: 'rate-ke-vat-std', name: 'Kenyan VAT', rateValue: 16, amount: parseFloat((35.00 * 0.16).toFixed(2)), jurisdiction: 'Kenya', taxTypeName: 'Value Added Tax', isCompound: false }],
     taxAmount: parseFloat((35.00 * 0.16).toFixed(2)),
     totalAmountIncludingTax: parseFloat((35.00 * 1.16).toFixed(2)),
   },
@@ -718,5 +739,100 @@ export const historicalRevenueData: RevenueData[] = revenueChartDataMonths.slice
   actualRevenue: 50000 + (index * 3000) + (Math.random() * 10000 - 5000),
   actualExpenses: 30000 + (index * 1500) + (Math.random() * 6000 - 3000),
 }));
+
+// Revenue Recognition Mock Data
+export const initialRevenueRecognitionRules: RevenueRecognitionRule[] = [
+  {
+    id: 'rule-onpaid',
+    name: 'Full Recognition on Invoice Payment',
+    method: 'OnInvoicePaid',
+    criteriaDescription: 'Recognize 100% of invoice value when the invoice status is "Paid".',
+    isActive: true,
+    createdAt: formatISO(subDays(today, 90)),
+    updatedAt: formatISO(subDays(today, 90)),
+  },
+  {
+    id: 'rule-milestone',
+    name: 'Milestone Completion Based',
+    method: 'MilestoneBased',
+    criteriaDescription: 'Recognize revenue proportionally as project milestones are marked "Completed". E.g., Milestone 1 (20%), Milestone 2 (30%), Milestone 3 (50%). Specific percentages per milestone set at project level.',
+    isActive: true,
+    createdAt: formatISO(subDays(today, 80)),
+    updatedAt: formatISO(subDays(today, 10)),
+  },
+  {
+    id: 'rule-poc',
+    name: 'Percentage of Completion (Time-Based)',
+    method: 'PercentageOfCompletion',
+    criteriaDescription: 'Recognize revenue based on the percentage of project duration elapsed or effort logged. Requires project start/end dates and progress tracking.',
+    isActive: true,
+    createdAt: formatISO(subDays(today, 70)),
+    updatedAt: formatISO(subDays(today, 70)),
+  },
+  {
+    id: 'rule-subscription-monthly',
+    name: 'Monthly Subscription Recognition',
+    method: 'SubscriptionBased',
+    criteriaDescription: 'For retainer or subscription contracts, recognize revenue evenly on a monthly basis over the contract period.',
+    isActive: false,
+    createdAt: formatISO(subDays(today, 60)),
+    updatedAt: formatISO(subDays(today, 60)),
+  },
+];
+
+export const initialRecognizedRevenueEntries: RecognizedRevenueEntry[] = [
+  {
+    id: 'rr-001',
+    invoiceId: 'INV-2024-001',
+    invoiceNumberCache: 'INV-2024-001',
+    projectId: initialInvoices.find(i => i.id === 'INV-2024-001')?.projectId,
+    projectNameCache: initialInvoices.find(i => i.id === 'INV-2024-001')?.projectNameCache,
+    clientId: initialInvoices.find(i => i.id === 'INV-2024-001')?.clientId,
+    clientNameCache: initialInvoices.find(i => i.id === 'INV-2024-001')?.clientNameCache,
+    dateRecognized: initialInvoices.find(i => i.id === 'INV-2024-001')?.paymentDate || formatISO(subDays(today,40)),
+    amountRecognized: (initialInvoices.find(i => i.id === 'INV-2024-001')?.totalAmount || 0) * 0.5, // Example 50%
+    currency: 'USD',
+    recognitionRuleId: 'rule-onpaid',
+    recognitionRuleNameCache: 'Full Recognition on Invoice Payment',
+    notes: 'Partial recognition of Invoice INV-2024-001 upon payment.',
+    createdAt: initialInvoices.find(i => i.id === 'INV-2024-001')?.paymentDate || formatISO(subDays(today,40)),
+  },
+  {
+    id: 'rr-002',
+    projectId: 'proj101',
+    projectNameCache: 'Innovatech AI Overhaul',
+    clientId: '1',
+    clientNameCache: 'Innovatech Ltd.',
+    dateRecognized: formatISO(subDays(today, 55)), // Corresponds to Milestone 1 completion
+    amountRecognized: (initialProjects.find(p=>p.id==='proj101')?.financials.budget || 0) * 0.20, // 20% for milestone 1
+    currency: 'USD',
+    recognitionRuleId: 'rule-milestone',
+    recognitionRuleNameCache: 'Milestone Completion Based',
+    notes: 'Recognized revenue for Milestone 1 (Discovery & Planning) completion on proj101.',
+    createdAt: formatISO(subDays(today, 55)),
+  },
+  {
+    id: 'rr-003',
+    projectId: 'proj202',
+    projectNameCache: 'Alpha Solutions Predictive Model',
+    clientId: '2',
+    clientNameCache: 'Alpha Solutions',
+    dateRecognized: formatISO(subDays(today, 10)), // Example PoC recognition
+    amountRecognized: ((initialProjects.find(p=>p.id==='proj202')?.financials.budget || 0) / 3) * 0.30, // 30% of 1/3rd (approx for 30% completion of 1/3 duration)
+    currency: 'USD',
+    recognitionRuleId: 'rule-poc',
+    recognitionRuleNameCache: 'Percentage of Completion (Time-Based)',
+    notes: 'Recognized revenue based on project progress (approx 30% complete of first phase).',
+    createdAt: formatISO(subDays(today, 10)),
+  }
+];
+
+// Link some initial invoices to initial recognized revenue
+initialInvoices.forEach(inv => {
+  if (inv.id === 'INV-2024-001') {
+    inv.recognizedRevenueEntries = [initialRecognizedRevenueEntries[0]];
+    inv.deferredRevenueAmount = inv.totalAmount - (inv.recognizedRevenueEntries[0].amountRecognized);
+  }
+});
 
     

@@ -51,6 +51,35 @@ export type ProjectFinancials = {
   hourlyRate?: number;
 };
 
+export type RevenueRecognitionMethod =
+  | 'OnInvoicePaid'
+  | 'PercentageOfCompletion'
+  | 'MilestoneBased'
+  | 'SubscriptionBased'
+  | 'Manual';
+
+export const revenueRecognitionMethods: RevenueRecognitionMethod[] = [
+  'OnInvoicePaid',
+  'PercentageOfCompletion',
+  'MilestoneBased',
+  'SubscriptionBased',
+  'Manual',
+];
+
+export interface RevenueRecognitionRule {
+  id: string;
+  name: string;
+  description?: string;
+  method: RevenueRecognitionMethod;
+  // criteria could be more structured, e.g., { milestoneId: string, percentage: number }[] for MilestoneBased
+  // or { recognitionSchedule: 'monthly' | 'quarterly' | 'annually' } for SubscriptionBased.
+  // For PoC, a text area for criteria description is simpler.
+  criteriaDescription?: string;
+  isActive: boolean;
+  createdAt: string; // ISO Date string
+  updatedAt: string; // ISO Date string
+}
+
 export type Project = {
   id: string;
   name: string;
@@ -73,6 +102,7 @@ export type Project = {
   lastUpdated: string;
   completionPercent?: number;
   applicableTaxRateIds?: string[]; // IDs of TaxRate s that generally apply
+  revenueRecognitionRuleId?: string; // Link to a specific recognition rule
 };
 
 
@@ -273,6 +303,23 @@ export interface AppliedTaxInfo {
   isCompound?: boolean; // Store if it was applied as compound
 }
 
+export interface RecognizedRevenueEntry {
+  id: string;
+  projectId?: string; // Link to project if recognized at project level
+  projectNameCache?: string;
+  invoiceId?: string; // Link to invoice if recognized from an invoice
+  invoiceNumberCache?: string;
+  clientId?: string;
+  clientNameCache?: string;
+  dateRecognized: string; // ISO Date string
+  amountRecognized: number;
+  currency: string;
+  recognitionRuleId?: string; // Link to the rule used
+  recognitionRuleNameCache?: string;
+  notes?: string;
+  createdAt: string; // ISO Date string
+}
+
 export type InvoiceItem = {
   id: string;
   description: string;
@@ -309,6 +356,9 @@ export type Invoice = {
   paymentDate?: string;
   createdAt: string;
   updatedAt: string;
+  // Revenue Recognition related fields
+  deferredRevenueAmount?: number; // Portion of totalAmount not yet recognized
+  recognizedRevenueEntries?: RecognizedRevenueEntry[]; // Log of recognized portions
 };
 
 export type ExpenseStatus = 'Pending' | 'Approved' | 'Rejected';

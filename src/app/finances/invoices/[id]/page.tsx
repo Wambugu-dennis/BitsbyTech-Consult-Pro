@@ -2,7 +2,7 @@
 // src/app/finances/invoices/[id]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Printer, Mail, DollarSign, Briefcase, User, FileText, CalendarDays } from 'lucide-react';
-import type { Invoice, InvoiceItem, AppliedTaxInfo } from '@/lib/types';
-import { initialInvoices, initialClients, initialProjects } from '@/lib/mockData'; // For fetching invoice data
+import { ArrowLeft, Printer, Mail, DollarSign, Briefcase, User, FileText, CalendarDays, Landmark as RevenueIcon } from 'lucide-react';
+import type { Invoice, InvoiceItem, AppliedTaxInfo, RecognizedRevenueEntry } from '@/lib/types';
+import { initialInvoices, initialClients, initialProjects, initialRecognizedRevenueEntries } from '@/lib/mockData'; // For fetching invoice data
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import RecognizedRevenueLogTable from '@/components/finances/revenue-recognition/recognized-revenue-log-table';
+
 
 // In a real app, this data would be fetched from an API based on the ID
 const getInvoiceById = (id: string): Invoice | undefined => {
@@ -34,10 +36,34 @@ export default function InvoiceDetailPage() {
   useEffect(() => {
     if (id) {
       const foundInvoice = getInvoiceById(id);
+      // Augment invoice with its specific recognized revenue entries if not already present
+      if (foundInvoice && !foundInvoice.recognizedRevenueEntries) {
+          foundInvoice.recognizedRevenueEntries = initialRecognizedRevenueEntries.filter(entry => entry.invoiceId === foundInvoice.id);
+          // Simulate deferred amount calculation if not present
+          if (foundInvoice.deferredRevenueAmount === undefined) {
+              const totalRecognized = foundInvoice.recognizedRevenueEntries.reduce((sum, entry) => sum + entry.amountRecognized, 0);
+              foundInvoice.deferredRevenueAmount = foundInvoice.totalAmount - totalRecognized;
+          }
+      }
       setInvoice(foundInvoice || null);
     }
     setIsMounted(true);
   }, [id]);
+  
+  const invoiceRecognizedRevenue = useMemo(() => {
+    if (!invoice) return [];
+    return initialRecognizedRevenueEntries.filter(entry => entry.invoiceId === invoice.id);
+  }, [invoice]);
+
+  const totalRecognizedForInvoice = useMemo(() => {
+    return invoiceRecognizedRevenue.reduce((sum, entry) => sum + entry.amountRecognized, 0);
+  }, [invoiceRecognizedRevenue]);
+
+  const currentDeferredAmount = useMemo(() => {
+    if (!invoice) return 0;
+    return invoice.totalAmount - totalRecognizedForInvoice;
+  }, [invoice, totalRecognizedForInvoice]);
+
 
   const getStatusBadgeClass = (status: InvoiceStatus): string => {
     switch (status) {
@@ -219,7 +245,47 @@ export default function InvoiceDetailPage() {
             <p>Thank you for your business! If you have any questions regarding this invoice, please contact us at finance@consultvista.example.com.</p>
         </CardFooter>
       </Card>
+
+      {/* Revenue Recognition Section for this Invoice */}
+      <Card className="mt-6 shadow-lg">
+        <CardHeader>
+            <div className="flex items-center gap-2">
+                <RevenueIcon className="h-6 w-6 text-primary" />
+                <CardTitle>Revenue Recognition for Invoice {invoice.id}</CardTitle>
+            </div>
+            <CardDescription>Status of revenue recognized from this specific invoice.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="p-3 border rounded-md bg-muted/20">
+                    <p className="text-xs text-muted-foreground">Invoice Total</p>
+                    <p className="font-semibold text-lg">{invoice.currency} {invoice.totalAmount.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</p>
+                </div>
+                <div className="p-3 border rounded-md bg-green-500/10">
+                    <p className="text-xs text-green-700">Total Recognized from this Invoice</p>
+                    <p className="font-semibold text-lg text-green-600">{invoice.currency} {totalRecognizedForInvoice.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</p>
+                </div>
+                <div className="p-3 border rounded-md bg-yellow-500/10">
+                    <p className="text-xs text-yellow-700">Remaining Deferred from this Invoice</p>
+                    <p className="font-semibold text-lg text-yellow-600">{invoice.currency} {currentDeferredAmount.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</p>
+                </div>
+            </div>
+            
+            <h4 className="text-md font-semibold pt-3">Recognition Log for this Invoice:</h4>
+            {invoiceRecognizedRevenue.length > 0 ? (
+                <RecognizedRevenueLogTable entries={invoiceRecognizedRevenue} />
+            ) : (
+                <p className="text-sm text-muted-foreground text-center py-3">No revenue recognized yet specifically from this invoice's payments or milestones.</p>
+            )}
+            <div className="text-right">
+                <Button variant="outline" size="sm" onClick={() => router.push(`/finances/revenue-recognition?invoiceId=${invoice.id}`)}>
+                    Manage Recognition
+                </Button>
+            </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
+    

@@ -14,7 +14,7 @@ import {
   FileText,
   Receipt,
   Target,
-  Landmark,
+  Landmark, // Used for Revenue Recognition
   PieChart as PieChartIconLucide,
   Brain,
   Users2,
@@ -147,3 +147,5 @@ export const EVENT_TYPE_CONFIG: Record<CalendarEventType, EventTypeConfig> = {
   'Holiday': { label: 'Holiday', color: 'bg-teal-500', textColor: 'text-white', borderColor: 'border-teal-700' },
   'Other': { label: 'Other', color: 'bg-pink-500', textColor: 'text-white', borderColor: 'border-pink-700' },
 };
+
+    
