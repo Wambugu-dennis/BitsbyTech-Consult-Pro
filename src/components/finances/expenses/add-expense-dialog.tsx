@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,13 +21,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarIcon, PlusCircle, CircleDollarSign } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { format, formatISO, parseISO } from 'date-fns';
 import type { Client, Project, Consultant, ExpenseCategory, Expense, Budget, AppliedTaxInfo, TaxRate } from '@/lib/types';
 import { expenseCategories } from '@/lib/types';
-// import { initialTaxRates } from '@/lib/mockData'; // No longer needed here, pass allTaxRates as prop
 
 const NONE_VALUE_PLACEHOLDER = "--none--";
 
@@ -47,8 +46,8 @@ const addExpenseFormSchema = z.object({
 });
 
 export type AddExpenseFormData = Omit<z.infer<typeof addExpenseFormSchema>, 'date' | 'amount'> & {
-  date: string; // Store as ISO string
-  amount: number; // Pre-tax
+  date: string;
+  amount: number;
   taxAmount?: number;
   totalAmountIncludingTax?: number;
   appliedTaxes?: AppliedTaxInfo[];
@@ -60,16 +59,16 @@ interface AddExpenseDialogProps {
   projects: Project[];
   consultants: Consultant[];
   budgets: Budget[];
-  allTaxRates: TaxRate[]; // Added prop
+  allTaxRates: TaxRate[];
 }
 
-export default function AddExpenseDialog({ 
-    onAddExpense, 
-    clients, 
-    projects, 
-    consultants, 
+export default function AddExpenseDialog({
+    onAddExpense,
+    clients,
+    projects,
+    consultants,
     budgets,
-    allTaxRates // Added prop
+    allTaxRates
 }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const form = useForm<z.infer<typeof addExpenseFormSchema>>({
@@ -100,11 +99,16 @@ export default function AddExpenseDialog({
   const [calculatedTotalAmount, setCalculatedTotalAmount] = useState(0);
   const [appliedTaxesDisplay, setAppliedTaxesDisplay] = useState<AppliedTaxInfo[]>([]);
 
-  const availableProjects = selectedClientId ? projects.filter(p => p.clientId === selectedClientId) : projects;
-  const availableBudgets = selectedProjectId ? budgets.filter(b => b.linkedProjectId === selectedProjectId || b.type === 'General' || b.type === 'Departmental') : budgets;
+  const availableProjects = useMemo(() => {
+    return selectedClientId ? projects.filter(p => p.clientId === selectedClientId) : projects;
+  }, [selectedClientId, projects]);
+
+  const availableBudgets = useMemo(() => {
+    return selectedProjectId ? budgets.filter(b => b.linkedProjectId === selectedProjectId || b.type === 'General' || b.type === 'Departmental') : budgets;
+  }, [selectedProjectId, budgets]);
 
   const availableExpenseTaxRates = useMemo(() => {
-    return allTaxRates.filter(rate => 
+    return allTaxRates.filter(rate =>
       (rate.applicableTo.includes('GeneralExpense') || rate.applicableTo.includes('ProjectExpense')) &&
       (!rate.startDate || (expenseDate && parseISO(rate.startDate) <= expenseDate)) &&
       (!rate.endDate || (expenseDate && parseISO(rate.endDate) >= expenseDate))
@@ -113,11 +117,10 @@ export default function AddExpenseDialog({
 
 
   useEffect(() => {
-    // Auto-suggest tax rates based on project or client if applicable
     if (selectedProjectId) {
       const project = projects.find(p => p.id === selectedProjectId);
       if (project?.applicableTaxRateIds) {
-        const projectExpenseRates = project.applicableTaxRateIds.filter(rateId => 
+        const projectExpenseRates = project.applicableTaxRateIds.filter(rateId =>
             availableExpenseTaxRates.some(ar => ar.id === rateId)
         );
         form.setValue('applicableTaxRateIds', projectExpenseRates);
@@ -139,13 +142,12 @@ export default function AddExpenseDialog({
     const currentAppliedTaxes: AppliedTaxInfo[] = [];
     const activeTaxRates = allTaxRates.filter(rate =>
       selectedTaxRateIds.includes(rate.id) &&
-      // Double check applicability again for robustness, though availableExpenseTaxRates should handle it
-      (rate.applicableTo.includes('GeneralExpense') || rate.applicableTo.includes('ProjectExpense')) && 
+      (rate.applicableTo.includes('GeneralExpense') || rate.applicableTo.includes('ProjectExpense')) &&
       (!rate.startDate || (expenseDate && parseISO(rate.startDate) <= expenseDate)) &&
       (!rate.endDate || (expenseDate && parseISO(rate.endDate) >= expenseDate))
     );
-    
-    activeTaxRates.sort((a,b) => (a.isCompound ? 1:0) - (b.isCompound ? 1:0)); // non-compound first
+
+    activeTaxRates.sort((a,b) => (a.isCompound ? 1:0) - (b.isCompound ? 1:0));
 
     let baseForTaxCalculation = preTaxAmount;
     activeTaxRates.forEach(rate => {
@@ -164,9 +166,9 @@ export default function AddExpenseDialog({
         amount: taxForThisRate,
         jurisdiction: rate.jurisdictionNameCache,
         taxTypeName: rate.taxTypeNameCache,
-        isCompound: rate.isCompound,
+        isCompound: rate.isCompound || false,
       });
-       if (rate.isCompound) { // Add compound tax to the base for the NEXT compound tax
+       if (rate.isCompound) {
           baseForTaxCalculation += taxForThisRate;
       }
     });
@@ -181,7 +183,7 @@ export default function AddExpenseDialog({
     const newExpenseData: AddExpenseFormData = {
       ...data,
       date: formatISO(data.date, { representation: 'date' }),
-      amount: data.amount, // Pre-tax amount
+      amount: data.amount,
       taxAmount: calculatedTaxAmount,
       totalAmountIncludingTax: calculatedTotalAmount,
       appliedTaxes: appliedTaxesDisplay,
@@ -202,7 +204,6 @@ export default function AddExpenseDialog({
     setCalculatedTotalAmount(0);
     setAppliedTaxesDisplay([]);
   };
-
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
@@ -337,9 +338,11 @@ export default function AddExpenseDialog({
                             <FormControl>
                               <Checkbox
                                 checked={field.value?.includes(rate.id)}
-                                onCheckedChange={(checked) => checked
-                                  ? field.onChange([...(field.value || []), rate.id])
-                                  : field.onChange((field.value || []).filter(v => v !== rate.id))}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...(field.value || []), rate.id])
+                                    : field.onChange((field.value || []).filter(v => v !== rate.id));
+                                }}
                               />
                             </FormControl>
                             <FormLabel className="text-xs font-normal cursor-pointer">{rate.description} ({rate.rate}%)</FormLabel>
@@ -401,7 +404,7 @@ export default function AddExpenseDialog({
                   <Select
                     onValueChange={(value) => {
                       field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value);
-                      form.setValue('projectId', undefined); // Reset project if client changes
+                      form.setValue('projectId', undefined);
                     }}
                     value={field.value || NONE_VALUE_PLACEHOLDER}
                   >
@@ -513,5 +516,3 @@ export default function AddExpenseDialog({
     </Dialog>
   );
 }
-
-    
