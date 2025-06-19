@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card import
 import { CalendarIcon, PlusCircle, Trash2, AlertTriangle, CircleDollarSign } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
@@ -100,7 +101,6 @@ export default function AddInvoiceDialog({
   const issueDate = form.watch("issueDate");
   const formItems = form.watch("items");
 
-  // Calculate totals and taxes
   const { subTotal, totalTaxAmount, totalAmount, uniqueAppliedTaxes } = useMemo(() => {
     let currentSubTotal = 0;
     let currentTotalTaxAmount = 0;
@@ -113,9 +113,13 @@ export default function AddInvoiceDialog({
 
       const activeTaxRatesForItem = (item.applicableTaxRateIds || [])
         .map(rateId => allTaxRates.find(r => r.id === rateId && r.applicableTo.includes('InvoiceLineItem')))
-        .filter(Boolean) as TaxRate[];
+        .filter((rate): rate is TaxRate => Boolean(rate)) // Type guard
+        .filter(rate => 
+          issueDate && 
+          (!rate.startDate || parseISO(rate.startDate) <= issueDate) &&
+          (!rate.endDate || parseISO(rate.endDate) >= issueDate)
+        );
       
-      // Sort by non-compound then compound
       activeTaxRatesForItem.sort((a, b) => (a.isCompound ? 1 : 0) - (b.isCompound ? 1 : 0));
 
       let baseForItemTaxCalculation = itemPreTaxTotal;
@@ -128,16 +132,14 @@ export default function AddInvoiceDialog({
         }
         taxForThisRateOnItem = parseFloat(taxForThisRateOnItem.toFixed(2));
         itemTaxAmount += taxForThisRateOnItem;
-
-        // Update base for next compound tax
+        
         if (rate.isCompound) {
           baseForItemTaxCalculation += taxForThisRateOnItem;
         }
         
-        // Aggregate unique taxes for invoice summary
         if (currentUniqueAppliedTaxesMap.has(rate.id)) {
             const existing = currentUniqueAppliedTaxesMap.get(rate.id)!;
-            existing.amount += taxForThisRateOnItem;
+            existing.amount = parseFloat((existing.amount + taxForThisRateOnItem).toFixed(2));
         } else {
             currentUniqueAppliedTaxesMap.set(rate.id, {
                 taxRateId: rate.id,
@@ -149,7 +151,6 @@ export default function AddInvoiceDialog({
                 isCompound: rate.isCompound
             });
         }
-
       });
       currentTotalTaxAmount += itemTaxAmount;
     });
@@ -163,7 +164,7 @@ export default function AddInvoiceDialog({
       totalAmount: parseFloat((currentSubTotal + currentTotalTaxAmount).toFixed(2)),
       uniqueAppliedTaxes: Array.from(currentUniqueAppliedTaxesMap.values()),
     };
-  }, [formItems, allTaxRates]);
+  }, [formItems, allTaxRates, issueDate]);
 
 
   useEffect(() => {
@@ -184,18 +185,17 @@ export default function AddInvoiceDialog({
           applicableTaxRateIds: item.applicableTaxRateIds || item.appliedTaxes?.map(t => t.taxRateId) || [],
         })),
       });
-    } else { // Add mode or no invoiceToEdit
+    } else { 
       form.reset({
         clientId: '', projectId: '', currency: 'USD', status: 'Draft', notes: '',
         items: [{ description: '', quantity: 1, unitPrice: 0, applicableTaxRateIds: [] }],
         issueDate: new Date(), dueDate: addDays(new Date(), 30)
       });
     }
-  }, [invoiceToEdit, mode, form, isOpen]); // Depend on isOpen to reset when dialog reopens for 'add'
+  }, [invoiceToEdit, mode, form, isOpen]); 
 
-  // Auto-suggest tax rates when client/project changes in ADD mode
   useEffect(() => {
-    if (mode === 'add' && (selectedClientId || selectedProjectId)) {
+    if (mode === 'add' && (selectedClientId || selectedProjectId) && issueDate) {
       const project = projects.find(p => p.id === selectedProjectId);
       let suggestedRateIds: string[] = [];
 
@@ -208,13 +208,12 @@ export default function AddInvoiceDialog({
             .filter(rate => 
               rate.jurisdictionId === client.jurisdictionId &&
               rate.applicableTo.includes('InvoiceLineItem') &&
-              (!rate.startDate || (issueDate && parseISO(rate.startDate) <= issueDate)) &&
-              (!rate.endDate || (issueDate && parseISO(rate.endDate) >= issueDate))
+              (!rate.startDate || parseISO(rate.startDate) <= issueDate) &&
+              (!rate.endDate || parseISO(rate.endDate) >= issueDate)
             )
             .map(r => r.id);
         }
       }
-      // Apply to all items if in add mode and items is default
        if (formItems.length === 1 && formItems[0].description === '' && formItems[0].unitPrice === 0) {
            form.setValue(`items.0.applicableTaxRateIds`, suggestedRateIds);
        }
@@ -230,7 +229,13 @@ export default function AddInvoiceDialog({
       
       const activeTaxRatesForItem = (item.applicableTaxRateIds || [])
         .map(rateId => allTaxRates.find(r => r.id === rateId && r.applicableTo.includes('InvoiceLineItem')))
-        .filter(Boolean) as TaxRate[];
+        .filter((rate): rate is TaxRate => Boolean(rate)) // Type guard
+        .filter(rate => 
+            issueDate && 
+            (!rate.startDate || parseISO(rate.startDate) <= issueDate) &&
+            (!rate.endDate || parseISO(rate.endDate) >= issueDate)
+        );
+
       activeTaxRatesForItem.sort((a, b) => (a.isCompound ? 1 : 0) - (b.isCompound ? 1 : 0));
 
       let baseForItemTaxCalc = itemPreTaxTotal;
@@ -253,7 +258,7 @@ export default function AddInvoiceDialog({
       });
       
       return {
-        id: item.id || `new-${Date.now()}-${Math.random()}`,
+        id: item.id || `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
@@ -285,8 +290,9 @@ export default function AddInvoiceDialog({
   const filteredProjects = projects.filter(p => p.clientId === selectedClientId);
   const availableTaxRates = allTaxRates.filter(rate => 
     rate.applicableTo.includes('InvoiceLineItem') &&
-    (!rate.startDate || (issueDate && parseISO(rate.startDate) <= issueDate)) &&
-    (!rate.endDate || (issueDate && parseISO(rate.endDate) >= issueDate))
+    issueDate &&
+    (!rate.startDate || parseISO(rate.startDate) <= issueDate) &&
+    (!rate.endDate || parseISO(rate.endDate) >= issueDate)
   );
 
 
