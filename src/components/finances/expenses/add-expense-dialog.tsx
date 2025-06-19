@@ -45,16 +45,15 @@ const addExpenseFormSchema = z.object({
   applicableTaxRateIds: z.array(z.string()).optional(),
 });
 
-export type AddExpenseFormData = Omit<z.infer<typeof addExpenseFormSchema>, 'date' | 'amount'> & {
+export type AddExpenseFormData = Omit<z.infer<typeof addExpenseFormSchema>, 'date'> & {
   date: string;
-  amount: number;
   taxAmount?: number;
   totalAmountIncludingTax?: number;
   appliedTaxes?: AppliedTaxInfo[];
 };
 
 interface AddExpenseDialogProps {
-  onAddExpense: (expenseData: AddExpenseFormData) => void;
+  onAddExpense: (expenseData: Expense) => void;
   clients: Client[];
   projects: Project[];
   consultants: Consultant[];
@@ -92,7 +91,7 @@ export default function AddExpenseDialog({
   const selectedClientId = form.watch('clientId');
   const selectedProjectId = form.watch('projectId');
   const preTaxAmount = form.watch("amount");
-  const selectedTaxRateIds = form.watch("applicableTaxRateIds") || [];
+  const selectedTaxRateIds = form.watch("applicableTaxRateIds");
   const expenseDate = form.watch("date");
 
   const [calculatedTaxAmount, setCalculatedTaxAmount] = useState(0);
@@ -108,101 +107,138 @@ export default function AddExpenseDialog({
   }, [selectedProjectId, budgets]);
 
   const availableExpenseTaxRates = useMemo(() => {
+    if (!expenseDate) return [];
     return allTaxRates.filter(rate =>
       (rate.applicableTo.includes('GeneralExpense') || rate.applicableTo.includes('ProjectExpense')) &&
-      (!rate.startDate || (expenseDate && parseISO(rate.startDate) <= expenseDate)) &&
-      (!rate.endDate || (expenseDate && parseISO(rate.endDate) >= expenseDate))
+      (!rate.startDate || parseISO(rate.startDate) <= expenseDate) &&
+      (!rate.endDate || parseISO(rate.endDate) >= expenseDate)
     );
   }, [allTaxRates, expenseDate]);
 
-
   useEffect(() => {
+    if (!expenseDate) return; // Ensure expenseDate is valid
+
+    let suggestedRateIds: string[] = [];
     if (selectedProjectId) {
       const project = projects.find(p => p.id === selectedProjectId);
       if (project?.applicableTaxRateIds) {
-        const projectExpenseRates = project.applicableTaxRateIds.filter(rateId =>
+        suggestedRateIds = project.applicableTaxRateIds.filter(rateId =>
             availableExpenseTaxRates.some(ar => ar.id === rateId)
         );
-        form.setValue('applicableTaxRateIds', projectExpenseRates);
       }
     } else if (selectedClientId) {
       const client = clients.find(c => c.id === selectedClientId);
       if (client?.jurisdictionId) {
-        const clientJurisdictionRates = availableExpenseTaxRates
+        suggestedRateIds = availableExpenseTaxRates
           .filter(rate => rate.jurisdictionId === client.jurisdictionId)
           .map(r => r.id);
-        form.setValue('applicableTaxRateIds', clientJurisdictionRates);
       }
     }
-  }, [selectedProjectId, selectedClientId, projects, clients, form, availableExpenseTaxRates]);
+    form.setValue('applicableTaxRateIds', suggestedRateIds);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProjectId, selectedClientId, projects, clients, form, availableExpenseTaxRates, expenseDate]);
 
 
   useEffect(() => {
-    let currentTaxAmount = 0;
-    const currentAppliedTaxes: AppliedTaxInfo[] = [];
-    const activeTaxRates = allTaxRates.filter(rate =>
-      selectedTaxRateIds.includes(rate.id) &&
+    let runningSubTotalForCompound = preTaxAmount || 0;
+    let totalTaxCalculated = 0;
+    const taxesAppliedDetails: AppliedTaxInfo[] = [];
+    const currentSelectedRateIds = selectedTaxRateIds || [];
+
+    const activeRates = allTaxRates.filter(rate =>
+      currentSelectedRateIds.includes(rate.id) &&
       (rate.applicableTo.includes('GeneralExpense') || rate.applicableTo.includes('ProjectExpense')) &&
-      (!rate.startDate || (expenseDate && parseISO(rate.startDate) <= expenseDate)) &&
-      (!rate.endDate || (expenseDate && parseISO(rate.endDate) >= expenseDate))
+      expenseDate && // ensure expenseDate is truthy
+      (!rate.startDate || parseISO(rate.startDate) <= expenseDate) &&
+      (!rate.endDate || parseISO(rate.endDate) >= expenseDate)
     );
 
-    activeTaxRates.sort((a,b) => (a.isCompound ? 1:0) - (b.isCompound ? 1:0));
+    // Separate non-compound and compound taxes
+    const nonCompoundRates = activeRates.filter(r => !r.isCompound);
+    const compoundRates = activeRates.filter(r => r.isCompound);
 
-    let baseForTaxCalculation = preTaxAmount;
-    activeTaxRates.forEach(rate => {
-      let taxForThisRate: number;
-      if (rate.isCompound) {
-        taxForThisRate = (baseForTaxCalculation * rate.rate) / 100;
-      } else {
-        taxForThisRate = (preTaxAmount * rate.rate) / 100;
-      }
-      taxForThisRate = parseFloat(taxForThisRate.toFixed(2));
-      currentTaxAmount += taxForThisRate;
-      currentAppliedTaxes.push({
+    // Calculate non-compound taxes first
+    nonCompoundRates.forEach(rate => {
+      const taxForItem = parseFloat(((preTaxAmount || 0) * rate.rate / 100).toFixed(2));
+      totalTaxCalculated += taxForItem;
+      runningSubTotalForCompound += taxForItem; // Add to base for compound taxes
+      taxesAppliedDetails.push({
         taxRateId: rate.id,
         name: rate.description,
         rateValue: rate.rate,
-        amount: taxForThisRate,
+        amount: taxForItem,
         jurisdiction: rate.jurisdictionNameCache,
         taxTypeName: rate.taxTypeNameCache,
-        isCompound: rate.isCompound || false,
+        isCompound: false,
       });
-       if (rate.isCompound) {
-          baseForTaxCalculation += taxForThisRate;
-      }
     });
 
-    currentTaxAmount = parseFloat(currentTaxAmount.toFixed(2));
-    setCalculatedTaxAmount(currentTaxAmount);
-    setCalculatedTotalAmount(parseFloat((preTaxAmount + currentTaxAmount).toFixed(2)));
-    setAppliedTaxesDisplay(currentAppliedTaxes);
+    // Calculate compound taxes on the new subtotal (preTaxAmount + nonCompoundTaxes)
+    compoundRates.forEach(rate => {
+      const taxForItem = parseFloat((runningSubTotalForCompound * rate.rate / 100).toFixed(2));
+      totalTaxCalculated += taxForItem;
+      runningSubTotalForCompound += taxForItem; // Add to base for the *next* compound tax
+      taxesAppliedDetails.push({
+        taxRateId: rate.id,
+        name: rate.description,
+        rateValue: rate.rate,
+        amount: taxForItem,
+        jurisdiction: rate.jurisdictionNameCache,
+        taxTypeName: rate.taxTypeNameCache,
+        isCompound: true,
+      });
+    });
+
+    setCalculatedTaxAmount(parseFloat(totalTaxCalculated.toFixed(2)));
+    setCalculatedTotalAmount(parseFloat(((preTaxAmount || 0) + totalTaxCalculated).toFixed(2)));
+    setAppliedTaxesDisplay(taxesAppliedDetails);
   }, [preTaxAmount, selectedTaxRateIds, expenseDate, allTaxRates]);
 
+
+  const resetForm = () => {
+    form.reset({
+      date: new Date(),
+      description: '',
+      amount: 0,
+      currency: 'USD',
+      category: '',
+      clientId: undefined,
+      projectId: undefined,
+      budgetId: undefined,
+      submittedByConsultantId: undefined,
+      receiptUrl: '',
+      notes: '',
+      applicableTaxRateIds: [],
+    });
+    setCalculatedTaxAmount(0);
+    setCalculatedTotalAmount(0);
+    setAppliedTaxesDisplay([]);
+  };
+
   const handleSubmit = (data: z.infer<typeof addExpenseFormSchema>) => {
-    const newExpenseData: AddExpenseFormData = {
+    const consultant = consultants.find(c => c.id === data.submittedByConsultantId);
+    const client = clients.find(c => c.id === data.clientId);
+    const project = projects.find(p => p.id === data.projectId);
+
+    const newExpense: Expense = {
       ...data,
+      id: `exp-${Date.now()}`,
       date: formatISO(data.date, { representation: 'date' }),
       amount: data.amount,
       taxAmount: calculatedTaxAmount,
       totalAmountIncludingTax: calculatedTotalAmount,
       appliedTaxes: appliedTaxesDisplay,
+      status: 'Pending',
+      submittedByConsultantNameCache: consultant?.name,
+      clientNameCache: client?.companyName,
+      projectNameCache: project?.name,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       applicableTaxRateIds: data.applicableTaxRateIds || [],
     };
-    onAddExpense(newExpenseData as Expense);
+    onAddExpense(newExpense);
     resetForm();
     setOpen(false);
-  };
-
-  const resetForm = () => {
-    form.reset({
-      currency: 'USD', category: '', description: '', amount: 0, receiptUrl: '', notes: '',
-      clientId: undefined, projectId: undefined, budgetId: undefined, submittedByConsultantId: undefined, date: new Date(),
-      applicableTaxRateIds: []
-    });
-    setCalculatedTaxAmount(0);
-    setCalculatedTotalAmount(0);
-    setAppliedTaxesDisplay([]);
   };
 
   return (
@@ -224,286 +260,293 @@ export default function AddExpenseDialog({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Date of Expense *</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-4 max-h-[70vh] flex flex-col">
+            <div className="overflow-y-auto pr-2 space-y-4 flex-grow">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Date of Expense *</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                          >
+                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description *</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="e.g., Client dinner at Innovatech project" {...field} rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount (Pre-Tax) *</FormLabel>
                       <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
-                        >
-                          {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
+                        <Input type="number" placeholder="e.g., 75.50" {...field} step="0.01" />
                       </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description *</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="e.g., Client dinner at Innovatech project" {...field} rows={3} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount (Pre-Tax) *</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="e.g., 75.50" {...field} step="0.01" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="currency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Currency *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="USD" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {expenseCategories.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                   <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="applicableTaxRateIds"
-              render={() => (
-                <FormItem>
-                  <div className="mb-2">
-                    <FormLabel className="text-base">Applicable Tax Rates (Optional)</FormLabel>
-                    <FormDescription>Select tax rates to apply to this expense. Filtered by expense date and applicability.</FormDescription>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto border p-2 rounded-md">
-                    {availableExpenseTaxRates.map((rate) => (
-                      <FormField
-                        key={rate.id}
-                        control={form.control}
-                        name="applicableTaxRateIds"
-                        render={({ field }) => (
-                          <FormItem key={rate.id} className="flex flex-row items-start space-x-2 space-y-0 rounded-md border p-2">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(rate.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...(field.value || []), rate.id])
-                                    : field.onChange((field.value || []).filter(v => v !== rate.id));
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="text-xs font-normal cursor-pointer">{rate.description} ({rate.rate}%)</FormLabel>
-                          </FormItem>
-                        ))}
-                      />
-                    ))}
-                    {availableExpenseTaxRates.length === 0 && <p className="col-span-full text-center text-xs text-muted-foreground">No tax rates available for selected date/criteria.</p>}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="p-3 border rounded-md bg-muted/40 mt-auto">
-              <h4 className="font-semibold mb-2 flex items-center gap-2"><CircleDollarSign className="h-5 w-5 text-primary"/>Expense Summary</h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span>Pre-Tax Amount:</span><span className="font-medium">{form.getValues("currency")} {preTaxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-                {appliedTaxesDisplay.map(tax => (
-                    <div key={tax.taxRateId} className="flex justify-between text-xs text-muted-foreground">
-                        <span>{tax.name} ({tax.rateValue}%){tax.isCompound ? " (Compound)" : ""}:</span>
-                        <span>{form.getValues("currency")} {tax.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                ))}
-                <div className="flex justify-between font-semibold pt-1 border-t"><span>Total Tax:</span><span>{form.getValues("currency")} {calculatedTaxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-                <div className="flex justify-between text-lg font-bold text-primary pt-1 border-t"><span>Total Expense:</span><span>{form.getValues("currency")} {calculatedTotalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Currency *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="USD" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
+
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {expenseCategories.map(cat => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="applicableTaxRateIds"
+                render={() => (
+                  <FormItem>
+                    <div className="mb-2">
+                      <FormLabel className="text-base">Applicable Tax Rates (Optional)</FormLabel>
+                      <FormDescription>Select tax rates to apply to this expense. Filtered by expense date and applicability.</FormDescription>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto border p-2 rounded-md">
+                      {availableExpenseTaxRates.map((rate) => (
+                        <FormField
+                          key={rate.id}
+                          control={form.control}
+                          name="applicableTaxRateIds"
+                          render={({ field }) => (
+                            <FormItem key={rate.id} className="flex flex-row items-start space-x-2 space-y-0 rounded-md border p-2">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(rate.id)}
+                                  onCheckedChange={(checked) => {
+                                    const currentSelection = field.value || [];
+                                    return checked
+                                      ? field.onChange([...currentSelection, rate.id])
+                                      : field.onChange(currentSelection.filter(v => v !== rate.id));
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="text-xs font-normal cursor-pointer">{rate.description} ({rate.rate}%)</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                      {availableExpenseTaxRates.length === 0 && <p className="col-span-full text-center text-xs text-muted-foreground">No tax rates available for selected date/criteria.</p>}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="p-3 border rounded-md bg-muted/40 mt-auto">
+                <h4 className="font-semibold mb-2 flex items-center gap-2"><CircleDollarSign className="h-5 w-5 text-primary"/>Expense Summary</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between"><span>Pre-Tax Amount:</span><span className="font-medium">{form.getValues("currency")} {(preTaxAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  {appliedTaxesDisplay.map(tax => (
+                      <div key={tax.taxRateId} className="flex justify-between text-xs text-muted-foreground">
+                          <span>{tax.name} ({tax.rateValue}%){tax.isCompound ? " (Compound)" : ""}:</span>
+                          <span>{form.getValues("currency")} {tax.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                  ))}
+                  <div className="flex justify-between font-semibold pt-1 border-t"><span>Total Tax:</span><span>{form.getValues("currency")} {calculatedTaxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between text-lg font-bold text-primary pt-1 border-t"><span>Total Expense:</span><span>{form.getValues("currency")} {calculatedTotalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                </div>
+              </div>
+
+              <FormField
+                control={form.control}
+                name="submittedByConsultantId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Submitted By (Consultant)</FormLabel>
+                    <Select onValueChange={(value) => field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value)} value={field.value || NONE_VALUE_PLACEHOLDER}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select consultant if applicable" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
+                        {consultants.map(c => (
+                          <SelectItem key={c.id} value={c.id}>{c.name} ({c.role})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="clientId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Client (Optional)</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value);
+                        form.setValue('projectId', undefined);
+                        form.setValue('budgetId', undefined);
+                      }}
+                      value={field.value || NONE_VALUE_PLACEHOLDER}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Link to a client" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
+                        {clients.map(client => (
+                          <SelectItem key={client.id} value={client.id}>{client.companyName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project (Optional)</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value);
+                        form.setValue('budgetId', undefined);
+                      }}
+                      value={field.value || NONE_VALUE_PLACEHOLDER}
+                      disabled={!selectedClientId && availableProjects.length === 0 && projects.length > 0}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={!selectedClientId && projects.length > 0 ? "Select client first or choose general project" : "Link to a project"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
+                        {availableProjects.map(project => (
+                          <SelectItem key={project.id} value={project.id}>{project.name} ({project.clientNameCache})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="budgetId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Link to Budget (Optional)</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value)}
+                      value={field.value || NONE_VALUE_PLACEHOLDER}
+                      disabled={!selectedProjectId && availableBudgets.length === 0 && budgets.length > 0}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={!selectedProjectId && budgets.length > 0 ? "Select project first or choose general budget" : "Select a budget"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
+                        {availableBudgets.map(budget => (
+                          <SelectItem key={budget.id} value={budget.id}>{budget.name} ({budget.type === 'Project' ? budget.linkedProjectNameCache : budget.departmentName || 'General'})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="receiptUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Receipt URL (Optional)</FormLabel>
+                    <FormControl>
+                      <Input type="url" placeholder="https://example.com/receipt.pdf" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Any additional details about the expense..." {...field} rows={2} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-
-
-            <FormField
-              control={form.control}
-              name="submittedByConsultantId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Submitted By (Consultant)</FormLabel>
-                  <Select onValueChange={(value) => field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value)} value={field.value || NONE_VALUE_PLACEHOLDER}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select consultant if applicable" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
-                      {consultants.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name} ({c.role})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="clientId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Client (Optional)</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value);
-                      form.setValue('projectId', undefined);
-                    }}
-                    value={field.value || NONE_VALUE_PLACEHOLDER}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Link to a client" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
-                      {clients.map(client => (
-                        <SelectItem key={client.id} value={client.id}>{client.companyName}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="projectId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Project (Optional)</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value)}
-                    value={field.value || NONE_VALUE_PLACEHOLDER}
-                    disabled={!selectedClientId && availableProjects.length === 0 && projects.length > 0}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={!selectedClientId && projects.length > 0 ? "Select client first or choose general project" : "Link to a project"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                       <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
-                      {availableProjects.map(project => (
-                        <SelectItem key={project.id} value={project.id}>{project.name} ({project.clientNameCache})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="budgetId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Link to Budget (Optional)</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value)}
-                    value={field.value || NONE_VALUE_PLACEHOLDER}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a budget to link this expense" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                       <SelectItem value={NONE_VALUE_PLACEHOLDER}>None</SelectItem>
-                      {availableBudgets.map(budget => (
-                        <SelectItem key={budget.id} value={budget.id}>{budget.name} ({budget.type === 'Project' ? budget.linkedProjectNameCache : budget.departmentName || 'General'})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="receiptUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Receipt URL (Optional)</FormLabel>
-                  <FormControl>
-                    <Input type="url" placeholder="https://example.com/receipt.pdf" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Any additional details about the expense..." {...field} rows={2} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
+            <DialogFooter className="pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => {
                   resetForm();
                   setOpen(false);
