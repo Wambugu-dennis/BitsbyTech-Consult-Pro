@@ -12,8 +12,8 @@ import { useRouter } from "next/navigation";
 import { initialProjects, initialInvoices, initialExpenses, initialClients } from '@/lib/mockData';
 import type { Project, Invoice, Expense, Client } from '@/lib/types';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartConfig } from "@/components/ui/chart";
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
-import { cn } from '@/lib/utils';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, Cell } from 'recharts';
+import { cn } from "@/lib/utils";
 import { format, parseISO, startOfYear, endOfYear } from 'date-fns';
 
 interface ProfitabilityData {
@@ -49,25 +49,27 @@ export default function ProfitabilityPage() {
     let totalDirectCosts = 0;
 
     initialInvoices.forEach(invoice => {
+      const invoiceAmount = invoice.totalAmount || 0;
       if (invoice.projectId && projectsData[invoice.projectId]) {
-        projectsData[invoice.projectId].revenue += invoice.totalAmount;
+        projectsData[invoice.projectId].revenue += invoiceAmount;
       }
       if (clientsData[invoice.clientId]) {
-        clientsData[invoice.clientId].revenue += invoice.totalAmount;
+        clientsData[invoice.clientId].revenue += invoiceAmount;
       }
-      totalRevenue += invoice.totalAmount;
+      totalRevenue += invoiceAmount;
     });
 
     initialExpenses.forEach(expense => {
+      const costToAdd = expense.totalAmountIncludingTax ?? expense.amount ?? 0;
       if (expense.projectId && projectsData[expense.projectId]) {
-        projectsData[expense.projectId].costs += (expense.totalAmountIncludingTax ?? expense.amount);
+        projectsData[expense.projectId].costs += costToAdd;
       }
       // For client costs, sum expenses from projects linked to that client
       const projectForExpense = initialProjects.find(p => p.id === expense.projectId);
       if (projectForExpense && clientsData[projectForExpense.clientId]) {
-        clientsData[projectForExpense.clientId].costs += (expense.totalAmountIncludingTax ?? expense.amount);
+        clientsData[projectForExpense.clientId].costs += costToAdd;
       }
-      totalDirectCosts += (expense.totalAmountIncludingTax ?? expense.amount);
+      totalDirectCosts += costToAdd;
     });
 
     const calculatedProjectsProfitability: ProfitabilityData[] = Object.entries(projectsData)
@@ -138,10 +140,10 @@ export default function ProfitabilityPage() {
             <CardDescription>Key gross profitability metrics for the selected period (currently all-time).</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-muted/30"><CardHeader className="pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">${overallMetrics.totalRevenue.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0})}</p></CardContent></Card>
-            <Card className="bg-muted/30"><CardHeader className="pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Total Direct Costs</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">${overallMetrics.totalDirectCosts.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0})}</p></CardContent></Card>
-            <Card className="bg-muted/30"><CardHeader className="pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Overall Gross Profit</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">${overallMetrics.overallGrossProfit.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0})}</p></CardContent></Card>
-            <Card className="bg-muted/30"><CardHeader className="pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Overall Gross Profit Margin</CardTitle></CardHeader><CardContent><p className={cn("text-2xl font-bold", getMarginColorClass(overallMetrics.overallGrossProfitMargin))}>{overallMetrics.overallGrossProfitMargin}%</p></CardContent></Card>
+            <Card className="bg-muted/30"><CardHeader className="pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">${(overallMetrics.totalRevenue || 0).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0})}</p></CardContent></Card>
+            <Card className="bg-muted/30"><CardHeader className="pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Total Direct Costs</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">${(overallMetrics.totalDirectCosts || 0).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0})}</p></CardContent></Card>
+            <Card className="bg-muted/30"><CardHeader className="pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Overall Gross Profit</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">${(overallMetrics.overallGrossProfit || 0).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0})}</p></CardContent></Card>
+            <Card className="bg-muted/30"><CardHeader className="pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Overall Gross Profit Margin</CardTitle></CardHeader><CardContent><p className={cn("text-2xl font-bold", getMarginColorClass(overallMetrics.overallGrossProfitMargin || 0))}>{(overallMetrics.overallGrossProfitMargin || 0)}%</p></CardContent></Card>
         </CardContent>
       </Card>
       
@@ -161,14 +163,14 @@ export default function ProfitabilityPage() {
                   <TableRow key={p.id}>
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{p.clientName}</TableCell>
-                    <TableCell className="text-right">${p.revenue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
-                    <TableCell className="text-right">${p.directCosts.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
-                    <TableCell className="text-right font-semibold">${p.grossProfit.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
-                    <TableCell className={cn("text-right font-semibold", getMarginColorClass(p.grossProfitMargin))}>
+                    <TableCell className="text-right">${(p.revenue || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
+                    <TableCell className="text-right">${(p.directCosts || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
+                    <TableCell className="text-right font-semibold">${(p.grossProfit || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
+                    <TableCell className={cn("text-right font-semibold", getMarginColorClass(p.grossProfitMargin || 0))}>
                         <div className="flex items-center justify-end gap-2">
-                            {p.grossProfitMargin > 0 && p.grossProfitMargin < 100 && <TrendingUp className="h-4 w-4"/>}
-                            {p.grossProfitMargin < 0 && <TrendingDown className="h-4 w-4"/>}
-                            {p.grossProfitMargin}%
+                            {(p.grossProfitMargin || 0) > 0 && (p.grossProfitMargin || 0) < 100 && <TrendingUp className="h-4 w-4"/>}
+                            {(p.grossProfitMargin || 0) < 0 && <TrendingDown className="h-4 w-4"/>}
+                            {(p.grossProfitMargin || 0)}%
                         </div>
                     </TableCell>
                   </TableRow>
@@ -187,7 +189,7 @@ export default function ProfitabilityPage() {
                         <Legend />
                         <Bar dataKey="grossProfitMargin" name="Gross Profit Margin" radius={4}>
                             {projectsProfitability.slice(0,15).map((entry) => (
-                                <Cell key={`cell-${entry.id}`} fill={entry.grossProfitMargin >= 50 ? 'hsl(var(--chart-2))' : entry.grossProfitMargin >= 25 ? 'hsl(var(--chart-4))' : entry.grossProfitMargin > 0 ? 'hsl(var(--chart-5))' : 'hsl(var(--destructive))'} />
+                                <Cell key={`cell-${entry.id}`} fill={(entry.grossProfitMargin || 0) >= 50 ? 'hsl(var(--chart-2))' : (entry.grossProfitMargin || 0) >= 25 ? 'hsl(var(--chart-4))' : (entry.grossProfitMargin || 0) > 0 ? 'hsl(var(--chart-5))' : 'hsl(var(--destructive))'} />
                             ))}
                             <LabelList dataKey="grossProfitMargin" position="right" formatter={(value:number) => `${value}%`} fontSize={10}/>
                         </Bar>
@@ -213,14 +215,14 @@ export default function ProfitabilityPage() {
                 {clientsProfitability.map(c => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell className="text-right">${c.revenue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
-                    <TableCell className="text-right">${c.directCosts.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
-                    <TableCell className="text-right font-semibold">${c.grossProfit.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
-                     <TableCell className={cn("text-right font-semibold", getMarginColorClass(c.grossProfitMargin))}>
+                    <TableCell className="text-right">${(c.revenue || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
+                    <TableCell className="text-right">${(c.directCosts || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
+                    <TableCell className="text-right font-semibold">${(c.grossProfit || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</TableCell>
+                     <TableCell className={cn("text-right font-semibold", getMarginColorClass(c.grossProfitMargin || 0))}>
                         <div className="flex items-center justify-end gap-2">
-                             {c.grossProfitMargin > 0 && c.grossProfitMargin < 100 && <TrendingUp className="h-4 w-4"/>}
-                             {c.grossProfitMargin < 0 && <TrendingDown className="h-4 w-4"/>}
-                            {c.grossProfitMargin}%
+                             {(c.grossProfitMargin || 0) > 0 && (c.grossProfitMargin || 0) < 100 && <TrendingUp className="h-4 w-4"/>}
+                             {(c.grossProfitMargin || 0) < 0 && <TrendingDown className="h-4 w-4"/>}
+                            {(c.grossProfitMargin || 0)}%
                         </div>
                     </TableCell>
                   </TableRow>
@@ -231,15 +233,15 @@ export default function ProfitabilityPage() {
           {clientsProfitability.length > 0 && (
              <ChartContainer config={clientChartConfig} className="h-[350px] w-full [aspect-ratio:auto]">
                 <ResponsiveContainer>
-                    <RechartsBarChart data={clientsProfitability.filter(c => c.revenue > 0).slice(0,10)} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
+                    <RechartsBarChart data={clientsProfitability.filter(c => (c.revenue || 0) > 0).slice(0,10)} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false}/>
                         <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} interval={0} fontSize={10}/>
                         <YAxis tickFormatter={(value) => `${value}%`} fontSize={10}/>
                         <Tooltip content={<ChartTooltipContent />} />
                         <Legend />
                         <Bar dataKey="grossProfitMargin" name="Gross Profit Margin" radius={4}>
-                             {clientsProfitability.filter(c => c.revenue > 0).slice(0,10).map((entry) => (
-                                <Cell key={`cell-client-${entry.id}`} fill={entry.grossProfitMargin >= 50 ? 'hsl(var(--chart-2))' : entry.grossProfitMargin >= 25 ? 'hsl(var(--chart-4))' : entry.grossProfitMargin > 0 ? 'hsl(var(--chart-5))' : 'hsl(var(--destructive))'} />
+                             {clientsProfitability.filter(c => (c.revenue || 0) > 0).slice(0,10).map((entry) => (
+                                <Cell key={`cell-client-${entry.id}`} fill={(entry.grossProfitMargin || 0) >= 50 ? 'hsl(var(--chart-2))' : (entry.grossProfitMargin || 0) >= 25 ? 'hsl(var(--chart-4))' : (entry.grossProfitMargin || 0) > 0 ? 'hsl(var(--chart-5))' : 'hsl(var(--destructive))'} />
                             ))}
                         </Bar>
                     </RechartsBarChart>
@@ -271,3 +273,4 @@ export default function ProfitabilityPage() {
     </div>
   );
 }
+
