@@ -505,5 +505,3 @@ export interface TaxRate {
   createdAt: string;
   updatedAt: string;
 }
-
-    
