@@ -12,74 +12,52 @@ export type Kpi = {
 export type ProjectStatusKey = keyof typeof PROJECT_STATUS;
 export type ProjectStatusValue = typeof PROJECT_STATUS[ProjectStatusKey];
 
+// Represents a DB record in `project_tasks`
 export type ProjectTask = {
   id: string;
+  projectId: string; // FK to projects.id
+  assigneeUserId?: string; // FK to users.id
   title: string;
   description?: string;
-  status: ProjectStatusValue; // Ensure this uses ProjectStatusValue
-  assigneeId?: string;
-  assigneeNameCache?: string;
-  dueDate?: string;
+  status: ProjectStatusValue;
   priority?: 'High' | 'Medium' | 'Low';
-  createdAt?: string; // Added for potential "new tasks" calculation
-  completedAt?: string; // Added for completion rate
+  dueDate?: string; // ISO Date string
+  createdAt?: string;
+  completedAt?: string;
 };
 
+// Represents a DB record in `project_milestones`
 export type Milestone = {
   id: string;
+  projectId: string; // FK to projects.id
   name: string;
   description?: string;
-  dueDate: string;
+  dueDate: string; // ISO Date string
   status: 'Pending' | 'In Progress' | 'Completed' | 'Delayed' | 'At Risk';
 };
 
-export type ProjectAttachment = {
+// Represents a DB record in `attachments`
+export type Attachment = {
   id: string;
   fileName: string;
   fileType?: string;
-  fileSize?: string;
-  url: string;
-  uploadedAt: string;
-  uploadedBy?: string;
+  fileSizeBytes?: number;
+  storagePath: string; // URL or identifier for cloud storage
+  uploadedByUserId?: string; // FK to users.id
+  relatedEntityType: 'project' | 'expense' | 'client';
+  relatedEntityId: string;
+  createdAt: string; // ISO Date string
 };
 
 export type ProjectFinancials = {
   budget: number;
-  spentBudget: number;
+  spentBudget: number; // This would be calculated dynamically from expenses
   currency: string;
   billingType?: 'Fixed Price' | 'Time & Materials' | 'Retainer';
   hourlyRate?: number;
 };
 
-export type RevenueRecognitionMethod =
-  | 'OnInvoicePaid'
-  | 'PercentageOfCompletion'
-  | 'MilestoneBased'
-  | 'SubscriptionBased'
-  | 'Manual';
-
-export const revenueRecognitionMethods: RevenueRecognitionMethod[] = [
-  'OnInvoicePaid',
-  'PercentageOfCompletion',
-  'MilestoneBased',
-  'SubscriptionBased',
-  'Manual',
-];
-
-export interface RevenueRecognitionRule {
-  id: string;
-  name: string;
-  description?: string;
-  method: RevenueRecognitionMethod;
-  // criteria could be more structured, e.g., { milestoneId: string, percentage: number }[] for MilestoneBased
-  // or { recognitionSchedule: 'monthly' | 'quarterly' | 'annually' } for SubscriptionBased.
-  // For PoC, a text area for criteria description is simpler.
-  criteriaDescription?: string;
-  isActive: boolean;
-  createdAt: string; // ISO Date string
-  updatedAt: string; // ISO Date string
-}
-
+// Represents a DB record in `projects`
 export type Project = {
   id: string;
   name: string;
@@ -88,21 +66,21 @@ export type Project = {
   clientNameCache?: string;
   projectManagerId: string;
   projectManagerNameCache?: string;
-  teamMemberIds?: string[];
   status: ProjectStatusValue;
   priority: 'High' | 'Medium' | 'Low';
   startDate: string; // ISO Date string
   endDate: string;   // ISO Date string
   actualEndDate?: string;
   financials: ProjectFinancials;
-  milestones?: Milestone[];
-  tasks?: ProjectTask[];
-  tags?: string[];
-  attachments?: ProjectAttachment[];
   lastUpdated: string;
   completionPercent?: number;
-  applicableTaxRateIds?: string[]; // IDs of TaxRate s that generally apply
-  revenueRecognitionRuleId?: string; // Link to a specific recognition rule
+
+  // The following would be fetched via separate queries, not stored on the project object itself
+  // teamMemberIds?: string[];
+  // milestones?: Milestone[];
+  // tasks?: ProjectTask[];
+  // tags?: string[];
+  // attachments?: Attachment[];
 };
 
 
@@ -114,8 +92,10 @@ export type Address = {
   country?: string;
 };
 
+// Represents a DB record in `key_contacts`
 export type KeyContact = {
   id: string;
+  clientId: string; // FK
   name:string;
   role: string;
   email: string;
@@ -136,73 +116,35 @@ export type ClientFinancialSummary = {
   currency?: string;
 };
 
+// Represents a DB record in `communication_logs`
 export type CommunicationLog = {
   id: string;
+  clientId: string; // FK
+  userId?: string; // FK
   date: string;
   type: 'Email' | 'Call' | 'Meeting' | 'Note';
   summary: string;
-  participants?: string[];
-  relatedProjectId?: string;
+  participants?: string[]; // Could be a simple text field or a link to a participants table
 };
 
-export type ClientMeeting = {
-  id: string;
-  title: string;
-  date: string; // ISO Date string
-  time?: string; // e.g., "10:00"
-  endDate?: string; // ISO Date string, for multi-day events
-  endTime?: string; // e.g., "11:00"
-  description?: string;
-  attendees?: string[]; // Names or IDs
-  location?: string; // Physical or virtual
-};
-
-
-export type CalendarEventType =
-  | 'Project Milestone'
-  | 'Project Deadline'
-  | 'Client Meeting'
-  | 'Consultant Assignment'
-  | 'General Task'
-  | 'Holiday'
-  | 'Other';
-
-export const calendarEventTypes: CalendarEventType[] = [
-  'Project Milestone',
-  'Project Deadline',
-  'Client Meeting',
-  'Consultant Assignment',
-  'General Task',
-  'Holiday',
-  'Other',
-];
-
-export type CalendarEventSource = 'project' | 'client' | 'consultant' | 'general';
-
-export interface EventTypeConfig {
-  label: string;
-  color: string;
-  borderColor?: string;
-  textColor?: string;
-}
-
+// Represents a DB record in `events`
 export type CalendarEvent = {
   id: string;
   title: string;
-  start: Date;
+  start: Date; // Keep as Date object for component
   end?: Date;
   allDay?: boolean;
-  type: CalendarEventType;
+  type: 'Project Milestone' | 'Project Deadline' | 'Client Meeting' | 'Consultant Assignment' | 'General Task' | 'Holiday' | 'Other';
   description?: string;
-  source: CalendarEventSource;
-  sourceId?: string;
-  relatedLink?: string;
-  attendees?: string[];
-  location?: string;
+  // Links to other entities in the DB
+  created_by_user_id?: string;
+  client_id?: string;
+  project_id?: string;
 };
 
 export type ClientCreditRating = 'Excellent' | 'Good' | 'Fair' | 'Poor';
 
+// Represents a DB record in `clients`
 export type Client = {
   id: string;
   companyName: string;
@@ -212,34 +154,28 @@ export type Client = {
   address?: Address;
   clientTier?: 'Strategic' | 'Key' | 'Standard' | 'Other';
   status: 'Active' | 'Inactive' | 'Prospect';
-  engagementDetails?: EngagementDetails;
-  keyContacts: KeyContact[];
-  communicationLogs?: CommunicationLog[];
+  engagementDetails?: EngagementDetails; // This is conceptual, data stored on project/invoice records
   satisfactionScore?: number;
-  creditRating?: ClientCreditRating; // New field for internal credit rating
+  creditRating?: ClientCreditRating;
   notes?: string;
-  linkedProjectIds?: string[];
-  financialSummary?: ClientFinancialSummary;
-  lastContact?: string;
-  meetings?: ClientMeeting[];
-  jurisdictionId?: string; // For tax purposes
+  jurisdictionId?: string; // FK to tax_jurisdictions
+  
+  // Fetched via separate queries
+  // keyContacts: KeyContact[]; 
+  // communicationLogs?: CommunicationLog[];
+  // linkedProjectIds?: string[];
 };
 
+// The following types remain largely the same but are now understood
+// to map to the new, more detailed database tables.
 
 export type RevenueData = {
   date: string; // YYYY-MM-DD format for easier date manipulation
-  month?: string; // For display purposes if needed
+  month?: string;
   actualRevenue?: number;
   actualExpenses?: number;
-  forecastedRevenue?: number; // For revenue chart projection
-  forecastedExpenses?: number; // For revenue chart projection
-  // The ones below are for the AI Insights page's predictive chart
-  forecastedRevenueValue?: number;
-  forecastedExpensesValue?: number;
-  isRevenueForecasted?: boolean;
-  isExpensesForecasted?: boolean;
+  forecastedRevenue?: number;
 };
-
 
 export type ProjectStatusData = {
   status: string;
@@ -254,72 +190,46 @@ export type ClientRelationshipData = {
 
 export type ConsultantStatus = 'Available' | 'On Project' | 'Unavailable';
 
-export type DetailedSkill = {
-  name: string;
-  proficiency: 'Beginner' | 'Intermediate' | 'Expert';
-  yearsOfExperience?: number;
-};
-
-export type Certification = {
-  name: string;
-  issuingBody: string;
-  dateObtained: string;
-  expiryDate?: string;
-  credentialId?: string;
-};
-
-export type ProjectHistoryEntry = {
-  projectId: string;
-  projectName: string;
-  roleOnProject: string;
-  startDate: string;
-  endDate?: string;
-  projectStatus: string;
-};
-
+// Represents a DB record in `users` (specifically for consultants)
 export type Consultant = {
   id: string;
   name: string;
   email: string;
   role: string;
-  skills: string[];
-  utilization: number;
-  status: ConsultantStatus;
-  currentProject?: string;
-  currentProjectNameCache?: string;
+  skills: string[]; // For simplicity; could be a separate `user_skills` table
+  utilization: number; // This would be calculated, not stored directly
+  status: ConsultantStatus; // Calculated from project assignments
+  currentProject?: string; // Calculated
   bio?: string;
   avatarUrl?: string;
   phone?: string;
-  projectHistory?: ProjectHistoryEntry[];
-  detailedSkills?: DetailedSkill[];
-  certifications?: Certification[];
 };
 
 export interface AppliedTaxInfo {
   taxRateId: string;
-  name: string; // e.g., "Standard VAT"
-  rateValue: number; // e.g., 16 (for 16%)
-  amount: number; // Calculated tax amount for this specific tax
+  name: string;
+  rateValue: number;
+  amount: number;
   jurisdiction?: string;
   taxTypeName?: string;
-  isCompound?: boolean; // Store if it was applied as compound
+  isCompound?: boolean;
 }
 
 export interface RecognizedRevenueEntry {
   id: string;
-  projectId?: string; // Link to project if recognized at project level
+  projectId?: string;
   projectNameCache?: string;
-  invoiceId?: string; // Link to invoice if recognized from an invoice
+  invoiceId?: string;
   invoiceNumberCache?: string;
   clientId?: string;
   clientNameCache?: string;
-  dateRecognized: string; // ISO Date string
+  dateRecognized: string;
   amountRecognized: number;
   currency: string;
-  recognitionRuleId?: string; // Link to the rule used
+  recognitionRuleId?: string;
   recognitionRuleNameCache?: string;
   notes?: string;
-  createdAt: string; // ISO Date string
+  createdAt: string;
 }
 
 export type InvoiceItem = {
@@ -327,11 +237,11 @@ export type InvoiceItem = {
   description: string;
   quantity: number;
   unitPrice: number;
-  totalPrice: number; // Pre-tax price for this line item (quantity * unitPrice)
-  applicableTaxRateIds?: string[]; // Specific tax rates selected for this item
-  appliedTaxes?: AppliedTaxInfo[]; // Taxes actually calculated and applied to this item
-  taxAmountForItem?: number; // Sum of taxes for this specific item
-  totalPriceIncludingTax?: number; // totalPrice + taxAmountForItem
+  totalPrice: number;
+  applicableTaxRateIds?: string[];
+  appliedTaxes?: AppliedTaxInfo[];
+  taxAmountForItem?: number;
+  totalPriceIncludingTax?: number;
 };
 
 export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Void';
@@ -348,21 +258,20 @@ export type Invoice = {
   issueDate: string;
   dueDate: string;
   items: InvoiceItem[];
-  subTotal: number; // Sum of all item.totalPrice (pre-tax)
-  taxAmount: number; // Total tax amount for the entire invoice (sum of item.taxAmountForItem).
-  appliedTaxes: AppliedTaxInfo[]; // Summary of unique taxes applied across all items on the invoice.
-  totalAmount: number; // subTotal + taxAmount
+  subTotal: number;
+  taxAmount: number;
+  appliedTaxes: AppliedTaxInfo[];
+  totalAmount: number;
   status: InvoiceStatus;
   currency: string;
   notes?: string;
   paymentDetails?: string;
-  paymentMethod?: PaymentMethod; // New field for how the payment was made
+  paymentMethod?: PaymentMethod;
   paymentDate?: string;
   createdAt: string;
   updatedAt: string;
-  // Revenue Recognition related fields
-  deferredRevenueAmount?: number; // Portion of totalAmount not yet recognized
-  recognizedRevenueEntries?: RecognizedRevenueEntry[]; // Log of recognized portions
+  deferredRevenueAmount?: number;
+  recognizedRevenueEntries?: RecognizedRevenueEntry[];
 };
 
 export type ExpenseStatus = 'Pending' | 'Approved' | 'Rejected';
@@ -378,25 +287,13 @@ export type ExpenseCategory =
   | 'Consulting Fees (External)'
   | 'Other';
 
-
-export const expenseCategories: ExpenseCategory[] = [
-  'Travel',
-  'Meals & Entertainment',
-  'Software & Subscriptions',
-  'Office Supplies',
-  'Training & Development',
-  'Marketing & Advertising',
-  'Hardware',
-  'Consulting Fees (External)',
-  'Other'
-];
-
+export const expenseCategories: ExpenseCategory[] = [ 'Travel', 'Meals & Entertainment', 'Software & Subscriptions', 'Office Supplies', 'Training & Development', 'Marketing & Advertising', 'Hardware', 'Consulting Fees (External)', 'Other'];
 
 export type Expense = {
   id: string;
   date: string;
   description: string;
-  amount: number; // Pre-tax amount
+  amount: number;
   currency: string;
   category: ExpenseCategory | string;
   status: ExpenseStatus;
@@ -413,16 +310,14 @@ export type Expense = {
   approvedDate?: string;
   createdAt: string;
   updatedAt: string;
-  applicableTaxRateIds?: string[]; // Tax rates selected for this expense
-  appliedTaxes?: AppliedTaxInfo[]; // Taxes actually calculated and applied
+  applicableTaxRateIds?: string[];
+  appliedTaxes?: AppliedTaxInfo[];
   taxAmount?: number;
-  totalAmountIncludingTax?: number; // amount + taxAmount
+  totalAmountIncludingTax?: number;
 };
 
 export type BudgetStatus = 'Planning' | 'Active' | 'Overspent' | 'Completed' | 'On Hold';
-
 export const budgetStatuses: BudgetStatus[] = ['Planning', 'Active', 'Overspent', 'Completed', 'On Hold'];
-
 export type BudgetType = 'Project' | 'Departmental' | 'General';
 export const budgetTypes: BudgetType[] = ['Project', 'Departmental', 'General'];
 
@@ -443,7 +338,6 @@ export type Budget = {
   updatedAt: string;
 };
 
-// Types for User Management in Settings
 export type SystemUserStatus = 'Active' | 'Inactive' | 'Invited' | 'Suspended';
 export const systemUserStatuses: SystemUserStatus[] = ['Active', 'Inactive', 'Invited', 'Suspended'];
 
@@ -457,17 +351,16 @@ export interface SystemUser {
   role: SystemRole;
   status: SystemUserStatus;
   avatarUrl?: string;
-  lastLogin?: string; // ISO date string
-  dateJoined?: string; // ISO date string
+  lastLogin?: string;
+  dateJoined?: string;
   reportsToUserId?: string;
   reportsToUserNameCache?: string;
 }
 
-// New Tax Management Types
 export interface TaxJurisdiction {
   id: string;
-  name: string; // e.g., "Kenya", "USA - California", "European Union"
-  countryCode?: string; // e.g., "KE", "US", "EU" (ISO 3166-1 alpha-2 or similar)
+  name: string;
+  countryCode?: string;
   description?: string;
   createdAt: string;
   updatedAt: string;
@@ -475,47 +368,57 @@ export interface TaxJurisdiction {
 
 export interface TaxType {
   id: string;
-  name: string; // e.g., "Value Added Tax", "Sales Tax", "Withholding Tax", "Service Tax"
-  abbreviation?: string; // e.g., "VAT", "WHT"
+  name: string;
+  abbreviation?: string;
   description?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export type TaxApplicableEntity =
-  | 'ProjectRevenue' // Placeholder, not directly used for calculation yet
-  | 'ProjectExpense' // Placeholder
+  | 'ProjectRevenue'
+  | 'ProjectExpense'
   | 'InvoiceLineItem'
   | 'GeneralExpense'
-  | 'ServiceSales'; // Could be used to categorize rates further
-
-export const taxApplicableEntities: TaxApplicableEntity[] = [
-  'ProjectRevenue', 'ProjectExpense', 'InvoiceLineItem', 'GeneralExpense', 'ServiceSales'
-];
+  | 'ServiceSales';
+export const taxApplicableEntities: TaxApplicableEntity[] = [ 'ProjectRevenue', 'ProjectExpense', 'InvoiceLineItem', 'GeneralExpense', 'ServiceSales'];
 
 export interface TaxRate {
   id: string;
   jurisdictionId: string;
-  jurisdictionNameCache?: string; // Denormalized for display
+  jurisdictionNameCache?: string;
   taxTypeId: string;
-  taxTypeNameCache?: string; // Denormalized for display
-  rate: number; // Percentage, e.g., 16 for 16%
-  description: string; // e.g., "Standard VAT rate for services"
-  startDate: string; // ISO Date string
-  endDate?: string; // ISO Date string, for historical rates or temporary taxes
-  isCompound: boolean; // Does this tax apply on top of other taxes?
-  applicableTo: TaxApplicableEntity[]; // Specifies where this tax rate can be applied
+  taxTypeNameCache?: string;
+  rate: number;
+  description: string;
+  startDate: string;
+  endDate?: string;
+  isCompound: boolean;
+  applicableTo: TaxApplicableEntity[];
   notes?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-// ===== Placeholder Types for Future Features =====
+export type RevenueRecognitionMethod =
+  | 'OnInvoicePaid'
+  | 'PercentageOfCompletion'
+  | 'MilestoneBased'
+  | 'SubscriptionBased'
+  | 'Manual';
+export const revenueRecognitionMethods: RevenueRecognitionMethod[] = [ 'OnInvoicePaid', 'PercentageOfCompletion', 'MilestoneBased', 'SubscriptionBased', 'Manual',];
 
-/**
- * @description Represents a product or good sold by the company.
- * For future inventory management features.
- */
+export interface RevenueRecognitionRule {
+  id: string;
+  name: string;
+  description?: string;
+  method: RevenueRecognitionMethod;
+  criteriaDescription?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Product {
   id: string;
   sku: string;
@@ -527,10 +430,6 @@ export interface Product {
   warehouseLocation?: string;
 }
 
-/**
- * @description Represents a supplier or vendor.
- * For future procurement and purchase order features.
- */
 export interface Supplier {
   id: string;
   name:string;
@@ -539,13 +438,9 @@ export interface Supplier {
   phone?: string;
   address?: Address;
   taxId?: string;
-  productCatalog?: { productId: string, cost: number }[]; // Link to products they supply
+  productCatalog?: { productId: string, cost: number }[];
 }
 
-/**
- * @description Represents a purchase order made to a supplier.
- * For future procurement and cost tracking features.
- */
 export interface PurchaseOrder {
   id: string;
   supplierId: string;
