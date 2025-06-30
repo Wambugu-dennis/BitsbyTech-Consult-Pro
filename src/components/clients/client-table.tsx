@@ -1,4 +1,6 @@
 
+'use client';
+
 import Link from 'next/link';
 import type { Client } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,13 +9,26 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MoreHorizontal, Edit2, Trash2, Eye, Building } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 interface ClientTableProps {
   clients: Client[];
+  onEditClient: (client: Client) => void;
+  onDeleteClient: (clientId: string) => void;
 }
 
-export default function ClientTable({ clients }: ClientTableProps) {
+export default function ClientTable({ clients, onEditClient, onDeleteClient }: ClientTableProps) {
   const getStatusVariant = (status?: Client['status']): "default" | "secondary" | "outline" | "destructive" => {
     switch (status) {
       case 'Active': return 'default';
@@ -99,12 +114,31 @@ export default function ClientTable({ clients }: ClientTableProps) {
                           <Eye className="mr-2 h-4 w-4" /> View Details
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEditClient(client)}>
                         <Edit2 className="mr-2 h-4 w-4" /> Edit Client
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete Client
-                      </DropdownMenuItem>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                             <Trash2 className="mr-2 h-4 w-4" /> Delete Client
+                           </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the client
+                                "{client.companyName}".
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDeleteClient(client.id)} className="bg-destructive hover:bg-destructive/90">
+                                Delete
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

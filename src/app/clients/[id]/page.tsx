@@ -1,5 +1,4 @@
 
-// src/app/clients/[id]/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -19,8 +18,10 @@ import {
   ArrowLeft, Mail, Phone, Briefcase, Users, Globe, Building, Edit, MessageSquare, DollarSign, FileText, MapPin, Info, Users2, LinkIcon, Star
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import AddClientDialog from '@/components/clients/add-client-dialog';
+import { useToast } from '@/hooks/use-toast';
 
-// In a real app, this data would be fetched from an API
+
 const getClientById = (id: string): Client | undefined => {
   return initialClients.find(client => client.id === id);
 };
@@ -33,9 +34,11 @@ export default function ClientProfilePage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
+  const { toast } = useToast();
   
   const [client, setClient] = useState<Client | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -45,27 +48,30 @@ export default function ClientProfilePage() {
     setIsMounted(true);
   }, [id]);
 
-  const getStatusColor = (status?: Client['status']): string => {
-    switch (status) {
-      case 'Active': return 'text-green-600 dark:text-green-400';
-      case 'Inactive': return 'text-gray-600 dark:text-gray-400';
-      case 'Prospect': return 'text-blue-600 dark:text-blue-400';
-      default: return 'text-muted-foreground';
+  const handleSaveClient = (clientData: Partial<Client>) => {
+    if (client) {
+      // In a real app, this would be an API call. Here we just update local state.
+      const updatedClient = { ...client, ...clientData, keyContacts: clientData.keyContacts || client.keyContacts } as Client;
+      setClient(updatedClient);
+      
+      // Note: This won't persist if you navigate away and come back,
+      // as initialClients is not mutated. This is a simulation.
+      const clientIndex = initialClients.findIndex(c => c.id === client.id);
+      if (clientIndex > -1) {
+        initialClients[clientIndex] = updatedClient;
+      }
+      
+      toast({ title: "Client Updated", description: `${updatedClient.companyName}'s details have been saved.`});
     }
+    setIsEditDialogOpen(false);
   };
-   const getStatusBadgeVariant = (status?: Client['status']): "default" | "secondary" | "outline" => {
+
+
+  const getStatusBadgeClass = (status?: Client['status']): string => {
     switch (status) {
-      case 'Active': return 'default';
-      case 'Inactive': return 'secondary';
-      case 'Prospect': return 'outline';
-      default: return 'secondary';
-    }
-  };
-   const getStatusBadgeClass = (status?: Client['status']): string => {
-    switch (status) {
-      case 'Active': return 'bg-green-500/20 border-green-500';
-      case 'Inactive': return 'bg-gray-500/20 border-gray-500';
-      case 'Prospect': return 'bg-blue-500/20 border-blue-500';
+      case 'Active': return 'bg-green-500/20 border-green-500 text-green-700 dark:text-green-300';
+      case 'Inactive': return 'bg-gray-500/20 border-gray-500 text-gray-700 dark:text-gray-300';
+      case 'Prospect': return 'bg-blue-500/20 border-blue-500 text-blue-700 dark:text-blue-300';
       default: return 'border-border';
     }
   };
@@ -91,7 +97,7 @@ export default function ClientProfilePage() {
 
 
   if (!isMounted) {
-    return ( // Skeleton loader
+    return ( 
       <div className="space-y-6 animate-pulse">
         <div className="h-8 bg-muted rounded w-1/4"></div>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -124,6 +130,7 @@ export default function ClientProfilePage() {
   const primaryConsultant = getConsultantById(client.engagementDetails?.primaryConsultantId);
 
   return (
+    <>
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
@@ -134,13 +141,12 @@ export default function ClientProfilePage() {
           <h1 className="text-3xl font-bold tracking-tight">{client.companyName}</h1>
           <p className="text-muted-foreground">{client.industry || 'Industry not specified'}</p>
         </div>
-        <Button variant="outline">
+        <Button onClick={() => setIsEditDialogOpen(true)}>
             <Edit className="mr-2 h-4 w-4" /> Edit Client
         </Button>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Sidebar / Info Column */}
         <div className="lg:col-span-4 xl:col-span-3 space-y-6">
           <Card>
             <CardContent className="pt-6 flex flex-col items-center text-center">
@@ -151,7 +157,7 @@ export default function ClientProfilePage() {
                 </AvatarFallback>
               </Avatar>
               
-              <Badge variant={getStatusBadgeVariant(client.status)} className={cn("capitalize mb-2 text-sm px-3 py-1", getStatusBadgeClass(client.status))}>
+              <Badge variant="outline" className={cn("capitalize mb-2 text-sm px-3 py-1", getStatusBadgeClass(client.status))}>
                 {client.status}
               </Badge>
               {client.clientTier && (
@@ -188,7 +194,7 @@ export default function ClientProfilePage() {
                   </div>
                 </div>
               )}
-              {!client.creditRating && !client.satisfactionScore && <p className="text-sm text-muted-foreground">No health metrics available.</p>}
+              {!client.creditRating && (!client.satisfactionScore || client.satisfactionScore === 0) && <p className="text-sm text-muted-foreground">No health metrics available.</p>}
             </CardContent>
           </Card>
 
@@ -216,7 +222,6 @@ export default function ClientProfilePage() {
           </Card>
         </div>
 
-        {/* Right Main Content with Tabs */}
         <div className="lg:col-span-8 xl:col-span-9">
           <Tabs defaultValue="overview" className="w-full">
             <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mb-4">
@@ -225,7 +230,6 @@ export default function ClientProfilePage() {
               <TabsTrigger value="projects"><Briefcase className="mr-1 h-4 w-4 sm:mr-2"/>Projects</TabsTrigger>
               <TabsTrigger value="communications"><MessageSquare className="mr-1 h-4 w-4 sm:mr-2"/>Logs</TabsTrigger>
               <TabsTrigger value="financials"><DollarSign className="mr-1 h-4 w-4 sm:mr-2"/>Financials</TabsTrigger>
-              {/* <TabsTrigger value="contracts"><FileText className="mr-1 h-4 w-4 sm:mr-2"/>Contracts</TabsTrigger> */}
             </TabsList>
 
             <TabsContent value="overview">
@@ -234,7 +238,7 @@ export default function ClientProfilePage() {
                   <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary"/> Address</CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground">
-                  {client.address ? (
+                  {client.address && (client.address.street || client.address.city) ? (
                     <>
                       {client.address.street && <p>{client.address.street}</p>}
                       <p>{client.address.city && `${client.address.city}, `}{client.address.state && `${client.address.state} `}{client.address.zip}</p>
@@ -377,5 +381,15 @@ export default function ClientProfilePage() {
         </div>
       </div>
     </div>
+    {isEditDialogOpen && (
+        <AddClientDialog
+            isOpen={isEditDialogOpen}
+            onClose={() => setIsEditDialogOpen(false)}
+            onSave={handleSaveClient}
+            mode="edit"
+            clientToEdit={client}
+        />
+    )}
+    </>
   );
 }
