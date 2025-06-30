@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, Mail, Phone, Briefcase, Users, Globe, Building, Edit, MessageSquare, DollarSign, FileText, MapPin, Info, Users2, LinkIcon, Star
 } from 'lucide-react';
