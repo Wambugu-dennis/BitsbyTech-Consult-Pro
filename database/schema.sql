@@ -1,8 +1,7 @@
 -- Consult Vista Database Schema
 -- Version: 1.2
 -- Description: A comprehensive schema for the Consult Vista application,
--- designed for MySQL. This version assumes a fresh installation and omits
--- all 'DROP TABLE' statements.
+-- designed for MySQL. This version assumes a fresh installation 
 
 -- =================================================================
 -- Module: User & Access Control
