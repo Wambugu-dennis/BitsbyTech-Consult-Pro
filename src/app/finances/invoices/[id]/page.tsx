@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Printer, Mail, DollarSign, Briefcase, User, FileText, CalendarDays, Landmark as RevenueIcon } from 'lucide-react';
+import { ArrowLeft, Printer, Mail, DollarSign, Briefcase, User, FileText, CalendarDays, Landmark as RevenueIcon, CheckCircle2 } from 'lucide-react';
 import type { Invoice, InvoiceItem, AppliedTaxInfo, RecognizedRevenueEntry } from '@/lib/types';
 import { initialInvoices, initialClients, initialProjects, initialRecognizedRevenueEntries } from '@/lib/mockData'; // For fetching invoice data
 import { cn } from '@/lib/utils';
@@ -90,6 +90,14 @@ export default function InvoiceDetailPage() {
       title: "Send Email Action",
       description: `Preparing to email invoice ${invoice?.id} to ${invoice?.clientNameCache} (Simulated).`,
       duration: 3000,
+    });
+  };
+
+  const handleSendReceipt = () => {
+    toast({
+      title: "Receipt Generation",
+      description: `Generating and sending receipt for invoice ${invoice?.id} (Simulated).`,
+      duration: 3000
     });
   };
 
@@ -204,7 +212,7 @@ export default function InvoiceDetailPage() {
           </div>
           <Separator className="my-6"/>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
+            <div className="space-y-4">
                 {invoice.notes && (
                     <div>
                         <h4 className="font-semibold mb-1">Notes:</h4>
@@ -213,8 +221,18 @@ export default function InvoiceDetailPage() {
                 )}
                  {invoice.paymentDetails && (
                     <div>
-                        <h4 className="font-semibold mt-3 mb-1">Payment Details:</h4>
+                        <h4 className="font-semibold mb-1">Payment Details:</h4>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{invoice.paymentDetails}</p>
+                    </div>
+                )}
+                {invoice.status === 'Paid' && (
+                    <div>
+                        <h4 className="font-semibold mb-1">Payment Confirmation</h4>
+                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-green-500/10">
+                            <p className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-green-600"/> Payment received on {format(parseISO(invoice.paymentDate!), 'PPP')}.</p>
+                            {invoice.paymentMethod && <p>Method: <strong>{invoice.paymentMethod}</strong></p>}
+                            <Button size="sm" variant="outline" className="mt-2" onClick={handleSendReceipt}>Generate & Send Receipt</Button>
+                        </div>
                     </div>
                 )}
             </div>
@@ -287,5 +305,3 @@ export default function InvoiceDetailPage() {
     </div>
   );
 }
-
-    

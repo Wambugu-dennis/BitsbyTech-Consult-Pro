@@ -1,5 +1,5 @@
 
-import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, AppliedTaxInfo, Expense, Budget, BudgetStatus, BudgetType, CalendarEvent, ClientMeeting, RevenueData, SystemUser, SystemUserStatus, SystemRole, TaxJurisdiction, TaxType, TaxRate, TaxApplicableEntity, RevenueRecognitionRule, RevenueRecognitionMethod, RecognizedRevenueEntry } from "@/lib/types";
+import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, AppliedTaxInfo, Expense, Budget, BudgetStatus, BudgetType, CalendarEvent, ClientMeeting, RevenueData, SystemUser, SystemUserStatus, SystemRole, TaxJurisdiction, TaxType, TaxRate, TaxApplicableEntity, RevenueRecognitionRule, RevenueRecognitionMethod, RecognizedRevenueEntry, PaymentMethod } from "@/lib/types";
 import { PROJECT_STATUS } from "@/lib/constants";
 import { expenseCategories, budgetTypes, budgetStatuses, calendarEventTypes, systemUserStatuses, systemRoles, taxApplicableEntities, revenueRecognitionMethods } from "./types";
 import { formatISO, addDays, subDays, addMonths, parseISO, getMonth, format } from 'date-fns';
@@ -23,11 +23,12 @@ export const initialClients: Client[] = [
       { id: 'kc1-1', name: 'Sarah Connor', role: 'CEO', email: 's.connor@innovatech.example.com', phone: '555-0100' },
       { id: 'kc1-2', name: 'John Projectlead', role: 'Head of R&D', email: 'j.projectlead@innovatech.example.com' },
     ],
-    satisfactionScore: 92, // Made static
+    satisfactionScore: 92,
+    creditRating: 'Excellent',
     notes: 'Long-term client, high value. Focus on AI and cloud solutions.',
     linkedProjectIds: ['proj101', 'proj105'],
     financialSummary: { totalBilled: 120000, totalPaid: 115000, outstandingAmount: 5000, lastInvoiceDate: '2024-07-01', currency: 'USD' },
-    lastContact: formatISO(subDays(today, 15), { representation: 'date' }), // Date.now() is fine for relative dates like this
+    lastContact: formatISO(subDays(today, 15), { representation: 'date' }), 
     communicationLogs: [
       {id: 'cl1', date: formatISO(subDays(today, 15), { representation: 'date' }), type: 'Meeting', summary: 'Quarterly review, positive feedback.', participants: ['Sarah Connor', 'Dr. Eleanor Vance']},
       {id: 'cl2', date: formatISO(subDays(today, 40), { representation: 'date' }), type: 'Email', summary: 'Sent project update for proj105.'}
@@ -51,7 +52,8 @@ export const initialClients: Client[] = [
     keyContacts: [
       { id: 'kc2-1', name: 'Robert Neville', role: 'CTO', email: 'r.neville@alphasolutions.example.io', phone: '555-0200' }
     ],
-    satisfactionScore: 85, // Made static
+    satisfactionScore: 85,
+    creditRating: 'Good',
     notes: 'Focused on data analytics and patient management systems.',
     linkedProjectIds: ['proj202'],
     financialSummary: { totalBilled: 75000, totalPaid: 75000, outstandingAmount: 0, lastInvoiceDate: '2024-06-15', currency: 'USD' },
@@ -74,7 +76,8 @@ export const initialClients: Client[] = [
     keyContacts: [
       { id: 'kc3-1', name: 'Carol Danvers', role: 'Operations Manager', email: 'c.danvers@betacorp.example.dev', phone: '555-0300' }
     ],
-    satisfactionScore: 70, // Made static
+    satisfactionScore: 70,
+    creditRating: 'Good',
     notes: 'Previous engagement for process optimization. Potential for follow-up work.',
     financialSummary: { totalBilled: 45000, totalPaid: 45000, outstandingAmount: 0, currency: 'USD' },
     lastContact: formatISO(subDays(today, 300), { representation: 'date' }),
@@ -91,6 +94,7 @@ export const initialClients: Client[] = [
     keyContacts: [
       { id: 'kc4-1', name: 'Bruce Banner', role: 'Procurement Head', email: 'b.banner@gammaind.example.net', phone: '555-0400' }
     ],
+    creditRating: 'Fair',
     notes: 'Initial discussions for supply chain optimization. Proposal sent.',
     lastContact: formatISO(subDays(today, 30), { representation: 'date' }),
     jurisdictionId: 'jur-ke',
@@ -406,7 +410,8 @@ const createInvoiceWithTaxes = (
   status: Invoice['status'],
   daysOffset: number,
   itemsInfo: { items: InvoiceItem[], subTotal: number },
-  applicableTaxRateIds: string[]
+  applicableTaxRateIds: string[],
+  paymentMethod?: PaymentMethod
 ): Invoice => {
   const issueDate = formatISO(subDays(today, daysOffset), { representation: 'date' });
   const dueDate = formatISO(addDays(new Date(issueDate), 30), { representation: 'date' });
@@ -452,6 +457,7 @@ const createInvoiceWithTaxes = (
     paymentDetails: 'Bank: Global Consultants Bank, Account: 123-456-789, SWIFT: GCBKUS33',
     createdAt: formatISO(subDays(today, daysOffset + 2)),
     updatedAt: formatISO(subDays(today, daysOffset + 1)),
+    paymentMethod: status === 'Paid' ? paymentMethod : undefined,
     paymentDate: status === 'Paid' ? formatISO(subDays(today, daysOffset - 5), { representation: 'date' }) : undefined,
     deferredRevenueAmount: status === 'Paid' ? totalAmount * 0.5 : totalAmount, // Example initial deferral
     recognizedRevenueEntries: status === 'Paid' ? [
@@ -463,7 +469,7 @@ const createInvoiceWithTaxes = (
         amountRecognized: totalAmount * 0.5,
         currency: 'USD',
         recognitionRuleId: 'rule-onpaid', // Example
-        recognitionRuleNameCache: 'Recognize 50% on Payment',
+        recognitionRuleNameCache: 'Full Recognition on Invoice Payment',
         createdAt: formatISO(subDays(today, daysOffset - 5)),
       }
     ] : [],
@@ -477,7 +483,7 @@ const inv3Items = generateInvoiceItems(5, 1000, 3); // seed 3
 const inv4Items = generateInvoiceItems(1, 5000, 4); // seed 4
 
 export const initialInvoices: Invoice[] = [
-  createInvoiceWithTaxes('INV-2024-001', initialClients[0], initialProjects.find(p => p.id === 'proj101'), 'Paid', 45, inv1Items, ['rate-us-ca-sales']),
+  createInvoiceWithTaxes('INV-2024-001', initialClients[0], initialProjects.find(p => p.id === 'proj101'), 'Paid', 45, inv1Items, ['rate-us-ca-sales'], 'Credit Card'),
   createInvoiceWithTaxes('INV-2024-002', initialClients[1], initialProjects.find(p => p.id === 'proj202'), 'Sent', 20, inv2Items, []),
   createInvoiceWithTaxes('INV-2024-003', initialClients[0], initialProjects.find(p => p.id === 'proj105'), 'Overdue', 35, inv3Items, ['rate-us-ca-sales']),
   createInvoiceWithTaxes('INV-2024-004', initialClients[3], undefined, 'Draft', 5, inv4Items, ['rate-ke-vat-std', 'rate-ke-wht-services']),
@@ -836,6 +842,3 @@ initialInvoices.forEach(inv => {
     inv.deferredRevenueAmount = inv.totalAmount - (inv.recognizedRevenueEntries[0].amountRecognized);
   }
 });
-    
-    
-    

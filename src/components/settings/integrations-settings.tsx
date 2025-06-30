@@ -104,6 +104,15 @@ const mockIntegrations: Integration[] = [
     logoUrl: 'https://placehold.co/64x64/13B5EA/FFFFFF.png?text=Xero',
     status: 'Not Connected',
   },
+    {
+    id: 'kra_etims',
+    name: 'KRA eTIMS (Kenya)',
+    category: 'Compliance',
+    description: 'Integrate with the Kenya Revenue Authority eTIMS for real-time electronic tax invoice management.',
+    logoFallback: 'KRA',
+    logoUrl: 'https://placehold.co/64x64/006633/FFFFFF.png?text=KRA',
+    status: 'Coming Soon',
+  },
   {
     id: 'netsuite',
     name: 'Oracle NetSuite',

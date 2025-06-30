@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { Client, Consultant, KeyContact } from '@/lib/types';
+import type { Client, Consultant, KeyContact, ClientCreditRating } from '@/lib/types';
 import { initialClients, initialConsultants } from '@/lib/mockData';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { 
-  ArrowLeft, Mail, Phone, Briefcase, Users, Globe, Building, Edit, MessageSquare, DollarSign, FileText, MapPin, Info, Users2, LinkIcon
+  ArrowLeft, Mail, Phone, Briefcase, Users, Globe, Building, Edit, MessageSquare, DollarSign, FileText, MapPin, Info, Users2, LinkIcon, Star
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +77,16 @@ export default function ClientProfilePage() {
       default: return 'text-muted-foreground';
     }
   };
+  
+  const getCreditRatingBadgeClass = (rating?: ClientCreditRating): string => {
+    switch(rating) {
+      case 'Excellent': return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 border-green-300';
+      case 'Good': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 border-blue-300';
+      case 'Fair': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300 border-yellow-300';
+      case 'Poor': return 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 border-red-300';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  }
 
 
   if (!isMounted) {
@@ -154,23 +164,33 @@ export default function ClientProfilePage() {
             </CardContent>
           </Card>
           
-          {client.satisfactionScore !== undefined && client.satisfactionScore > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Client Satisfaction</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <Progress value={client.satisfactionScore} className="h-2 flex-1" 
-                    indicatorClassName={
-                      client.satisfactionScore >= 80 ? 'bg-green-500' : client.satisfactionScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                    }
-                  />
-                  <span className="text-sm font-semibold">{client.satisfactionScore}%</span>
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-between">
+              <CardTitle className="text-base">Client Health</CardTitle>
+              {client.creditRating && (
+                <Badge variant="outline" className={cn(getCreditRatingBadgeClass(client.creditRating), 'text-xs')}>
+                  {client.creditRating} Credit
+                </Badge>
+              )}
+            </CardHeader>
+            <CardContent>
+              {client.satisfactionScore !== undefined && client.satisfactionScore > 0 && (
+                <div>
+                  <Label className="text-xs">Satisfaction</Label>
+                  <div className="flex items-center gap-2">
+                    <Progress value={client.satisfactionScore} className="h-2 flex-1" 
+                      indicatorClassName={
+                        client.satisfactionScore >= 80 ? 'bg-green-500' : client.satisfactionScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                      }
+                    />
+                    <span className="text-sm font-semibold">{client.satisfactionScore}%</span>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+              {!client.creditRating && !client.satisfactionScore && <p className="text-sm text-muted-foreground">No health metrics available.</p>}
+            </CardContent>
+          </Card>
+
 
           <Card>
             <CardHeader className="pb-2">
@@ -358,7 +378,3 @@ export default function ClientProfilePage() {
     </div>
   );
 }
-
-    
-
-    

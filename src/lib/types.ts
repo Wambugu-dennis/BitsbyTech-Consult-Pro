@@ -201,6 +201,7 @@ export type CalendarEvent = {
   location?: string;
 };
 
+export type ClientCreditRating = 'Excellent' | 'Good' | 'Fair' | 'Poor';
 
 export type Client = {
   id: string;
@@ -215,6 +216,7 @@ export type Client = {
   keyContacts: KeyContact[];
   communicationLogs?: CommunicationLog[];
   satisfactionScore?: number;
+  creditRating?: ClientCreditRating; // New field for internal credit rating
   notes?: string;
   linkedProjectIds?: string[];
   financialSummary?: ClientFinancialSummary;
@@ -335,6 +337,7 @@ export type InvoiceItem = {
 export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Void';
 export const invoiceStatuses: InvoiceStatus[] = ['Draft', 'Sent', 'Paid', 'Overdue', 'Void'];
 
+export type PaymentMethod = 'Credit Card' | 'Bank Transfer' | 'Cash' | 'Check' | 'PayBill' | 'Till Number';
 
 export type Invoice = {
   id: string;
@@ -353,6 +356,7 @@ export type Invoice = {
   currency: string;
   notes?: string;
   paymentDetails?: string;
+  paymentMethod?: PaymentMethod; // New field for how the payment was made
   paymentDate?: string;
   createdAt: string;
   updatedAt: string;
@@ -504,4 +508,50 @@ export interface TaxRate {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ===== Placeholder Types for Future Features =====
+
+/**
+ * @description Represents a product or good sold by the company.
+ * For future inventory management features.
+ */
+export interface Product {
+  id: string;
+  sku: string;
+  name: string;
+  description?: string;
+  category?: string;
+  unitPrice: number;
+  stockQuantity: number;
+  warehouseLocation?: string;
+}
+
+/**
+ * @description Represents a supplier or vendor.
+ * For future procurement and purchase order features.
+ */
+export interface Supplier {
+  id: string;
+  name:string;
+  contactPerson?: string;
+  email: string;
+  phone?: string;
+  address?: Address;
+  taxId?: string;
+  productCatalog?: { productId: string, cost: number }[]; // Link to products they supply
+}
+
+/**
+ * @description Represents a purchase order made to a supplier.
+ * For future procurement and cost tracking features.
+ */
+export interface PurchaseOrder {
+  id: string;
+  supplierId: string;
+  orderDate: string;
+  expectedDeliveryDate: string;
+  items: { productId: string; quantity: number; unitCost: number }[];
+  totalCost: number;
+  status: 'Draft' | 'Sent' | 'Partially Received' | 'Received' | 'Cancelled';
 }
