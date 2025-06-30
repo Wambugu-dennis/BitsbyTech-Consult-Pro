@@ -30,6 +30,8 @@ interface AddClientDialogProps {
   onAddClient: (clientData: Omit<Client, 'id' | 'keyContacts' | 'status' | 'lastContact'> & { keyContacts: Pick<KeyContact, 'name' | 'email' | 'phone' | 'role'>[] }) => void;
 }
 
+const NONE_VALUE_PLACEHOLDER = "--none--";
+
 export default function AddClientDialog({ onAddClient }: AddClientDialogProps) {
   const [open, setOpen] = useState(false);
   const form = useForm<AddClientFormData>({
@@ -41,7 +43,7 @@ export default function AddClientDialog({ onAddClient }: AddClientDialogProps) {
       primaryContactPhone: '',
       industry: '',
       website: '',
-      jurisdictionId: '',
+      jurisdictionId: undefined,
     },
   });
 
@@ -166,14 +168,17 @@ export default function AddClientDialog({ onAddClient }: AddClientDialogProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tax Jurisdiction (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select 
+                    onValueChange={(value) => field.onChange(value === NONE_VALUE_PLACEHOLDER ? undefined : value)} 
+                    value={field.value || NONE_VALUE_PLACEHOLDER}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select client's primary tax jurisdiction" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">-- None --</SelectItem>
+                      <SelectItem value={NONE_VALUE_PLACEHOLDER}>-- None --</SelectItem>
                       {initialTaxJurisdictions.map(jurisdiction => (
                         <SelectItem key={jurisdiction.id} value={jurisdiction.id}>
                           {jurisdiction.name} {jurisdiction.countryCode ? `(${jurisdiction.countryCode})` : ''}
@@ -195,5 +200,3 @@ export default function AddClientDialog({ onAddClient }: AddClientDialogProps) {
     </Dialog>
   );
 }
-
-    
