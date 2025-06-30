@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Client, Consultant, KeyContact, ClientCreditRating } from '@/lib/types';
+// import { query } from '@/lib/db'; // Example: DB utility import
 import { initialClients, initialConsultants } from '@/lib/mockData';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,19 @@ import { cn } from '@/lib/utils';
 import AddClientDialog from '@/components/clients/add-client-dialog';
 import { useToast } from '@/hooks/use-toast';
 
+/*
+// ===== DATABASE INTEGRATION EXAMPLE =====
+// This would be a server-side function to get a specific client's details.
+async function getClientByIdFromDb(id: string): Promise<Client | undefined> {
+  // This query would be more complex, involving JOINs to get key_contacts, projects, etc.
+  const [clientRows] = await query('SELECT * FROM clients WHERE id = ?', [id]);
+  if (!clientRows || clientRows.length === 0) {
+    return undefined;
+  }
+  // You would then fetch related data and assemble the full Client object.
+  return clientRows[0] as Client;
+}
+*/
 
 const getClientById = (id: string): Client | undefined => {
   return initialClients.find(client => client.id === id);
@@ -42,6 +56,13 @@ export default function ClientProfilePage() {
 
   useEffect(() => {
     if (id) {
+      // ===== DATABASE INTEGRATION EXAMPLE =====
+      // getClientByIdFromDb(id).then(foundClient => {
+      //   setClient(foundClient || null);
+      //   setIsMounted(true);
+      // });
+      
+      // Current mock data implementation:
       const foundClient = getClientById(id);
       setClient(foundClient || null);
     }
@@ -49,13 +70,16 @@ export default function ClientProfilePage() {
   }, [id]);
 
   const handleSaveClient = (clientData: Partial<Client>) => {
+    /*
+    // ===== DATABASE INTEGRATION EXAMPLE =====
+    // await updateClientInDb(id, clientData);
+    // After saving, you'd re-fetch to get the updated data.
+    // getClientByIdFromDb(id).then(setClient);
+    */
     if (client) {
-      // In a real app, this would be an API call. Here we just update local state.
       const updatedClient = { ...client, ...clientData, keyContacts: clientData.keyContacts || client.keyContacts } as Client;
       setClient(updatedClient);
       
-      // Note: This won't persist if you navigate away and come back,
-      // as initialClients is not mutated. This is a simulation.
       const clientIndex = initialClients.findIndex(c => c.id === client.id);
       if (clientIndex > -1) {
         initialClients[clientIndex] = updatedClient;

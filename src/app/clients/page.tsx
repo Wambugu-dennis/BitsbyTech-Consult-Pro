@@ -5,11 +5,24 @@ import { useState, useEffect } from 'react';
 import ClientTable from "@/components/clients/client-table";
 import AddClientDialog from "@/components/clients/add-client-dialog";
 import type { Client, KeyContact } from "@/lib/types";
+// import { query } from '@/lib/db'; // Example: How you would import the DB utility
 import { initialClients } from '@/lib/mockData'; 
 import { useLocalization } from '@/context/localization-provider';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+/*
+// ===== DATABASE INTEGRATION EXAMPLE =====
+// This is an example of how you would fetch data from the database.
+// This would typically be a server-side operation.
+async function getClientsFromDb(): Promise<Client[]> {
+  // Note: The structure of the returned data must match the `Client` type.
+  // This may require SQL JOINs to fetch related data like key contacts.
+  const results = await query('SELECT * FROM clients ORDER BY company_name ASC');
+  return results as Client[];
+}
+*/
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -22,6 +35,15 @@ export default function ClientsPage() {
   const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
 
   useEffect(() => {
+    // ===== DATABASE INTEGRATION EXAMPLE =====
+    // In a real application, you would replace the mock data logic with a server call.
+    // For example:
+    // getClientsFromDb().then(data => {
+    //   setClients(data);
+    //   setIsMounted(true);
+    // }).catch(console.error);
+
+    // Current implementation with mock data:
     setClients(initialClients);
     setIsMounted(true);
   }, []);
@@ -39,6 +61,19 @@ export default function ClientsPage() {
   };
 
   const handleSaveClient = (clientData: Partial<Client>, id?: string) => {
+    /*
+    // ===== DATABASE INTEGRATION EXAMPLE =====
+    // Here, you would call a server action to either create or update the client in the DB.
+    if (dialogMode === 'add') {
+      // await createClientInDb(clientData);
+    } else if (dialogMode === 'edit' && id) {
+      // await updateClientInDb(id, clientData);
+    }
+    // After the DB operation, you would re-fetch the clients list to update the UI.
+    // getClientsFromDb().then(setClients);
+    */
+
+    // Current implementation with local state:
     if (dialogMode === 'add') {
       const newClient: Client = {
         id: String(Date.now()),
@@ -52,7 +87,7 @@ export default function ClientsPage() {
         linkedProjectIds: [],
         satisfactionScore: 0,
         ...clientData,
-        keyContacts: clientData.keyContacts || [], // Ensure keyContacts is not undefined
+        keyContacts: clientData.keyContacts || [],
       } as Client;
       setClients(prev => [newClient, ...prev]);
       toast({ title: t("Client Added"), description: t("{clientName} has been successfully added.", { clientName: newClient.companyName }) });
@@ -64,6 +99,11 @@ export default function ClientsPage() {
   };
 
   const handleDeleteClient = (clientId: string) => {
+     /*
+    // ===== DATABASE INTEGRATION EXAMPLE =====
+    // await deleteClientFromDb(clientId);
+    // getClientsFromDb().then(setClients);
+    */
     setClients(prev => prev.filter(c => c.id !== clientId));
     toast({ title: t("Client Deleted"), description: t("The client has been deleted."), variant: "destructive" });
   };
