@@ -1,6 +1,7 @@
 
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,29 +13,33 @@ import { initialClients } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { format, differenceInDays, parseISO } from 'date-fns';
 
-const reportData = initialClients.map(client => {
-    const lastContactDate = client.lastContact ? parseISO(client.lastContact) : new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000); // Random last contact if none
-    const daysSinceLastContact = differenceInDays(new Date(), lastContactDate);
-    let engagementLevel: 'High' | 'Medium' | 'Low' = 'Medium';
-    if (daysSinceLastContact <= 30 && (client.communicationLogs?.length || 0) >=2) engagementLevel = 'High';
-    else if (daysSinceLastContact > 90 || (client.communicationLogs?.length || 0) < 1) engagementLevel = 'Low';
-
-    return {
-        id: client.id,
-        companyName: client.companyName,
-        clientTier: client.clientTier || 'Standard',
-        status: client.status,
-        satisfactionScore: client.satisfactionScore || Math.floor(Math.random() * 40 + 60), // Random score if none
-        lastContactDate: format(lastContactDate, 'MMM dd, yyyy'),
-        daysSinceLastContact,
-        engagementLevel,
-        totalBilled: client.financialSummary?.totalBilled || 0,
-        growthOpportunity: (client.satisfactionScore || 0) > 80 && client.status === 'Active' ? 'High' : (client.satisfactionScore || 0) > 70 ? 'Medium' : 'Low',
-    };
-});
-
 export default function ClientRelationshipReportPage() {
   const router = useRouter();
+  const [reportData, setReportData] = useState<any[]>([]);
+
+  useEffect(() => {
+    const data = initialClients.map(client => {
+      const lastContactDate = client.lastContact ? parseISO(client.lastContact) : new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000);
+      const daysSinceLastContact = differenceInDays(new Date(), lastContactDate);
+      let engagementLevel: 'High' | 'Medium' | 'Low' = 'Medium';
+      if (daysSinceLastContact <= 30 && (client.communicationLogs?.length || 0) >= 2) engagementLevel = 'High';
+      else if (daysSinceLastContact > 90 || (client.communicationLogs?.length || 0) < 1) engagementLevel = 'Low';
+
+      return {
+          id: client.id,
+          companyName: client.companyName,
+          clientTier: client.clientTier || 'Standard',
+          status: client.status,
+          satisfactionScore: client.satisfactionScore || Math.floor(Math.random() * 40 + 60),
+          lastContactDate: format(lastContactDate, 'MMM dd, yyyy'),
+          daysSinceLastContact,
+          engagementLevel,
+          totalBilled: client.financialSummary?.totalBilled || 0,
+          growthOpportunity: (client.satisfactionScore || 0) > 80 && client.status === 'Active' ? 'High' : (client.satisfactionScore || 0) > 70 ? 'Medium' : 'Low',
+      };
+    });
+    setReportData(data);
+  }, []);
 
   const handleDownloadPdf = () => {
     alert("PDF download functionality for Client Relationship Report is under development. For now, please use your browser's 'Print to PDF' feature.");
@@ -45,7 +50,7 @@ export default function ClientRelationshipReportPage() {
     if (score >= 70) return 'bg-yellow-500';
     return 'bg-red-500';
   };
-  
+
   const getTierBadgeClass = (tier: string) => {
     if (tier === 'Strategic') return 'bg-purple-100 text-purple-700 border-purple-300';
     if (tier === 'Key') return 'bg-indigo-100 text-indigo-700 border-indigo-300';
@@ -95,7 +100,7 @@ export default function ClientRelationshipReportPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reportData.map((client) => (
+                {reportData.length > 0 ? reportData.map((client) => (
                   <TableRow key={client.id}>
                     <TableCell className="font-medium">{client.companyName}</TableCell>
                     <TableCell>
@@ -109,7 +114,7 @@ export default function ClientRelationshipReportPage() {
                     </TableCell>
                     <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-2">
-                           <Progress value={client.satisfactionScore} className="h-2 w-16" indicatorClassName={getSatisfactionColor(client.satisfactionScore)} /> 
+                           <Progress value={client.satisfactionScore} className="h-2 w-16" indicatorClassName={getSatisfactionColor(client.satisfactionScore)} />
                            {client.satisfactionScore}%
                         </div>
                     </TableCell>
@@ -128,10 +133,9 @@ export default function ClientRelationshipReportPage() {
                         </Badge>
                     </TableCell>
                   </TableRow>
-                ))}
-                {reportData.length === 0 && (
+                )) : (
                     <TableRow>
-                        <TableCell colSpan={8} className="text-center h-24">No client data available for this report.</TableCell>
+                        <TableCell colSpan={8} className="text-center h-24">Generating report data...</TableCell>
                     </TableRow>
                 )}
               </TableBody>
@@ -142,5 +146,3 @@ export default function ClientRelationshipReportPage() {
     </div>
   );
 }
-
-    

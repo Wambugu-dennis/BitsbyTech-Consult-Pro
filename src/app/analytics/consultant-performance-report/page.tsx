@@ -1,6 +1,7 @@
 
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,29 +13,33 @@ import { useRouter } from "next/navigation";
 import { initialConsultants, initialProjects } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 
-const reportData = initialConsultants.map(consultant => {
-    const projectsContributedCount = initialProjects.filter(p => p.projectManagerId === consultant.id || p.teamMemberIds?.includes(consultant.id)).length;
-    const billableHours = Math.floor(consultant.utilization * 1.6); // Mock: 160 hours max billable, util % of that
-    const nonBillableHours = Math.floor((100 - consultant.utilization) * 0.4); // Mock: 40 hours max non-billable
-    const avgClientFeedback = parseFloat((Math.random() * 1.5 + 3.5).toFixed(1)); // Random score between 3.5 and 5.0
-
-    return {
-        id: consultant.id,
-        name: consultant.name,
-        avatarUrl: consultant.avatarUrl,
-        role: consultant.role,
-        status: consultant.status,
-        utilizationRate: consultant.utilization,
-        billableHours,
-        nonBillableHours,
-        projectsContributed: projectsContributedCount,
-        avgClientFeedback,
-        skills: consultant.skills.slice(0,3).join(', ') + (consultant.skills.length > 3 ? '...' : ''),
-    };
-});
-
 export default function ConsultantPerformanceReportPage() {
   const router = useRouter();
+  const [reportData, setReportData] = useState<any[]>([]);
+
+  useEffect(() => {
+    const data = initialConsultants.map(consultant => {
+      const projectsContributedCount = initialProjects.filter(p => p.projectManagerId === consultant.id || p.teamMemberIds?.includes(consultant.id)).length;
+      const billableHours = Math.floor(consultant.utilization * 1.6);
+      const nonBillableHours = Math.floor((100 - consultant.utilization) * 0.4);
+      const avgClientFeedback = parseFloat((Math.random() * 1.5 + 3.5).toFixed(1));
+
+      return {
+          id: consultant.id,
+          name: consultant.name,
+          avatarUrl: consultant.avatarUrl,
+          role: consultant.role,
+          status: consultant.status,
+          utilizationRate: consultant.utilization,
+          billableHours,
+          nonBillableHours,
+          projectsContributed: projectsContributedCount,
+          avgClientFeedback,
+          skills: consultant.skills.slice(0,3).join(', ') + (consultant.skills.length > 3 ? '...' : ''),
+      };
+    });
+    setReportData(data);
+  }, []);
 
   const handleDownloadPdf = () => {
     alert("PDF download functionality for Consultant Performance Report is under development. For now, please use your browser's 'Print to PDF' feature.");
@@ -89,7 +94,7 @@ export default function ConsultantPerformanceReportPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reportData.map((consultant) => (
+                {reportData.length > 0 ? reportData.map((consultant) => (
                   <TableRow key={consultant.id}>
                     <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
@@ -103,7 +108,7 @@ export default function ConsultantPerformanceReportPage() {
                     <TableCell>{consultant.role}</TableCell>
                     <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-2">
-                            <Progress value={consultant.utilizationRate} className="h-2 w-16" indicatorClassName={getUtilizationColor(consultant.utilizationRate)} /> 
+                            <Progress value={consultant.utilizationRate} className="h-2 w-16" indicatorClassName={getUtilizationColor(consultant.utilizationRate)} />
                             {consultant.utilizationRate}%
                         </div>
                     </TableCell>
@@ -118,10 +123,9 @@ export default function ConsultantPerformanceReportPage() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{consultant.skills}</TableCell>
                   </TableRow>
-                ))}
-                {reportData.length === 0 && (
+                )) : (
                     <TableRow>
-                        <TableCell colSpan={8} className="text-center h-24">No consultant data available for this report.</TableCell>
+                        <TableCell colSpan={8} className="text-center h-24">Generating report data...</TableCell>
                     </TableRow>
                 )}
               </TableBody>
@@ -132,5 +136,3 @@ export default function ConsultantPerformanceReportPage() {
     </div>
   );
 }
-
-    

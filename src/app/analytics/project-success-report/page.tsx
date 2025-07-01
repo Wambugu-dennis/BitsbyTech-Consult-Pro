@@ -1,6 +1,7 @@
 
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,41 +9,43 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Briefcase, ArrowLeft, FileDown, CheckCircle, XCircle, TrendingUp, DollarSign, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { initialProjects, initialClients } from "@/lib/mockData"; // Assuming clients might be linked
+import { initialProjects, initialClients } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
-
-// Adapt or reuse baseProjectProfitabilityData or initialProjects
-const reportData = initialProjects.map(project => {
-  const client = initialClients.find(c => c.id === project.clientId);
-  const actualCost = project.financials.spentBudget || (project.financials.budget * (Math.random() * 0.4 + 0.6)); // Simulate spent if not present
-  const profitMargin = project.financials.budget > 0 ? ((project.financials.budget - actualCost) / project.financials.budget) * 100 : 0;
-  const variance = project.financials.budget - actualCost;
-  const deliveryStatus = project.status === "Done" 
-    ? (new Date(project.actualEndDate || project.endDate) <= new Date(project.endDate) ? "On Time" : "Delayed") 
-    : "In Progress";
-  
-  return {
-    id: project.id,
-    name: project.name,
-    clientName: client?.companyName || 'N/A',
-    status: project.status,
-    priority: project.priority,
-    startDate: project.startDate,
-    endDate: project.endDate,
-    actualEndDate: project.actualEndDate,
-    budget: project.financials.budget,
-    actualCost: actualCost,
-    profitMargin: parseFloat(profitMargin.toFixed(1)),
-    variance: parseFloat(variance.toFixed(2)),
-    completionPercent: project.completionPercent || 0,
-    deliveryStatus,
-    scopeAdherence: Math.floor(Math.random() * 30 + 70), // Mock % for scope adherence
-  };
-});
-
 
 export default function ProjectSuccessReportPage() {
   const router = useRouter();
+  const [reportData, setReportData] = useState<any[]>([]);
+
+  useEffect(() => {
+    const data = initialProjects.map(project => {
+      const client = initialClients.find(c => c.id === project.clientId);
+      const actualCost = project.financials.spentBudget || (project.financials.budget * (Math.random() * 0.4 + 0.6));
+      const profitMargin = project.financials.budget > 0 ? ((project.financials.budget - actualCost) / project.financials.budget) * 100 : 0;
+      const variance = project.financials.budget - actualCost;
+      const deliveryStatus = project.status === "Done"
+        ? (new Date(project.actualEndDate || project.endDate) <= new Date(project.endDate) ? "On Time" : "Delayed")
+        : "In Progress";
+
+      return {
+        id: project.id,
+        name: project.name,
+        clientName: client?.companyName || 'N/A',
+        status: project.status,
+        priority: project.priority,
+        startDate: project.startDate,
+        endDate: project.endDate,
+        actualEndDate: project.actualEndDate,
+        budget: project.financials.budget,
+        actualCost: actualCost,
+        profitMargin: parseFloat(profitMargin.toFixed(1)),
+        variance: parseFloat(variance.toFixed(2)),
+        completionPercent: project.completionPercent || 0,
+        deliveryStatus,
+        scopeAdherence: Math.floor(Math.random() * 30 + 70), // Mock % for scope adherence
+      };
+    });
+    setReportData(data);
+  }, []);
 
   const handleDownloadPdf = () => {
     alert("PDF download functionality for Project Success Report is under development. For now, please use your browser's 'Print to PDF' feature.");
@@ -53,7 +56,7 @@ export default function ProjectSuccessReportPage() {
     if (margin >= 10) return 'text-yellow-600';
     return 'text-red-600';
   };
-  
+
   const getStatusBadgeClass = (status: string) => {
     if (status === 'Done') return 'bg-green-100 text-green-700 border-green-300';
     if (status === 'In Progress') return 'bg-blue-100 text-blue-700 border-blue-300';
@@ -106,7 +109,7 @@ export default function ProjectSuccessReportPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reportData.map((project) => (
+                {reportData.length > 0 ? reportData.map((project) => (
                   <TableRow key={project.id}>
                     <TableCell className="font-medium">{project.name}</TableCell>
                     <TableCell>{project.clientName}</TableCell>
@@ -125,7 +128,7 @@ export default function ProjectSuccessReportPage() {
                     </TableCell>
                     <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-2">
-                            <Progress value={project.completionPercent} className="h-2 w-16" indicatorClassName={project.completionPercent >= 75 ? 'bg-green-500': project.completionPercent >=40 ? 'bg-blue-500': 'bg-yellow-500'} /> 
+                            <Progress value={project.completionPercent} className="h-2 w-16" indicatorClassName={project.completionPercent >= 75 ? 'bg-green-500': project.completionPercent >=40 ? 'bg-blue-500': 'bg-yellow-500'} />
                             {project.completionPercent}%
                         </div>
                     </TableCell>
@@ -138,10 +141,9 @@ export default function ProjectSuccessReportPage() {
                     </TableCell>
                     <TableCell className="text-center">{project.scopeAdherence}%</TableCell>
                   </TableRow>
-                ))}
-                 {reportData.length === 0 && (
+                )) : (
                     <TableRow>
-                        <TableCell colSpan={10} className="text-center h-24">No project data available for this report.</TableCell>
+                        <TableCell colSpan={10} className="text-center h-24">Generating report data...</TableCell>
                     </TableRow>
                 )}
               </TableBody>
@@ -152,5 +154,3 @@ export default function ProjectSuccessReportPage() {
     </div>
   );
 }
-
-    
