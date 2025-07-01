@@ -15,6 +15,7 @@ import {
   Users, 
   UserCog, 
   DollarSign,
+  Percent, // Import the Percent icon
 } from "lucide-react";
 
 
@@ -49,6 +50,12 @@ const standardReports: StandardReportLink[] = [
     description: "Visualize revenue streams, expense structures, profit margins, and cash flow dynamics.",
     href: "/analytics/financial-health-report",
     icon: DollarSign,
+  },
+  {
+    title: "Tax Implications Report",
+    description: "A comprehensive overview of taxes collected (Output Tax) and paid (Input Tax) across projects.",
+    href: "/analytics/tax-implications-report",
+    icon: Percent,
   },
 ];
 

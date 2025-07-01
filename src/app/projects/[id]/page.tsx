@@ -5,8 +5,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { Project, Client, Consultant, TaxRate, RevenueRecognitionRule, RecognizedRevenueEntry } from '@/lib/types';
-import { initialProjects, initialClients, initialConsultants, initialTaxRates, initialRevenueRecognitionRules, initialRecognizedRevenueEntries } from '@/lib/mockData';
+import type { Project, Client, Consultant, TaxRate, RevenueRecognitionRule, RecognizedRevenueEntry, Invoice, Expense, AppliedTaxInfo } from '@/lib/types';
+import { initialProjects, initialClients, initialConsultants, initialTaxRates, initialRevenueRecognitionRules, initialRecognizedRevenueEntries, initialInvoices, initialExpenses } from '@/lib/mockData';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   ArrowLeft, Briefcase, Users, UserCog, CalendarDays, Target, DollarSign, Paperclip, ListChecks, Tag, Info, Users2, Clock, Percent, Landmark as RevenueIcon
 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import RecognizedRevenueLogTable from '@/components/finances/revenue-recognition/recognized-revenue-log-table';
@@ -75,6 +76,19 @@ export default function ProjectProfilePage() {
   const projectRecognizedRevenue = useMemo(() => {
     if (!project) return [];
     return initialRecognizedRevenueEntries.filter(entry => entry.projectId === project.id);
+  }, [project]);
+
+  const projectTaxData = useMemo(() => {
+    if (!project) return { invoiceTaxes: [], expenseTaxes: [] };
+    const invoiceTaxes: AppliedTaxInfo[] = initialInvoices
+      .filter(inv => inv.projectId === project.id && inv.appliedTaxes)
+      .flatMap(inv => inv.appliedTaxes);
+    
+    const expenseTaxes: AppliedTaxInfo[] = initialExpenses
+      .filter(exp => exp.projectId === project.id && exp.appliedTaxes)
+      .flatMap(exp => exp.appliedTaxes);
+      
+    return { invoiceTaxes, expenseTaxes };
   }, [project]);
 
 
@@ -361,23 +375,38 @@ export default function ProjectProfilePage() {
             <TabsContent value="tax">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Percent className="h-5 w-5 text-primary"/>Applicable Tax Settings</CardTitle>
-                  <CardDescription>Default tax rates configured for this project. These may be used as defaults for invoicing.</CardDescription>
+                  <CardTitle className="flex items-center gap-2"><Percent className="h-5 w-5 text-primary"/>Tax Overview for {project.name}</CardTitle>
+                  <CardDescription>Default tax rates and summary of taxes applied to this project's invoices and expenses.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  {projectTaxRates.length > 0 ? (
-                    <ul className="space-y-2">
-                      {projectTaxRates.map(rate => (
-                        <li key={rate.id} className="p-3 border rounded-md bg-muted/20 text-sm">
-                          <p className="font-medium">{rate.description} ({rate.rate}%)</p>
-                          <p className="text-xs text-muted-foreground">{rate.taxTypeNameCache} - {rate.jurisdictionNameCache}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No specific tax rates configured for this project. System defaults or client jurisdiction may apply when invoicing.</p>
-                  )}
-                  <Button variant="outline" size="sm" className="mt-4" onClick={() => alert("Managing project-specific tax rates (overrides/additions) is under development. Configure general tax rates in Finances > Tax Management.")}>Manage Project Taxes</Button>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold text-md mb-2">Default Applicable Tax Rates</h4>
+                    {projectTaxRates.length > 0 ? (
+                      <ul className="space-y-2">
+                        {projectTaxRates.map(rate => (
+                          <li key={rate.id} className="p-3 border rounded-md bg-muted/20 text-sm">
+                            <p className="font-medium">{rate.description} ({rate.rate}%)</p>
+                            <p className="text-xs text-muted-foreground">{rate.taxTypeNameCache} - {rate.jurisdictionNameCache}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No specific tax rates configured for this project. System defaults may apply.</p>
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-md mb-2">Taxes from Invoices (Output Tax)</h4>
+                    {projectTaxData.invoiceTaxes.length > 0 ? (
+                        <div className="rounded-md border overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Tax Name</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader><TableBody>{projectTaxData.invoiceTaxes.map((tax, i) => <TableRow key={i}><TableCell>{tax.name}</TableCell><TableCell className="text-right font-medium text-green-600">${tax.amount.toLocaleString(undefined, {minimumFractionDigits:2})}</TableCell></TableRow>)}</TableBody></Table></div>
+                    ) : ( <p className="text-sm text-muted-foreground">No taxes recorded on invoices for this project yet.</p> )}
+                  </div>
+                   <div>
+                    <h4 className="font-semibold text-md mb-2">Taxes from Expenses (Input Tax)</h4>
+                    {projectTaxData.expenseTaxes.length > 0 ? (
+                        <div className="rounded-md border overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Tax Name</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader><TableBody>{projectTaxData.expenseTaxes.map((tax, i) => <TableRow key={i}><TableCell>{tax.name}</TableCell><TableCell className="text-right font-medium text-red-600">${tax.amount.toLocaleString(undefined, {minimumFractionDigits:2})}</TableCell></TableRow>)}</TableBody></Table></div>
+                    ) : ( <p className="text-sm text-muted-foreground">No taxes recorded on expenses for this project yet.</p> )}
+                  </div>
+                   <Button variant="outline" size="sm" className="mt-4" onClick={() => router.push('/analytics/tax-implications-report')}>View Full Tax Report</Button>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -408,5 +437,3 @@ export default function ProjectProfilePage() {
     </div>
   );
 }
-
-    

@@ -69,6 +69,7 @@ export const navLinks: NavLink[] = [
         { href: '/analytics/client-relationship-report', label: 'Client Relationships', icon: Users2 },
         { href: '/analytics/consultant-performance-report', label: 'Consultant Performance', icon: User },
         { href: '/analytics/financial-health-report', label: 'Financial Health', icon: DollarSign },
+        { href: '/analytics/tax-implications-report', label: 'Tax Implications', icon: Percent },
         { href: '/analytics/ai-insights', label: 'AI Insights', icon: Brain },
     ]
   },
@@ -147,5 +148,3 @@ export const EVENT_TYPE_CONFIG: Record<CalendarEventType, EventTypeConfig> = {
   'Holiday': { label: 'Holiday', color: 'bg-teal-500', textColor: 'text-white', borderColor: 'border-teal-700' },
   'Other': { label: 'Other', color: 'bg-pink-500', textColor: 'text-white', borderColor: 'border-pink-700' },
 };
-
-    
