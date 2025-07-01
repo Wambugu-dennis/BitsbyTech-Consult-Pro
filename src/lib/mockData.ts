@@ -1,4 +1,3 @@
-
 import type { Client, Consultant, Project, ProjectTask, Invoice, InvoiceItem, AppliedTaxInfo, Expense, Budget, BudgetStatus, BudgetType, CalendarEvent, ClientMeeting, RevenueData, SystemUser, SystemUserStatus, SystemRole, TaxJurisdiction, TaxType, TaxRate, TaxApplicableEntity, RevenueRecognitionRule, RevenueRecognitionMethod, RecognizedRevenueEntry, PaymentMethod } from "@/lib/types";
 import { PROJECT_STATUS } from "@/lib/constants";
 import { expenseCategories, budgetTypes, budgetStatuses, calendarEventTypes, systemUserStatuses, systemRoles, taxApplicableEntities, revenueRecognitionMethods } from "./types";
@@ -6,6 +5,94 @@ import { formatISO, addDays, subDays, addMonths, parseISO, getMonth, format } fr
 
 const today = new Date();
 const currentYear = today.getFullYear();
+
+// Tax Management Mock Data
+export const initialTaxJurisdictions: TaxJurisdiction[] = [
+  { id: 'jur-ke', name: 'Kenya', countryCode: 'KE', description: 'East African Nation', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'jur-us-ca', name: 'USA - California', countryCode: 'US', description: 'State of California, USA', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'jur-uk', name: 'United Kingdom', countryCode: 'GB', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'jur-us-tx', name: 'USA - Texas', countryCode: 'US', description: 'State of Texas, USA', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+];
+
+export const initialTaxTypes: TaxType[] = [
+  { id: 'type-vat', name: 'Value Added Tax', abbreviation: 'VAT', description: 'Consumption tax applied to goods and services.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'type-wht', name: 'Withholding Tax', abbreviation: 'WHT', description: 'Tax deducted at source from payments like dividends, interest, royalties.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'type-sales', name: 'Sales Tax', abbreviation: 'Sales', description: 'Tax on sale of goods and services, typically at point of sale.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'type-service', name: 'Service Tax', abbreviation: 'Service', description: 'Tax specifically on services rendered.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+];
+
+export const initialTaxRates: TaxRate[] = [
+  {
+    id: 'rate-ke-vat-std',
+    jurisdictionId: 'jur-ke',
+    jurisdictionNameCache: 'Kenya',
+    taxTypeId: 'type-vat',
+    taxTypeNameCache: 'Value Added Tax',
+    rate: 16,
+    description: 'Standard VAT rate for services in Kenya.',
+    startDate: '2020-01-01',
+    applicableTo: ['ServiceSales', 'InvoiceLineItem', 'GeneralExpense'],
+    isCompound: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rate-us-ca-sales',
+    jurisdictionId: 'jur-us-ca',
+    jurisdictionNameCache: 'USA - California',
+    taxTypeId: 'type-sales',
+    taxTypeNameCache: 'Sales Tax',
+    rate: 7.25,
+    description: 'California statewide sales tax rate. Local taxes may apply.',
+    startDate: '2017-01-01',
+    applicableTo: ['InvoiceLineItem', 'ServiceSales', 'GeneralExpense'],
+    isCompound: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rate-uk-vat-std',
+    jurisdictionId: 'jur-uk',
+    jurisdictionNameCache: 'United Kingdom',
+    taxTypeId: 'type-vat',
+    taxTypeNameCache: 'Value Added Tax',
+    rate: 20,
+    description: 'Standard VAT rate in the UK.',
+    startDate: '2011-01-04',
+    applicableTo: ['ServiceSales', 'InvoiceLineItem'],
+    isCompound: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rate-ke-wht-services',
+    jurisdictionId: 'jur-ke',
+    jurisdictionNameCache: 'Kenya',
+    taxTypeId: 'type-wht',
+    taxTypeNameCache: 'Withholding Tax',
+    rate: 5,
+    description: 'Withholding tax on consultancy and agency fees for residents.',
+    startDate: '2005-01-01',
+    applicableTo: ['ServiceSales'],
+    isCompound: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rate-us-tx-sales',
+    jurisdictionId: 'jur-us-tx',
+    jurisdictionNameCache: 'USA - Texas',
+    taxTypeId: 'type-sales',
+    taxTypeNameCache: 'Sales Tax',
+    rate: 6.25,
+    description: 'Texas state sales tax rate. Local taxes can add up to 2% more.',
+    startDate: '1990-01-01',
+    applicableTo: ['InvoiceLineItem'],
+    isCompound: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
 
 // Mock data for Clients
 export const initialClients: Client[] = [
@@ -292,95 +379,6 @@ export const initialProjects: Project[] = [
   }
 ];
 
-
-// Tax Management Mock Data
-export const initialTaxJurisdictions: TaxJurisdiction[] = [
-  { id: 'jur-ke', name: 'Kenya', countryCode: 'KE', description: 'East African Nation', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'jur-us-ca', name: 'USA - California', countryCode: 'US', description: 'State of California, USA', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'jur-uk', name: 'United Kingdom', countryCode: 'GB', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'jur-us-tx', name: 'USA - Texas', countryCode: 'US', description: 'State of Texas, USA', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
-
-export const initialTaxTypes: TaxType[] = [
-  { id: 'type-vat', name: 'Value Added Tax', abbreviation: 'VAT', description: 'Consumption tax applied to goods and services.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'type-wht', name: 'Withholding Tax', abbreviation: 'WHT', description: 'Tax deducted at source from payments like dividends, interest, royalties.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'type-sales', name: 'Sales Tax', abbreviation: 'Sales', description: 'Tax on sale of goods and services, typically at point of sale.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'type-service', name: 'Service Tax', abbreviation: 'Service', description: 'Tax specifically on services rendered.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
-
-export const initialTaxRates: TaxRate[] = [
-  {
-    id: 'rate-ke-vat-std',
-    jurisdictionId: 'jur-ke',
-    jurisdictionNameCache: 'Kenya',
-    taxTypeId: 'type-vat',
-    taxTypeNameCache: 'Value Added Tax',
-    rate: 16,
-    description: 'Standard VAT rate for services in Kenya.',
-    startDate: '2020-01-01',
-    applicableTo: ['ServiceSales', 'InvoiceLineItem', 'GeneralExpense'],
-    isCompound: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'rate-us-ca-sales',
-    jurisdictionId: 'jur-us-ca',
-    jurisdictionNameCache: 'USA - California',
-    taxTypeId: 'type-sales',
-    taxTypeNameCache: 'Sales Tax',
-    rate: 7.25,
-    description: 'California statewide sales tax rate. Local taxes may apply.',
-    startDate: '2017-01-01',
-    applicableTo: ['InvoiceLineItem', 'ServiceSales', 'GeneralExpense'],
-    isCompound: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'rate-uk-vat-std',
-    jurisdictionId: 'jur-uk',
-    jurisdictionNameCache: 'United Kingdom',
-    taxTypeId: 'type-vat',
-    taxTypeNameCache: 'Value Added Tax',
-    rate: 20,
-    description: 'Standard VAT rate in the UK.',
-    startDate: '2011-01-04',
-    applicableTo: ['ServiceSales', 'InvoiceLineItem'],
-    isCompound: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'rate-ke-wht-services',
-    jurisdictionId: 'jur-ke',
-    jurisdictionNameCache: 'Kenya',
-    taxTypeId: 'type-wht',
-    taxTypeNameCache: 'Withholding Tax',
-    rate: 5,
-    description: 'Withholding tax on consultancy and agency fees for residents.',
-    startDate: '2005-01-01',
-    applicableTo: ['ServiceSales'],
-    isCompound: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'rate-us-tx-sales',
-    jurisdictionId: 'jur-us-tx',
-    jurisdictionNameCache: 'USA - Texas',
-    taxTypeId: 'type-sales',
-    taxTypeNameCache: 'Sales Tax',
-    rate: 6.25,
-    description: 'Texas state sales tax rate. Local taxes can add up to 2% more.',
-    startDate: '1990-01-01',
-    applicableTo: ['InvoiceLineItem'],
-    isCompound: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-];
-
 // Modified generateInvoiceItems to be deterministic
 const generateInvoiceItems = (num: number, basePrice: number, seed: number = 1): { items: InvoiceItem[], subTotal: number } => {
   const items: InvoiceItem[] = [];
@@ -401,7 +399,6 @@ const generateInvoiceItems = (num: number, basePrice: number, seed: number = 1):
   }
   return { items, subTotal: parseFloat(subTotal.toFixed(2)) };
 };
-
 
 const createInvoiceWithTaxes = (
   id: string,
@@ -476,7 +473,6 @@ const createInvoiceWithTaxes = (
   };
 };
 
-
 const inv1Items = generateInvoiceItems(3, 1500, 1); // seed 1
 const inv2Items = generateInvoiceItems(2, 2500, 2); // seed 2
 const inv3Items = generateInvoiceItems(5, 1000, 3); // seed 3
@@ -488,7 +484,6 @@ export const initialInvoices: Invoice[] = [
   createInvoiceWithTaxes('INV-2024-003', initialClients[0], initialProjects.find(p => p.id === 'proj105'), 'Overdue', 35, inv3Items, ['rate-us-ca-sales']),
   createInvoiceWithTaxes('INV-2024-004', initialClients[3], undefined, 'Draft', 5, inv4Items, ['rate-ke-vat-std', 'rate-ke-wht-services']),
 ];
-
 
 export const initialBudgets: Budget[] = [
   {
@@ -650,7 +645,6 @@ export const initialExpenses: Expense[] = [
   },
 ];
 
-
 const previousYear = currentYear -1;
 export const financialHealthData: RevenueData[] = [
   { date: `${previousYear}-01-01`, actualRevenue: 50000, actualExpenses: 30000, month: 'Jan' },
@@ -738,7 +732,6 @@ export const initialSystemUsers: SystemUser[] = [
     reportsToUserNameCache: 'Alex Mercer (Super Admin)',
   }
 ];
-
 
 const revenueChartDataMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const historicalRevenueData: RevenueData[] = revenueChartDataMonths.slice(0,9).map((month, index) => ({

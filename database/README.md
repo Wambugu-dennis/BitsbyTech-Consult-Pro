@@ -10,10 +10,9 @@ This file contains the `CREATE TABLE` statements for all the tables in the datab
 
 1.  Make sure you have a MySQL server running.
 2.  Create a new database, ideally named `ConsultVista`.
-3.  Run the `schema.sql` script against your new database to create all the necessary tables and relationships.
+3.  Run the `schema.sql` script against your new new database to create all the necessary tables and relationships.
 
 Example command:
-
 ```sh
 mysql -u your_user -p ConsultVista < schema.sql
 ```

@@ -1,52 +1,55 @@
--- Consult Vista Database Schema
--- Version: 1.2
--- Description: A comprehensive schema for the Consult Vista application,
--- designed for MySQL. This version assumes a fresh installation 
+-- Consult Vista - MySQL Database Schema
+-- Version: 2.0
+-- Description: A comprehensive, relational schema for a fresh installation.
+-- This schema supports all application modules including detailed user management,
+-- project and client tracking, advanced financials, and a structured tax system.
 
--- =================================================================
--- Module: User & Access Control
--- =================================================================
+-- Create the database if it doesn't exist (optional, often done separately)
+-- CREATE DATABASE IF NOT EXISTS ConsultVista;
+-- USE ConsultVista;
 
--- System-level roles for users (e.g., Administrator, Project Manager).
+--
+-- Core User & Access Control Tables
+--
+
+-- Roles for users (e.g., Administrator, Project Manager)
 CREATE TABLE `roles` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `name` VARCHAR(50) NOT NULL UNIQUE,
-  `description` TEXT,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `name` VARCHAR(255) NOT NULL UNIQUE,
+  `description` TEXT
 );
 
--- Core user accounts table.
+-- Users of the system
 CREATE TABLE `users` (
-  `id` VARCHAR(36) PRIMARY KEY, -- Using UUIDs for users
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `email` VARCHAR(255) NOT NULL UNIQUE,
   `password_hash` VARCHAR(255) NOT NULL,
   `avatar_url` VARCHAR(255),
-  `role_id` INT,
-  `reports_to_user_id` VARCHAR(36), -- Self-referencing FK for hierarchy
-  `status` ENUM('Active', 'Inactive', 'Invited', 'Suspended') NOT NULL DEFAULT 'Invited',
-  `two_factor_secret` VARCHAR(255),
+  `role_id` INT NOT NULL,
+  `reports_to_user_id` INT,
+  `status` ENUM('Active', 'Invited', 'Inactive', 'Suspended') NOT NULL DEFAULT 'Invited',
   `last_login` TIMESTAMP NULL,
   `password_last_changed_at` TIMESTAMP NULL,
+  `two_factor_secret` VARCHAR(255),
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`role_id`) REFERENCES `roles`(`id`),
-  FOREIGN KEY (`reports_to_user_id`) REFERENCES `users`(`id`)
+  FOREIGN KEY (`reports_to_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 );
 
--- User sessions for tracking active logins.
+-- Active user sessions for security management
 CREATE TABLE `sessions` (
   `id` VARCHAR(255) PRIMARY KEY,
-  `user_id` VARCHAR(36) NOT NULL,
+  `user_id` INT NOT NULL,
+  `device_info` VARCHAR(255),
   `ip_address` VARCHAR(45),
-  `user_agent` TEXT,
   `last_active` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
 
--- Secure password reset tokens.
+-- Password reset tokens
 CREATE TABLE `password_reset_tokens` (
   `email` VARCHAR(255) PRIMARY KEY,
   `token` VARCHAR(255) NOT NULL,
@@ -54,15 +57,16 @@ CREATE TABLE `password_reset_tokens` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Granular permissions that can be assigned.
+-- System-wide permissions that can be assigned to roles
 CREATE TABLE `permissions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `name` VARCHAR(255) NOT NULL UNIQUE, -- e.g., 'projects.create', 'invoices.delete'
+  `action` VARCHAR(255) NOT NULL,
+  `module` VARCHAR(255) NOT NULL,
   `description` TEXT,
-  `category` VARCHAR(100) -- e.g., 'Projects', 'Finances'
+  UNIQUE KEY `unique_permission` (`action`, `module`)
 );
 
--- Join table for roles and permissions (Many-to-Many).
+-- Join table for roles and their permissions (Many-to-Many)
 CREATE TABLE `role_permissions` (
   `role_id` INT NOT NULL,
   `permission_id` INT NOT NULL,
@@ -71,66 +75,166 @@ CREATE TABLE `role_permissions` (
   FOREIGN KEY (`permission_id`) REFERENCES `permissions`(`id`) ON DELETE CASCADE
 );
 
--- Allows overriding role permissions for specific users.
+-- User-specific permission overrides (for exceptions)
 CREATE TABLE `user_permission_overrides` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `user_id` VARCHAR(36) NOT NULL,
-  `permission_id` INT NOT NULL,
-  `has_permission` BOOLEAN NOT NULL, -- true for grant, false for deny
-  UNIQUE (`user_id`, `permission_id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`permission_id`) REFERENCES `permissions`(`id`) ON DELETE CASCADE
-);
-
--- Comprehensive audit trail for critical system events.
-CREATE TABLE `audit_logs` (
-  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-  `user_id` VARCHAR(36), -- Can be NULL for system events
-  `action` VARCHAR(255) NOT NULL,
-  `target_entity_type` VARCHAR(100), -- e.g., 'Project', 'User'
-  `target_entity_id` VARCHAR(255),
-  `details` JSON, -- Store before/after states
-  `ip_address` VARCHAR(45),
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `permission_id` INT NOT NULL,
+    `has_permission` BOOLEAN NOT NULL,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`permission_id`) REFERENCES `permissions`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `user_permission_override` (`user_id`, `permission_id`)
 );
 
 
--- =================================================================
--- Module: Financial Configuration (Taxes)
--- =================================================================
+--
+-- Client & Project Management Tables
+--
 
--- Defines tax jurisdictions (countries, states, etc.).
+-- Tax jurisdictions for clients and projects
 CREATE TABLE `tax_jurisdictions` (
-  `id` VARCHAR(50) PRIMARY KEY,
-  `name` VARCHAR(255) NOT NULL,
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(255) NOT NULL UNIQUE,
   `country_code` VARCHAR(10),
   `description` TEXT,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Defines types of taxes (e.g., VAT, Sales Tax).
-CREATE TABLE `tax_types` (
-  `id` VARCHAR(50) PRIMARY KEY,
+-- Client companies
+CREATE TABLE `clients` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `company_name` VARCHAR(255) NOT NULL,
+  `industry` VARCHAR(255),
+  `website` VARCHAR(255),
+  `logo_url` VARCHAR(255),
+  `address_street` VARCHAR(255),
+  `address_city` VARCHAR(255),
+  `address_state` VARCHAR(255),
+  `address_zip` VARCHAR(50),
+  `address_country` VARCHAR(255),
+  `client_tier` ENUM('Strategic', 'Key', 'Standard', 'Other'),
+  `status` ENUM('Active', 'Inactive', 'Prospect') NOT NULL DEFAULT 'Prospect',
+  `credit_rating` ENUM('Excellent', 'Good', 'Fair', 'Poor'),
+  `notes` TEXT,
+  `jurisdiction_id` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`jurisdiction_id`) REFERENCES `tax_jurisdictions`(`id`)
+);
+
+-- Key contacts for each client
+CREATE TABLE `key_contacts` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `client_id` INT NOT NULL,
   `name` VARCHAR(255) NOT NULL,
+  `role` VARCHAR(255),
+  `email` VARCHAR(255),
+  `phone` VARCHAR(50),
+  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE
+);
+
+-- Projects for clients
+CREATE TABLE `projects` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(255) NOT NULL,
+  `description` TEXT,
+  `client_id` INT NOT NULL,
+  `project_manager_id` INT NOT NULL,
+  `status` ENUM('To Do', 'In Progress', 'Done', 'On Hold', 'Cancelled') NOT NULL DEFAULT 'To Do',
+  `priority` ENUM('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
+  `start_date` DATE NOT NULL,
+  `end_date` DATE NOT NULL,
+  `actual_end_date` DATE,
+  `budget` DECIMAL(12, 2),
+  `currency` VARCHAR(3) DEFAULT 'USD',
+  `billing_type` ENUM('Fixed Price', 'Time & Materials', 'Retainer'),
+  `hourly_rate` DECIMAL(10,2),
+  `completion_percent` TINYINT DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`project_manager_id`) REFERENCES `users`(`id`)
+);
+
+-- Project team members (Many-to-Many join table)
+CREATE TABLE `project_team_members` (
+  `project_id` INT NOT NULL,
+  `user_id` INT NOT NULL,
+  PRIMARY KEY (`project_id`, `user_id`),
+  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+);
+
+-- Tags for projects or other entities
+CREATE TABLE `tags` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE `project_tags` (
+    `project_id` INT NOT NULL,
+    `tag_id` INT NOT NULL,
+    PRIMARY KEY (`project_id`, `tag_id`),
+    FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`) ON DELETE CASCADE
+);
+
+-- Project milestones
+CREATE TABLE `project_milestones` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `project_id` INT NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `description` TEXT,
+  `due_date` DATE NOT NULL,
+  `status` ENUM('Pending', 'In Progress', 'Completed', 'Delayed', 'At Risk') NOT NULL DEFAULT 'Pending',
+  `completion_date` DATE,
+  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE CASCADE
+);
+
+-- Individual tasks within a project
+CREATE TABLE `project_tasks` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `project_id` INT NOT NULL,
+  `milestone_id` INT,
+  `assignee_user_id` INT,
+  `title` VARCHAR(255) NOT NULL,
+  `description` TEXT,
+  `status` ENUM('To Do', 'In Progress', 'Done') NOT NULL DEFAULT 'To Do',
+  `priority` ENUM('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
+  `due_date` DATE,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `completed_at` TIMESTAMP,
+  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`milestone_id`) REFERENCES `project_milestones`(`id`) ON DELETE SET NULL,
+  FOREIGN KEY (`assignee_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+);
+
+--
+-- Financial & Tax Tables
+--
+
+-- Tax types (e.g., VAT, Sales Tax, WHT)
+CREATE TABLE `tax_types` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(255) NOT NULL UNIQUE,
   `abbreviation` VARCHAR(20),
   `description` TEXT,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Defines specific tax rates for a jurisdiction and type.
+-- Tax rates combining jurisdiction, type, and rate details
 CREATE TABLE `tax_rates` (
-  `id` VARCHAR(50) PRIMARY KEY,
-  `jurisdiction_id` VARCHAR(50) NOT NULL,
-  `tax_type_id` VARCHAR(50) NOT NULL,
-  `rate` DECIMAL(10, 4) NOT NULL,
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `jurisdiction_id` INT NOT NULL,
+  `tax_type_id` INT NOT NULL,
+  `rate` DECIMAL(5, 2) NOT NULL,
   `description` VARCHAR(255) NOT NULL,
   `start_date` DATE NOT NULL,
   `end_date` DATE,
-  `is_compound` BOOLEAN DEFAULT FALSE,
-  `applicable_to` JSON, -- Store array of strings like ['InvoiceLineItem', 'ServiceSales']
+  `is_compound` BOOLEAN NOT NULL DEFAULT FALSE,
+  `applicable_to` JSON, -- Store an array like ["InvoiceLineItem", "Expense"]
   `notes` TEXT,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -138,273 +242,170 @@ CREATE TABLE `tax_rates` (
   FOREIGN KEY (`tax_type_id`) REFERENCES `tax_types`(`id`)
 );
 
--- Defines rules for when revenue should be recognized.
-CREATE TABLE `revenue_recognition_rules` (
-  `id` VARCHAR(50) PRIMARY KEY,
+-- Budgets for projects or departments
+CREATE TABLE `budgets` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
-  `method` ENUM('OnInvoicePaid', 'PercentageOfCompletion', 'MilestoneBased', 'SubscriptionBased', 'Manual') NOT NULL,
-  `description` TEXT,
-  `criteria_description` TEXT,
-  `is_active` BOOLEAN DEFAULT TRUE,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
-
--- =================================================================
--- Module: Core Business (Clients & Projects)
--- =================================================================
-
--- Main table for client companies.
-CREATE TABLE `clients` (
-  `id` VARCHAR(36) PRIMARY KEY,
-  `company_name` VARCHAR(255) NOT NULL,
-  `industry` VARCHAR(255),
-  `website` VARCHAR(255),
-  `logo_url` VARCHAR(255),
-  `address_street` VARCHAR(255),
-  `address_city` VARCHAR(100),
-  `address_state` VARCHAR(100),
-  `address_zip` VARCHAR(20),
-  `address_country` VARCHAR(100),
-  `client_tier` ENUM('Strategic', 'Key', 'Standard', 'Other'),
-  `status` ENUM('Active', 'Inactive', 'Prospect') NOT NULL,
-  `satisfaction_score` INT,
-  `credit_rating` ENUM('Excellent', 'Good', 'Fair', 'Poor'),
-  `notes` TEXT,
-  `jurisdiction_id` VARCHAR(50), -- FK to tax_jurisdictions for default taxes
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`jurisdiction_id`) REFERENCES `tax_jurisdictions`(`id`)
-);
-
--- Key contact persons for each client.
-CREATE TABLE `key_contacts` (
-  `id` VARCHAR(36) PRIMARY KEY,
-  `client_id` VARCHAR(36) NOT NULL,
-  `name` VARCHAR(255) NOT NULL,
-  `role` VARCHAR(255),
-  `email` VARCHAR(255) UNIQUE,
-  `phone` VARCHAR(50),
-  `is_primary` BOOLEAN DEFAULT FALSE,
-  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE
-);
-
--- Logs of interactions with clients.
-CREATE TABLE `communication_logs` (
-  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-  `client_id` VARCHAR(36) NOT NULL,
-  `user_id` VARCHAR(36),
-  `date` TIMESTAMP NOT NULL,
-  `type` ENUM('Email', 'Call', 'Meeting', 'Note') NOT NULL,
-  `summary` TEXT NOT NULL,
-  `participants` JSON, -- Store array of names
-  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
-);
-
--- Main table for projects.
-CREATE TABLE `projects` (
-  `id` VARCHAR(36) PRIMARY KEY,
-  `name` VARCHAR(255) NOT NULL,
-  `description` TEXT,
-  `client_id` VARCHAR(36) NOT NULL,
-  `project_manager_id` VARCHAR(36),
-  `status` ENUM('To Do', 'In Progress', 'Done', 'On Hold', 'Cancelled') NOT NULL,
-  `priority` ENUM('High', 'Medium', 'Low') NOT NULL,
+  `type` ENUM('Project', 'Departmental', 'General') NOT NULL,
+  `project_id` INT,
+  `department_name` VARCHAR(255),
+  `total_amount` DECIMAL(12, 2) NOT NULL,
+  `currency` VARCHAR(3) NOT NULL,
   `start_date` DATE NOT NULL,
   `end_date` DATE NOT NULL,
-  `actual_end_date` DATE,
-  `budget` DECIMAL(15, 2),
-  `currency` VARCHAR(3) DEFAULT 'USD',
-  `billing_type` ENUM('Fixed Price', 'Time & Materials', 'Retainer'),
-  `hourly_rate` DECIMAL(10, 2),
-  `completion_percent` INT DEFAULT 0,
-  `revenue_recognition_rule_id` VARCHAR(50),
+  `status` ENUM('Planning', 'Active', 'Overspent', 'Completed', 'On Hold') NOT NULL DEFAULT 'Planning',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`),
-  FOREIGN KEY (`project_manager_id`) REFERENCES `users`(`id`),
-  FOREIGN KEY (`revenue_recognition_rule_id`) REFERENCES `revenue_recognition_rules`(`id`)
-);
-
--- Join table for project team members (Many-to-Many).
-CREATE TABLE `project_team_members` (
-  `project_id` VARCHAR(36) NOT NULL,
-  `user_id` VARCHAR(36) NOT NULL,
-  PRIMARY KEY (`project_id`, `user_id`),
-  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
-);
-
--- Key milestones for each project.
-CREATE TABLE `project_milestones` (
-  `id` VARCHAR(36) PRIMARY KEY,
-  `project_id` VARCHAR(36) NOT NULL,
-  `name` VARCHAR(255) NOT NULL,
-  `description` TEXT,
-  `due_date` DATE NOT NULL,
-  `status` ENUM('Pending', 'In Progress', 'Completed', 'Delayed', 'At Risk') NOT NULL,
   FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE CASCADE
 );
 
--- Individual tasks within a project.
-CREATE TABLE `project_tasks` (
-  `id` VARCHAR(36) PRIMARY KEY,
-  `project_id` VARCHAR(36) NOT NULL,
-  `assignee_user_id` VARCHAR(36),
-  `title` VARCHAR(255) NOT NULL,
-  `description` TEXT,
-  `status` ENUM('To Do', 'In Progress', 'Done') NOT NULL,
-  `priority` ENUM('High', 'Medium', 'Low'),
-  `due_date` DATE,
-  `completed_at` TIMESTAMP,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`assignee_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
-);
-
-
--- =================================================================
--- Module: Financial Transactions
--- =================================================================
-
--- Main table for invoices.
-CREATE TABLE `invoices` (
-  `id` VARCHAR(50) PRIMARY KEY,
-  `client_id` VARCHAR(36) NOT NULL,
-  `project_id` VARCHAR(36),
-  `issue_date` DATE NOT NULL,
-  `due_date` DATE NOT NULL,
-  `subtotal` DECIMAL(15, 2) NOT NULL,
-  `tax_amount` DECIMAL(15, 2) NOT NULL,
-  `total_amount` DECIMAL(15, 2) NOT NULL,
-  `status` ENUM('Draft', 'Sent', 'Paid', 'Overdue', 'Void') NOT NULL,
-  `currency` VARCHAR(3) NOT NULL,
-  `notes` TEXT,
-  `payment_details` TEXT,
-  `payment_method` VARCHAR(50),
-  `payment_date` DATE,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`),
-  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`)
-);
-
--- Individual line items for each invoice.
-CREATE TABLE `invoice_items` (
-  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-  `invoice_id` VARCHAR(50) NOT NULL,
-  `description` TEXT NOT NULL,
-  `quantity` DECIMAL(10, 2) NOT NULL,
-  `unit_price` DECIMAL(15, 2) NOT NULL,
-  `total_price` DECIMAL(15, 2) NOT NULL,
-  `tax_amount_for_item` DECIMAL(15, 2),
-  FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON DELETE CASCADE
-);
-
--- Tracks expenses related to projects or general operations.
+-- Expenses
 CREATE TABLE `expenses` (
-  `id` VARCHAR(36) PRIMARY KEY,
-  `submitted_by_user_id` VARCHAR(36),
-  `project_id` VARCHAR(36),
-  `client_id` VARCHAR(36),
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `submitted_by_user_id` INT NOT NULL,
+  `project_id` INT,
+  `client_id` INT,
+  `budget_id` INT,
   `date` DATE NOT NULL,
   `description` TEXT NOT NULL,
-  `amount` DECIMAL(15, 2) NOT NULL,
-  `tax_amount` DECIMAL(15, 2),
-  `total_amount_including_tax` DECIMAL(15, 2) NOT NULL,
+  `amount` DECIMAL(10, 2) NOT NULL,
+  `tax_amount` DECIMAL(10, 2) DEFAULT 0.00,
   `currency` VARCHAR(3) NOT NULL,
-  `category` VARCHAR(100),
-  `status` ENUM('Pending', 'Approved', 'Rejected') NOT NULL,
-  `approved_by_user_id` VARCHAR(36),
+  `category` VARCHAR(255),
+  `status` ENUM('Pending', 'Approved', 'Rejected') NOT NULL DEFAULT 'Pending',
+  `approved_by_user_id` INT,
   `approved_date` DATE,
   `notes` TEXT,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`submitted_by_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
-  FOREIGN KEY (`approved_by_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  FOREIGN KEY (`submitted_by_user_id`) REFERENCES `users`(`id`),
   FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`),
-  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`)
+  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`),
+  FOREIGN KEY (`budget_id`) REFERENCES `budgets`(`id`),
+  FOREIGN KEY (`approved_by_user_id`) REFERENCES `users`(`id`)
 );
 
--- Table to log recognized revenue transactions.
-CREATE TABLE `recognized_revenue_entries` (
-  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-  `project_id` VARCHAR(36),
-  `invoice_id` VARCHAR(50),
-  `date_recognized` DATE NOT NULL,
-  `amount_recognized` DECIMAL(15, 2) NOT NULL,
+-- Invoices
+CREATE TABLE `invoices` (
+  `id` VARCHAR(255) PRIMARY KEY,
+  `client_id` INT NOT NULL,
+  `project_id` INT,
+  `issue_date` DATE NOT NULL,
+  `due_date` DATE NOT NULL,
+  `subtotal` DECIMAL(12, 2) NOT NULL,
+  `tax_amount` DECIMAL(12, 2) DEFAULT 0.00,
+  `total_amount` DECIMAL(12, 2) NOT NULL,
+  `status` ENUM('Draft', 'Sent', 'Paid', 'Overdue', 'Void') NOT NULL DEFAULT 'Draft',
   `currency` VARCHAR(3) NOT NULL,
-  `recognition_rule_id` VARCHAR(50),
+  `payment_method` VARCHAR(255),
+  `payment_date` DATE,
   `notes` TEXT,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`),
-  FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`),
-  FOREIGN KEY (`recognition_rule_id`) REFERENCES `revenue_recognition_rules`(`id`)
-);
-
-
--- =================================================================
--- Module: Generic & Supporting Tables
--- =================================================================
-
--- Centralized table for file attachments.
-CREATE TABLE `attachments` (
-  `id` VARCHAR(36) PRIMARY KEY,
-  `file_name` VARCHAR(255) NOT NULL,
-  `file_type` VARCHAR(100),
-  `file_size_bytes` INT,
-  `storage_url` TEXT NOT NULL,
-  `uploaded_by_user_id` VARCHAR(36),
-  `related_entity_type` VARCHAR(50) NOT NULL, -- e.g., 'project', 'expense', 'client'
-  `related_entity_id` VARCHAR(255) NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX `idx_attachments_related_entity` (`related_entity_type`, `related_entity_id`),
-  FOREIGN KEY (`uploaded_by_user_id`) REFERENCES `users`(`id`)
-);
-
--- Table for tags (used for projects, clients, etc.).
-CREATE TABLE `tags` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `name` VARCHAR(50) NOT NULL UNIQUE
-);
-
--- Join table for projects and tags (Many-to-Many).
-CREATE TABLE `project_tags` (
-  `project_id` VARCHAR(36) NOT NULL,
-  `tag_id` INT NOT NULL,
-  PRIMARY KEY (`project_id`, `tag_id`),
-  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`) ON DELETE CASCADE
-);
-
--- Main table for calendar events.
-CREATE TABLE `events` (
-  `id` VARCHAR(36) PRIMARY KEY,
-  `title` VARCHAR(255) NOT NULL,
-  `description` TEXT,
-  `start_time` TIMESTAMP NOT NULL,
-  `end_time` TIMESTAMP,
-  `is_all_day` BOOLEAN DEFAULT FALSE,
-  `type` ENUM('Project Milestone', 'Project Deadline', 'Client Meeting', 'Consultant Assignment', 'General Task', 'Holiday', 'Other') NOT NULL,
-  `created_by_user_id` VARCHAR(36),
-  `client_id` VARCHAR(36),
-  `project_id` VARCHAR(36),
-  `location` VARCHAR(255),
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`created_by_user_id`) REFERENCES `users`(`id`),
   FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`),
   FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`)
 );
 
--- Join table for event attendees (users).
-CREATE TABLE `event_attendees` (
-    `event_id` VARCHAR(36) NOT NULL,
-    `user_id` VARCHAR(36) NOT NULL,
-    PRIMARY KEY (`event_id`, `user_id`),
-    FOREIGN KEY (`event_id`) REFERENCES `events`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+-- Line items for invoices
+CREATE TABLE `invoice_items` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `invoice_id` VARCHAR(255) NOT NULL,
+  `description` TEXT NOT NULL,
+  `quantity` DECIMAL(10, 2) NOT NULL,
+  `unit_price` DECIMAL(10, 2) NOT NULL,
+  `total_price` DECIMAL(12, 2) NOT NULL,
+  FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON DELETE CASCADE
+);
+
+-- Applied taxes for both invoice items and expenses (polymorphic-style)
+CREATE TABLE `applied_taxes` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `tax_rate_id` INT NOT NULL,
+    `related_entity_type` ENUM('invoice_item', 'expense') NOT NULL,
+    `related_entity_id` INT NOT NULL,
+    `applied_amount` DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (`tax_rate_id`) REFERENCES `tax_rates`(`id`)
+);
+
+
+--
+-- General Application & System Tables
+--
+
+-- Attachments (Polymorphic: can be linked to projects, expenses, etc.)
+CREATE TABLE `attachments` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `file_name` VARCHAR(255) NOT NULL,
+  `file_type` VARCHAR(100),
+  `file_size` INT, -- in bytes
+  `storage_path` VARCHAR(255) NOT NULL UNIQUE, -- URL or S3 key
+  `related_entity_type` ENUM('project', 'expense', 'client') NOT NULL,
+  `related_entity_id` INT NOT NULL,
+  `uploaded_by_user_id` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`uploaded_by_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+);
+
+-- Communication logs with clients
+CREATE TABLE `communication_logs` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `client_id` INT NOT NULL,
+  `user_id` INT,
+  `date` TIMESTAMP NOT NULL,
+  `type` ENUM('Email', 'Call', 'Meeting', 'Note') NOT NULL,
+  `summary` TEXT,
+  `participants` TEXT, -- For simplicity; could be a JSON or separate table
+  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+);
+
+-- Calendar events
+CREATE TABLE `events` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `title` VARCHAR(255) NOT NULL,
+    `start_time` TIMESTAMP NOT NULL,
+    `end_time` TIMESTAMP,
+    `is_all_day` BOOLEAN DEFAULT FALSE,
+    `description` TEXT,
+    `type` VARCHAR(255), -- Corresponds to CalendarEventType from types.ts
+    `created_by_user_id` INT,
+    `project_id` INT,
+    `client_id` INT,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`created_by_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE
+);
+
+-- Audit logs for important system activities
+CREATE TABLE `audit_logs` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT, -- Nullable for system-generated events
+  `action` VARCHAR(255) NOT NULL,
+  `module` VARCHAR(255),
+  `details` TEXT,
+  `ip_address` VARCHAR(45),
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+);
+
+-- Storing results from AI features
+CREATE TABLE `risk_analyses` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `request_payload` JSON,
+  `risk_score` INT,
+  `risk_factors_summary` TEXT,
+  `analyzed_by_user_id` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`analyzed_by_user_id`) REFERENCES `users`(`id`)
+);
+
+CREATE TABLE `business_insights` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `context_query` TEXT,
+  `insight_response` JSON,
+  `generated_by_user_id` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`generated_by_user_id`) REFERENCES `users`(`id`)
 );

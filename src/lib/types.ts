@@ -1,4 +1,3 @@
-
 import type { PROJECT_STATUS } from './constants';
 
 export type Kpi = {
@@ -15,11 +14,10 @@ export type ProjectStatusValue = typeof PROJECT_STATUS[ProjectStatusKey];
 // Represents a DB record in `project_tasks`
 export type ProjectTask = {
   id: string;
-  projectId: string; // FK to projects.id
-  assigneeUserId?: string; // FK to users.id
   title: string;
   description?: string;
   status: ProjectStatusValue;
+  assigneeId?: string; // FK to users.id
   priority?: 'High' | 'Medium' | 'Low';
   dueDate?: string; // ISO Date string
   createdAt?: string;
@@ -29,7 +27,6 @@ export type ProjectTask = {
 // Represents a DB record in `project_milestones`
 export type Milestone = {
   id: string;
-  projectId: string; // FK to projects.id
   name: string;
   description?: string;
   dueDate: string; // ISO Date string
@@ -40,13 +37,9 @@ export type Milestone = {
 export type Attachment = {
   id: string;
   fileName: string;
+  url: string; // The URL from cloud storage
   fileType?: string;
-  fileSizeBytes?: number;
-  storagePath: string; // URL or identifier for cloud storage
-  uploadedByUserId?: string; // FK to users.id
-  relatedEntityType: 'project' | 'expense' | 'client';
-  relatedEntityId: string;
-  createdAt: string; // ISO Date string
+  uploadedAt?: string;
 };
 
 export type ProjectFinancials = {
@@ -66,6 +59,7 @@ export type Project = {
   clientNameCache?: string;
   projectManagerId: string;
   projectManagerNameCache?: string;
+  teamMemberIds?: string[];
   status: ProjectStatusValue;
   priority: 'High' | 'Medium' | 'Low';
   startDate: string; // ISO Date string
@@ -75,12 +69,13 @@ export type Project = {
   lastUpdated: string;
   completionPercent?: number;
 
-  // The following would be fetched via separate queries, not stored on the project object itself
-  // teamMemberIds?: string[];
-  // milestones?: Milestone[];
-  // tasks?: ProjectTask[];
-  // tags?: string[];
-  // attachments?: Attachment[];
+  // These would be fetched via separate queries, not stored on the project object itself
+  milestones?: Milestone[];
+  tasks?: ProjectTask[];
+  tags?: string[];
+  attachments?: Attachment[];
+  applicableTaxRateIds?: string[];
+  revenueRecognitionRuleId?: string;
 };
 
 
@@ -95,7 +90,6 @@ export type Address = {
 // Represents a DB record in `key_contacts`
 export type KeyContact = {
   id: string;
-  clientId: string; // FK
   name:string;
   role: string;
   email: string;
@@ -119,13 +113,21 @@ export type ClientFinancialSummary = {
 // Represents a DB record in `communication_logs`
 export type CommunicationLog = {
   id: string;
-  clientId: string; // FK
-  userId?: string; // FK
   date: string;
   type: 'Email' | 'Call' | 'Meeting' | 'Note';
   summary: string;
   participants?: string[]; // Could be a simple text field or a link to a participants table
+  relatedProjectId?: string;
 };
+
+export type CalendarEventType =
+  | 'Project Milestone'
+  | 'Project Deadline'
+  | 'Client Meeting'
+  | 'Consultant Assignment'
+  | 'General Task'
+  | 'Holiday'
+  | 'Other';
 
 // Represents a DB record in `events`
 export type CalendarEvent = {
@@ -134,12 +136,25 @@ export type CalendarEvent = {
   start: Date; // Keep as Date object for component
   end?: Date;
   allDay?: boolean;
-  type: 'Project Milestone' | 'Project Deadline' | 'Client Meeting' | 'Consultant Assignment' | 'General Task' | 'Holiday' | 'Other';
+  type: CalendarEventType;
   description?: string;
-  // Links to other entities in the DB
-  created_by_user_id?: string;
-  client_id?: string;
-  project_id?: string;
+  source: 'project' | 'client' | 'consultant' | 'general';
+  sourceId: string;
+  relatedLink?: string;
+  attendees?: string[];
+  location?: string;
+};
+
+export type ClientMeeting = {
+    id?: string;
+    title: string;
+    date: string;
+    time?: string;
+    endDate?: string;
+    endTime?: string;
+    description?: string;
+    attendees?: string[];
+    location?: string;
 };
 
 export type ClientCreditRating = 'Excellent' | 'Good' | 'Fair' | 'Poor';
@@ -161,9 +176,12 @@ export type Client = {
   jurisdictionId?: string; // FK to tax_jurisdictions
   
   // Fetched via separate queries
-  // keyContacts: KeyContact[]; 
-  // communicationLogs?: CommunicationLog[];
-  // linkedProjectIds?: string[];
+  keyContacts: KeyContact[]; 
+  communicationLogs?: CommunicationLog[];
+  linkedProjectIds?: string[];
+  meetings?: ClientMeeting[];
+  lastContact?: string;
+  financialSummary?: ClientFinancialSummary;
 };
 
 // The following types remain largely the same but are now understood
@@ -175,6 +193,9 @@ export type RevenueData = {
   actualRevenue?: number;
   actualExpenses?: number;
   forecastedRevenue?: number;
+  forecastedExpensesValue?: number; // Added for consistency
+  isRevenueForecasted?: boolean;
+  isExpensesForecasted?: boolean;
 };
 
 export type ProjectStatusData = {
@@ -200,6 +221,7 @@ export type Consultant = {
   utilization: number; // This would be calculated, not stored directly
   status: ConsultantStatus; // Calculated from project assignments
   currentProject?: string; // Calculated
+  currentProjectNameCache?: string; // For display
   bio?: string;
   avatarUrl?: string;
   phone?: string;
@@ -212,7 +234,7 @@ export interface AppliedTaxInfo {
   amount: number;
   jurisdiction?: string;
   taxTypeName?: string;
-  isCompound?: boolean;
+  isCompound: boolean;
 }
 
 export interface RecognizedRevenueEntry {
