@@ -10,6 +10,7 @@ import {
   CalendarClock,
   DownloadCloud,
   Brain,
+  FileDown,
 } from "lucide-react";
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
@@ -258,14 +259,14 @@ export default function AdvancedReporting() {
                   )}
               </Button>
           </div>
-          {generatedCustomChart && (
+           {generatedCustomChart && (
             <div className="mt-4 p-4 border rounded-lg bg-card shadow-sm w-full">
               <h5 className="text-md font-semibold mb-3 text-center text-primary">Generated Custom Visualization:</h5>
               {generatedCustomChart}
             </div>
           )}
           {!generatedCustomChart && !isGeneratingCustomChart && (
-              <div className="mt-4 p-6 border-2 border-dashed rounded-lg text-center text-muted-foreground bg-muted/30">
+              <div className="mt-6 p-6 border-2 border-dashed rounded-lg text-center text-muted-foreground bg-muted/30">
                   <p className="text-sm">Your custom visualization will appear here. Select a data source and chart type, then click "Generate Visualization".</p>
               </div>
           )}
